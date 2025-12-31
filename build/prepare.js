@@ -36,6 +36,7 @@ const compilerOptionsBase = {
     experimentalDecorators: true,
     // emitDecoratorMetadata: true,
     incremental: true,
+    types: ['node'],
 };
 const baseOutDir = path.resolve(__dirname, '../.cache/ts-out');
 const config = {
@@ -72,7 +73,6 @@ const configFlat = (name) => ({
         paths: {
             'vj/*': ['../../packages/ui-default/*'],
         },
-        types: ['node'],
     },
     include: ['**/*.ts', '**/*.tsx'],
     exclude,
