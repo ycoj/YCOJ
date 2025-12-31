@@ -3,14 +3,22 @@ const path = require('path');
 const child = require('child_process');
 
 if (process.env.npm_execpath?.includes('yarn')) {
-    if (fs.existsSync('plugins/patch-package/package.json') && fs.existsSync('node_modules/patch-package/package.json')) {
-        child.execSync('npx patch-package --patch-dir=plugins/patch-package/patches', { stdio: 'inherit' });
+    if (
+        fs.existsSync('plugins/patch-package/package.json')
+        && fs.existsSync('node_modules/patch-package/package.json')
+    ) {
+        child.execSync(
+            'npx patch-package --patch-dir=plugins/patch-package/patches',
+            { stdio: 'inherit' },
+        );
     }
 }
 
 const withoutTypes = (data) => ({
     ...data,
-    compilerOptions: Object.fromEntries(Object.entries(data.compilerOptions).filter(([k]) => k !== 'types')),
+    compilerOptions: Object.fromEntries(
+        Object.entries(data.compilerOptions).filter(([k]) => k !== 'types'),
+    ),
 });
 
 /** @type {import('typescript/lib/typescript').CompilerOptions} */
@@ -39,7 +47,14 @@ const config = {
     ],
     files: [],
 };
-const exclude = ['**/public', '**/frontend', '**/node_modules', '**/bin', '**/dist', '**/__mocks__'];
+const exclude = [
+    '**/public',
+    '**/frontend',
+    '**/node_modules',
+    '**/bin',
+    '**/dist',
+    '**/__mocks__',
+];
 const configSrc = (name) => ({
     compilerOptions: {
         ...compilerOptionsBase,
@@ -55,10 +70,9 @@ const configFlat = (name) => ({
         outDir: path.join(baseOutDir, name),
         rootDir: '.',
         paths: {
-            'vj/*': [
-                '../../packages/ui-default/*',
-            ],
+            'vj/*': ['../../packages/ui-default/*'],
         },
+        types: ['node'],
     },
     include: ['**/*.ts', '**/*.tsx'],
     exclude,
@@ -69,7 +83,10 @@ for (const name of ['plugins', 'modules']) {
         fs.mkdirSync(path.resolve(process.cwd(), name));
     }
     // Write an empty file to make eslint happy
-    fs.writeFileSync(path.resolve(process.cwd(), name, 'nop.ts'), 'export default {};\n');
+    fs.writeFileSync(
+        path.resolve(process.cwd(), name, 'nop.ts'),
+        'export default {};\n',
+    );
     fs.writeFileSync(
         path.resolve(process.cwd(), name, 'vue-types.d.ts'),
         'declare module "*.vue" {\n  const content: any;\n  export default content;\n}\n',
@@ -78,8 +95,12 @@ for (const name of ['plugins', 'modules']) {
 
 const modules = [
     'packages/hydrooj',
-    ...['packages', 'framework'].flatMap((i) => fs.readdirSync(path.resolve(process.cwd(), i)).map((j) => `${i}/${j}`)),
-].filter((i) => !['/.', 'ui-default', 'ui-next'].some((t) => i.includes(t))).filter((i) => fs.statSync(path.resolve(process.cwd(), i)).isDirectory());
+    ...['packages', 'framework'].flatMap((i) =>
+        fs.readdirSync(path.resolve(process.cwd(), i)).map((j) => `${i}/${j}`),
+    ),
+]
+    .filter((i) => !['/.', 'ui-default', 'ui-next'].some((t) => i.includes(t)))
+    .filter((i) => fs.statSync(path.resolve(process.cwd(), i)).isDirectory());
 
 const UIConfig = {
     exclude: [
@@ -91,10 +112,14 @@ const UIConfig = {
         'packages/ui-default/backendlib/markdown.js',
         '**/node_modules',
     ],
-    include: ['ts', 'tsx', 'vue', 'json']
-        .flatMap((ext) => ['plugins']
-            .flatMap((name) => [`${name}/**/public/**/*.${ext}`, `${name}/**/frontend/**/*.${ext}`])
-            .concat(`packages/ui-default/**/*.${ext}`)),
+    include: ['ts', 'tsx', 'vue', 'json'].flatMap((ext) =>
+        ['plugins']
+            .flatMap((name) => [
+                `${name}/**/public/**/*.${ext}`,
+                `${name}/**/frontend/**/*.${ext}`,
+            ])
+            .concat(`packages/ui-default/**/*.${ext}`),
+    ),
     compilerOptions: {
         ...compilerOptionsBase,
         module: 'ESNext',
@@ -117,18 +142,16 @@ const UIConfig = {
         noUncheckedSideEffectImports: true,
 
         paths: {
-            'vj/*': [
-                './packages/ui-default/*',
-            ],
+            'vj/*': ['./packages/ui-default/*'],
         },
     },
 };
 
 const UINextConfig = {
-    exclude: [
-        '**/node_modules',
-    ],
-    include: ['ts', 'tsx', 'vue', 'json'].map((ext) => `packages/ui-next/src/**/*.${ext}`),
+    exclude: ['**/node_modules'],
+    include: ['ts', 'tsx', 'vue', 'json'].map(
+        (ext) => `packages/ui-next/src/**/*.${ext}`,
+    ),
     compilerOptions: {
         ...compilerOptionsBase,
         module: 'ESNext',
@@ -154,19 +177,18 @@ const UINextConfig = {
         noUncheckedSideEffectImports: true,
 
         paths: {
-            '@/*': [
-                './packages/ui-next/src/*',
-            ],
-            'vj/*': [
-                './packages/ui-default/*',
-            ],
+            '@/*': ['./packages/ui-next/src/*'],
+            'vj/*': ['./packages/ui-default/*'],
         },
     },
 };
 
 const tryUpdate = (location, content) => {
-    const current = fs.existsSync(location) ? fs.readFileSync(location, 'utf-8') : '';
-    const expected = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+    const current = fs.existsSync(location)
+        ? fs.readFileSync(location, 'utf-8')
+        : '';
+    const expected =
+        typeof content === 'string' ? content : JSON.stringify(content, null, 2);
     if (expected !== current) fs.writeFileSync(location, expected);
 };
 
@@ -178,12 +200,10 @@ try {
         path.join(nm, '@hydrooj/ui-default'),
         'dir',
     );
-} catch (e) { }
+} catch (e) {}
 
 const pluginsConfig = {
-    include: [
-        '**/*.ts',
-    ],
+    include: ['**/*.ts'],
     exclude,
     compilerOptions: {
         ...compilerOptionsBase,
@@ -192,26 +212,33 @@ const pluginsConfig = {
         outDir: path.join(baseOutDir, 'plugins'),
         skipLibCheck: true,
         paths: {
-            'vj/*': [
-                '../packages/ui-default/*',
-            ],
+            'vj/*': ['../packages/ui-default/*'],
         },
     },
 };
-tryUpdate(path.resolve(process.cwd(), 'plugins', 'tsconfig.json'), pluginsConfig);
+tryUpdate(
+    path.resolve(process.cwd(), 'plugins', 'tsconfig.json'),
+    pluginsConfig,
+);
 
 for (const pkg of modules) {
     const basedir = path.resolve(process.cwd(), pkg);
     const files = fs.readdirSync(basedir);
     try {
-        // eslint-disable-next-line import/no-dynamic-require
+    // eslint-disable-next-line import/no-dynamic-require
         const name = require(path.join(basedir, 'package.json')).name;
         fs.symlinkSync(basedir, path.join(nm, name), 'dir');
-    } catch (e) { }
-    if (!files.includes('src') && !files.filter((i) => i.endsWith('.ts')).length && pkg !== 'packages/utils') continue;
+    } catch (e) {}
+    if (
+        !files.includes('src')
+        && !files.filter((i) => i.endsWith('.ts')).length
+        && pkg !== 'packages/utils'
+    ) { continue; }
     config.references.push({ path: pkg });
     const origConfig = (files.includes('src') ? configSrc : configFlat)(pkg);
-    const expectedConfig = JSON.stringify(pkg.startsWith('modules/') ? withoutTypes(origConfig) : origConfig);
+    const expectedConfig = JSON.stringify(
+        pkg.startsWith('modules/') ? withoutTypes(origConfig) : origConfig,
+    );
     tryUpdate(path.resolve(basedir, 'tsconfig.json'), expectedConfig);
     if (!files.includes('src')) continue;
     // Create mapping entry
