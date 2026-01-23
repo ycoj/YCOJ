@@ -15,8 +15,8 @@ export class NavHandler extends Handler {
 }
 
 export class AvailableLanguageHandler extends Handler {
-    @param('pid', Types.Int)
-    async get(domainId: string, pid: number) {
+    @param('pid', Types.ProblemId)
+    async get(domainId: string, pid: number | string) {
         interface AvailableLanguageResponse {
             languages: Record<string, {
                 display: string;
