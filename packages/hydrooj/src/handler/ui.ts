@@ -15,8 +15,8 @@ export class NavHandler extends Handler {
 }
 
 export class AvailableLanguageHandler extends Handler {
-    @param('pid', Types.ProblemId)
-    async get(domainId: string, pid: number | string) {
+    @param('pid', Types.ProblemId, true)
+    async get(domainId: string, pid?: number | string) {
         interface AvailableLanguageResponse {
             languages: Record<string, {
                 display: string;
@@ -27,28 +27,44 @@ export class AvailableLanguageHandler extends Handler {
             }>;
         }
 
-        const pdoc = await ProblemModel.get(domainId, pid);
-        if (!pdoc) throw new NotFoundError(pid);
         const languages: AvailableLanguageResponse['languages'] = {};
+        let configLangs: string[] = [];
+
+        if (pid) {
+            const pdoc = await ProblemModel.get(domainId, pid);
+            if (!pdoc) throw new NotFoundError(pid);
+            configLangs = (typeof pdoc.config === 'object' && pdoc.config?.langs) || [];
+        }
+
+        const isLangAllowed = (lang: string): boolean => {
+            if (!configLangs.length) return true;
+            if (configLangs.includes(lang)) return true;
+            if (lang.includes('.')) {
+                const mainLang = lang.split('.')[0];
+                return configLangs.includes(mainLang);
+            }
+            return configLangs.some((l) => l.startsWith(`${lang}.`));
+        };
 
         for (const lang of Object.keys(langs)) {
-            if (langs[lang].disabled || langs[lang].hidden) continue;
-            if (lang.includes('.')) continue; // 先处理 Language Family
+            if (langs[lang].disabled) continue;
+            if (langs[lang].hidden && !isLangAllowed(lang)) continue;
+            if (lang.includes('.')) continue;
+            if (!isLangAllowed(lang)) continue;
             languages[lang] = {
                 display: langs[lang].display,
-                versions: [
-                    {
-                        display: langs[lang].display,
-                        name: lang,
-                    },
-                ],
+                versions: [{ display: langs[lang].display, name: lang }],
             };
         }
 
         for (const lang of Object.keys(langs)) {
-            if (langs[lang].disabled || langs[lang].hidden) continue;
-            if (!lang.includes('.')) continue; // 处理 Language Version
-            languages[lang.split('.')[0]].versions.push({
+            if (langs[lang].disabled) continue;
+            if (langs[lang].hidden && !isLangAllowed(lang)) continue;
+            if (!lang.includes('.')) continue;
+            const mainLang = lang.split('.')[0];
+            if (!languages[mainLang]) continue;
+            if (!isLangAllowed(lang)) continue;
+            languages[mainLang].versions.push({
                 display: langs[lang].display,
                 name: lang,
             });
