@@ -300,9 +300,9 @@ export default async function (env: { watch?: boolean, production?: boolean, mea
       }),
       sentryWebpackPlugin({
         authToken: process.env.SENTRY_AUTH_TOKEN,
-        org: 'hydro-dev',
-        project: 'hydro-web',
-        url: 'https://sentry.hydro.ac',
+        org: 'xiaoququ',
+        project: 'hydro',
+        url: 'https://sentry.io/',
         sourcemaps: {
           rewriteSources: (source) => source.replace('@hydrooj/ui-default/../../node_modules/', ''),
         },
