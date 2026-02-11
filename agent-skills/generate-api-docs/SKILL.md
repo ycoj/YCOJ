@@ -22,6 +22,28 @@ You will generate API documentation for the current repository (hydrooj). The do
 - Optional params are marked with the third argument `true`; if missing, they are not required.
 - If a method signature starts with `domainId`, the current domain ID (string) is injected automatically.
 
+### IMPORTANT: Handler Methods and `operation` Parameter
+
+**CRITICAL:** Do NOT assume that `postXxx` methods map to URL paths like `/resource/:id/xxx`. This is a common mistake.
+
+In hydrooj, Handler methods like `postUpvote` and `postDownvote` are invoked through the `operation` parameter in the POST Body, NOT through URL path segments.
+
+For example:
+- ❌ Incorrect: `POST /p/:pid/solution/:sid/upvote`
+- ✅ Correct: `POST /p/:pid/solution` with Body `{ operation: "upvote", psid: "..." }`
+
+When documenting APIs:
+1. Identify Handler methods like `postUpvote`, `postDownvote`, `postSubmit`, etc.
+2. Find the corresponding route URL (e.g., `/p/:pid/solution`)
+3. **Always** check the frontend code (templates or JavaScript) to see how the API is actually called
+4. Look for form submissions with `operation` parameter values
+5. The `operation` value (e.g., "upvote", "downvote") determines which `postXxx` method is called
+
+Common patterns to check:
+- Template files: Look for `<button name="operation" value="upvote">` or form submissions
+- Frontend JS: Look for `request.post(url, { operation: 'xxx', ... })`
+- The form's `action` attribute determines the URL, not the method name
+
 ## Permissions and Visibility
 
 - Route-level permissions are declared in `ctx.Route(name, path, Handler, PERM.*, PRIV.*)`.

@@ -64,3 +64,6 @@ __*
 .monokle
 
 packages/*/public/assets
+
+# AI Ide
+.claude/
