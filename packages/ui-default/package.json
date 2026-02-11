@@ -147,8 +147,5 @@
     "streamsaver": "^2.0.6",
     "uuid": "^13.0.0",
     "xss": "^1.0.15"
-  },
-  "resolutions": {
-    "emitter": "^0.0.7"
   }
 }
