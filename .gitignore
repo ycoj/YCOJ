@@ -68,3 +68,4 @@ packages/*/public/assets
 # AI Ide
 .claude/
 .kiro/
+.trae/
