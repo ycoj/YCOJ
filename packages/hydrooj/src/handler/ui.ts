@@ -82,7 +82,7 @@ export class RichMediaJsonHandler extends Handler {
     @param('pids', Types.ArrayOf(Types.Int), true) // problem ids
     @param('cids', Types.ArrayOf(Types.ObjectId), true) // contest ids
     @param('hids', Types.ArrayOf(Types.ObjectId), true) // homework ids
-    async get(domainId: string, uids?: number[], pids?: number[], cids?: ObjectId[], hids?: ObjectId[]) {
+    async post(domainId: string, uids?: number[], pids?: number[], cids?: ObjectId[], hids?: ObjectId[]) {
         const udict: Record<number, any> = {};
         const pdict: Record<number, any> = {};
         const cdict: Record<string, any> = {};
