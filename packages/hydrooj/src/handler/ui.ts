@@ -1,6 +1,9 @@
+import { intersection } from 'lodash';
+import { ObjectId } from 'mongodb';
 import { PERM, PRIV } from '@hydrooj/common';
 import { Context } from '../context';
 import { NotFoundError } from '../error';
+import * as contest from '../model/contest';
 import ProblemModel from '../model/problem';
 import { langs } from '../model/setting';
 import user from '../model/user';
@@ -74,7 +77,70 @@ export class AvailableLanguageHandler extends Handler {
     }
 }
 
+export class RichMediaJsonHandler extends Handler {
+    @param('uids', Types.ArrayOf(Types.Int), true)
+    @param('pids', Types.ArrayOf(Types.Int), true) // problem ids
+    @param('cids', Types.ArrayOf(Types.ObjectId), true) // contest ids
+    @param('hids', Types.ArrayOf(Types.ObjectId), true) // homework ids
+    async get(domainId: string, uids?: number[], pids?: number[], cids?: ObjectId[], hids?: ObjectId[]) {
+        const udict: Record<number, any> = {};
+        const pdict: Record<number, any> = {};
+        const cdict: Record<string, any> = {};
+        const hdict: Record<string, any> = {};
+
+        if (uids?.length && this.user.hasPerm(PERM.PERM_VIEW)) {
+            Object.assign(udict, await user.getListForRender(
+                domainId, uids, this.user.hasPerm(PERM.PERM_VIEW_USER_PRIVATE_INFO),
+            ));
+        }
+
+        if (pids?.length && this.user.hasPerm(PERM.PERM_VIEW | PERM.PERM_VIEW_PROBLEM)) {
+            const canViewHidden = this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) ? true : this.user._id;
+            Object.assign(pdict, await ProblemModel.getList(
+                domainId, pids, canViewHidden, false, ProblemModel.PROJECTION_LIST,
+            ));
+        }
+
+        const userGroups = (cids?.length || hids?.length)
+            ? (this.user.group ? (Array.isArray(this.user.group) ? this.user.group : [...this.user.group]) : [])
+            : [];
+
+        if (cids?.length && this.user.hasPerm(PERM.PERM_VIEW | PERM.PERM_VIEW_CONTEST)) {
+            await Promise.all(cids.map(async (cid) => {
+                try {
+                    const tdoc = await contest.get(domainId, cid);
+                    if (tdoc && tdoc.rule !== 'homework') {
+                        const canView = !tdoc.assign?.length
+                            || this.user.own(tdoc)
+                            || this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST)
+                            || (userGroups.length > 0 && intersection(tdoc.assign, userGroups).length > 0);
+                        if (canView) cdict[cid.toString()] = tdoc;
+                    }
+                } catch { /* skip inaccessible or missing */ }
+            }));
+        }
+
+        if (hids?.length && this.user.hasPerm(PERM.PERM_VIEW | PERM.PERM_VIEW_HOMEWORK)) {
+            await Promise.all(hids.map(async (hid) => {
+                try {
+                    const tdoc = await contest.get(domainId, hid);
+                    if (tdoc && tdoc.rule === 'homework') {
+                        const canView = !tdoc.assign?.length
+                            || this.user.own(tdoc)
+                            || this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_HOMEWORK)
+                            || (userGroups.length > 0 && intersection(tdoc.assign, userGroups).length > 0);
+                        if (canView) hdict[hid.toString()] = tdoc;
+                    }
+                } catch { /* skip inaccessible or missing */ }
+            }));
+        }
+
+        this.response.body = { udict, pdict, cdict, hdict };
+    }
+}
+
 export async function apply(ctx: Context) {
     ctx.Route('ui_nav', '/ui/nav', NavHandler);
     ctx.Route('ui_languages', '/ui/languages', AvailableLanguageHandler);
+    ctx.Route('ui_media_json', '/ui/media', RichMediaJsonHandler);
 }
