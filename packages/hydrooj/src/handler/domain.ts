@@ -32,9 +32,10 @@ class DomainRankHandler extends Handler {
         );
         const udict = await user.getList(domainId, dudocs.map((dudoc) => dudoc.uid));
         const udocs = dudocs.map((i) => udict[i.uid]);
+        const pageSize = this.ctx.setting.get('pagination.ranking') || 20;
         this.response.template = 'ranking.html';
         this.response.body = {
-            udocs, upcount, ucount, page,
+            udocs, upcount, ucount, page, pageSize,
         };
     }
 }
