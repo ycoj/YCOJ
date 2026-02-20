@@ -259,7 +259,7 @@ AccountSetting(
         'Allow using gravatar:email qq:id github:name url:link format.'),
     Setting('setting_info', 'qq', null, 'text', 'QQ'),
     Setting('setting_info', 'gender', builtin.USER_GENDER_OTHER, builtin.USER_GENDER_RANGE, 'Gender'),
-    Setting('setting_info', 'bio', null, 'markdown', 'Bio'),
+    Setting('setting_info', 'bio', null, 'markdown', 'Bio', '', FLAG_PUBLIC),
     Setting('setting_info', 'school', '', 'text', 'School', '', FLAG_PRIVATE),
     Setting('setting_info', 'studentId', '', 'text', 'Student ID', '', FLAG_PRIVATE),
     Setting('setting_info', 'phone', null, 'text', 'Phone', null, FLAG_DISABLED | FLAG_PRIVATE),
