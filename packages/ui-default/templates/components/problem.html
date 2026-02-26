@@ -22,11 +22,11 @@
 {% macro render_difficulty(pdoc, short=false) %}
   {%- set diff = pdoc['difficulty'] or lib.difficulty(pdoc.nSubmit, pdoc.nAccept) -%}
   {%- if diff != null and diff >= 1 and diff <= 7 -%}
-    <span class="difficulty-label" style="background:{{ PROBLEMS_DIFFICULTY_COLOR[diff] }}">
+    <span class="difficulty-label" style="color:{{ PROBLEMS_DIFFICULTY_COLOR[diff] }}">
       {{- PROBLEMS_DIFFICULTY_SHORT[diff] if short else PROBLEMS_DIFFICULTY[diff] -}}
     </span>
   {%- else -%}
-    <span class="difficulty-label" style="background:{{ PROBLEMS_DIFFICULTY_COLOR[0] }}">Unrated</span>
+    <span class="difficulty-label" style="color:{{ PROBLEMS_DIFFICULTY_COLOR[0] }}">Unrated</span>
   {%- endif -%}
 {% endmacro %}
 
