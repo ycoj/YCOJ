@@ -135,6 +135,9 @@ class Nunjucks extends nunjucks.Environment {
     this.addGlobal('formatSeconds', misc.formatSeconds);
     this.addGlobal('model', global.Hydro.model);
     this.addGlobal('lib', { difficulty: difficultyAlgorithm });
+    this.addGlobal('PROBLEMS_DIFFICULTY', ['暂无评定', '入门', '普及-', '普及/提高-', '普及+/提高', '提高+/省选-', '省选/NOI-', 'NOI/NOI+']);
+    this.addGlobal('PROBLEMS_DIFFICULTY_SHORT', ['无', '入门', '普及-', '普及/提高-', '普及+/提高', '提高+/省选-', '省选/NOI-', 'NOI/NOI+']);
+    this.addGlobal('PROBLEMS_DIFFICULTY_COLOR', ['#a0a0a0', '#fe4c61', '#f39c11', '#ffc116', '#52c41a', '#3498db', '#9d3dcf', '#0e1d69']);
     this.addGlobal('ui', global.Hydro.ui);
     this.addGlobal('isIE', (str) => {
       if (!str) return false;

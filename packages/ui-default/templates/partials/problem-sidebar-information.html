@@ -10,7 +10,7 @@
     <dt>{{ _('Memory') }}</dt>
     <dd>{{ pdoc.config.memoryMax if pdoc.config.memoryMax == pdoc.config.memoryMin else pdoc.config.memoryMin+'~'+pdoc.config.memoryMax }}MiB</dd>
     <dt>{{ _('Difficulty') }}</dt>
-    <dd>{{ pdoc['difficulty'] or lib.difficulty(pdoc.nSubmit, pdoc.nAccept) or _('(None)') }}</dd>
+    <dd>{{ problem.render_difficulty(pdoc) }}</dd>
     <dt>{{ _('Tags') }}</dt>
     <dd>
       {{ problem.render_problem_tags(pdoc, true) }}

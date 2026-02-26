@@ -127,7 +127,7 @@
                     </td>
                     <td class="col--tried">{{ pdoc.nSubmit }}</td>
                     <td class="col--ac">{{ pdoc.nAccept }}</td>
-                    <td class="col--difficulty">{{ pdoc['difficulty'] or lib.difficulty(pdoc.nSubmit, pdoc.nAccept) or _('(None)') }}</td>
+                    <td class="col--difficulty">{{ problem.render_difficulty(pdoc, short=true) }}</td>
                   </tr>
                 {% else %}
                   {% set pdoc = {'_id': pid, 'hidden': true, 'title': '*'} %}
