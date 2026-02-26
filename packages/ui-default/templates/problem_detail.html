@@ -108,10 +108,8 @@
               {% set diff = pdoc['difficulty'] or lib.difficulty(pdoc.nSubmit, pdoc.nAccept) %}
               {% if diff != null and diff >= 1 and diff <= 7 %}
                 <span class="difficulty-label" style="background:{{ PROBLEMS_DIFFICULTY_COLOR[diff] }}">{{ PROBLEMS_DIFFICULTY[diff] }}</span>
-              {% elif diff %}
-                {{ diff }}
               {% else %}
-                {{ _('(None)') }}
+                <span class="difficulty-label" style="background:{{ PROBLEMS_DIFFICULTY_COLOR[0] }}">Unrated</span>
               {% endif %}
             </span>
             <span class="problem__tag-item interactive">{{ _('Uploaded By') }}: {{ user.render_inline(udoc, badge=false) }}</span>
