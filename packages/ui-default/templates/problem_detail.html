@@ -92,7 +92,7 @@
         <ul class="problem__tags">
           {% if not tdoc %}
             <span class="problem__tag-item">{{ _('Difficulty') }}:
-              {% set diff = pdoc['difficulty'] or lib.difficulty(pdoc.nSubmit, pdoc.nAccept) %}
+              {% set diff = pdoc['difficulty'] %}
               {% if diff != null and diff >= 1 and diff <= 7 %}
                 <span class="difficulty-label" style="color:{{ PROBLEMS_DIFFICULTY_COLOR[diff] }}">{{ PROBLEMS_DIFFICULTY[diff] }}</span>
               {% else %}
