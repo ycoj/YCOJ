@@ -5,7 +5,6 @@ import { Filter, ObjectId } from 'mongodb';
 import Schema from 'schemastery';
 import { Counter } from '@hydrooj/utils';
 import { Tdoc, Udoc } from '../interface';
-import difficultyAlgorithm from '../lib/difficulty';
 import rating from '../lib/rating';
 import { PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
@@ -42,7 +41,7 @@ export const RpTypes: Record<string, RpDef> = {
                         score: { $gt: 0 },
                     },
                 );
-                const difficulty = +pdoc.difficulty || difficultyAlgorithm(pdoc.nSubmit, pdoc.nAccept) || 5;
+                const difficulty = +pdoc.difficulty || 1;
                 const p = difficulty / 100;
                 let psdoc;
                 while (psdoc = await cursor.next()) {
