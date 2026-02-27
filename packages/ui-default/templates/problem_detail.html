@@ -96,7 +96,7 @@
               {% if diff != null and diff >= 1 and diff <= 7 %}
                 <span class="difficulty-label" style="color:{{ PROBLEMS_DIFFICULTY_COLOR[diff] }}">{{ PROBLEMS_DIFFICULTY[diff] }}</span>
               {% else %}
-                <span class="difficulty-label" style="color:{{ PROBLEMS_DIFFICULTY_COLOR[0] }}">Unrated</span>
+                <span class="difficulty-label" style="color:{{ PROBLEMS_DIFFICULTY_COLOR[0] }}">{{ PROBLEMS_DIFFICULTY[0] }}</span>
               {% endif %}
             </span>
             <span class="problem__tag-item">{{ _('ID') }}: {{ pdoc.docId }}</span>
