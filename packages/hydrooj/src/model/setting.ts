@@ -288,7 +288,7 @@ DomainUserSetting(Schema.object({
     rpInfo: Schema.any().extra('family', 'setting_storage').extra('flag', FLAG_PUBLIC).disabled().hidden(),
     rp: Schema.number().default(0).extra('family', 'setting_storage').extra('flag', FLAG_PUBLIC).disabled().hidden(),
 
-    ...Object.fromEntries(['nAccept', 'nSubmit', 'nLike', 'rpdelta', 'rank', 'level', 'join'].map((i) => ([
+    ...Object.fromEntries(['nAccept', 'nSubmit', 'nLike', 'nLiked', 'rp', 'rpdelta', 'rank', 'level', 'join'].map((i) => ([
         i, Schema.number().default(0).extra('family', 'setting_storage').disabled().hidden(),
     ]))),
 

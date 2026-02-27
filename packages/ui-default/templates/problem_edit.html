@@ -39,13 +39,13 @@
                name:'tag',
                value:pdoc['tag']|default([])|join(', ')
              }) }}
-          {{ form.form_text({
+          {{ form.form_select({
                row:false,
                columns:3,
                label:'Difficulty',
-               help_text:'From 1-10',
                name:'difficulty',
-               value:pdoc['difficulty'] or ''
+               value: (([pdoc['difficulty'] | default(0), 0, 7] | sort)[1]),
+               options: [[0, PROBLEMS_DIFFICULTY[0]], [1, PROBLEMS_DIFFICULTY[1]], [2, PROBLEMS_DIFFICULTY[2]], [3, PROBLEMS_DIFFICULTY[3]], [4, PROBLEMS_DIFFICULTY[4]], [5, PROBLEMS_DIFFICULTY[5]], [6, PROBLEMS_DIFFICULTY[6]], [7, PROBLEMS_DIFFICULTY[7]]]
              }) }}
           </div>
           <div class="section__tab-container nojs--hide">

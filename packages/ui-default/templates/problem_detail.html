@@ -91,14 +91,10 @@
       <div class="section__body">
         <ul class="problem__tags">
           {% if not tdoc %}
-            <span class="problem__tag-item">{{ _('Difficulty') }}:
-              {% set diff = pdoc['difficulty'] %}
-              {% if diff != null and diff >= 1 and diff <= 7 %}
-                <span class="difficulty-label" style="color:{{ PROBLEMS_DIFFICULTY_COLOR[diff] }}">{{ PROBLEMS_DIFFICULTY[diff] }}</span>
-              {% else %}
-                <span class="difficulty-label" style="color:{{ PROBLEMS_DIFFICULTY_COLOR[0] }}">{{ PROBLEMS_DIFFICULTY[0] }}</span>
-              {% endif %}
-            </span>
+            {% set diff = pdoc['difficulty'] %}
+            {% set diff_color = PROBLEMS_DIFFICULTY_COLOR[diff] if (diff != null and diff >= 1 and diff <= 7) else PROBLEMS_DIFFICULTY_COLOR[0] %}
+            {% set diff_text = PROBLEMS_DIFFICULTY[diff] if (diff != null and diff >= 1 and diff <= 7) else PROBLEMS_DIFFICULTY[0] %}
+            <span class="problem__tag-item difficulty-badge difficulty-badge--glow" style="background-color:{{ diff_color }};color:#fff;box-shadow:0 0 12px {{ diff_color }},0 0 24px {{ diff_color }}40;">{{ diff_text }}</span>
             <span class="problem__tag-item">{{ _('ID') }}: {{ pdoc.docId }}</span>
           {% endif %}
           <span class="problem__tag-item icon icon-book">{{ _('problem_type.' + pdoc.config.type).format(pdoc.config.subType) }}</span>

@@ -625,7 +625,7 @@ export class ProblemEditHandler extends ProblemManageHandler {
     @post('pid', Types.ProblemId, true, (i) => /^(?:[a-z0-9]{1,10}-)?[a-z][a-z0-9]*$/i.test(i))
     @post('hidden', Types.Boolean)
     @post('tag', Types.Content, true, null, parseCategory)
-    @post('difficulty', Types.PositiveInt, (i) => +i <= 10, true)
+    @post('difficulty', Types.UnsignedInt, (i) => +i <= 7, true)
     async post(
         domainId: string, pid: string | number, title: string, content: string,
         newPid: string | number = '', hidden = false, tag: string[] = [], difficulty = 0,
@@ -1002,7 +1002,7 @@ export class ProblemCreateHandler extends Handler {
     @post('content', Types.Content)
     @post('pid', Types.ProblemId, true, (i) => /^(?:[a-z0-9]{1,10}-)?[a-z][a-z0-9]*$/i.test(i))
     @post('hidden', Types.Boolean)
-    @post('difficulty', Types.PositiveInt, (i) => +i <= 10, true)
+    @post('difficulty', Types.UnsignedInt, (i) => +i <= 7, true)
     @post('tag', Types.Content, true, null, parseCategory)
     async post(
         domainId: string, title: string, content: string, pid: string | number = '',
