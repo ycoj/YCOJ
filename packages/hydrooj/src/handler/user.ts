@@ -31,7 +31,7 @@ import {
 } from '../service/server';
 
 async function successfulAuth(this: Handler, udoc: User) {
-    await user.setById(udoc._id, { loginat: new Date(), loginip: this.request.ip });
+    if (udoc._id !== 0) await user.setById(udoc._id, { loginat: new Date(), loginip: this.request.ip });
     this.context.HydroContext.user = udoc;
     this.session.viewLang = '';
     this.session.uid = udoc._id;
@@ -40,6 +40,7 @@ async function successfulAuth(this: Handler, udoc: User) {
     this.session.scope = PERM.PERM_ALL.toString();
     this.session.oauthBind = null;
     this.session.recreate = true;
+    if (udoc._id !== 0) await oplog.log(this, 'user.loginSuccess', { uid: udoc._id });
 }
 
 class UserLoginHandler extends Handler {
@@ -464,6 +465,7 @@ class OauthCallbackHandler extends Handler {
     async get(args: any) {
         const provider = this.ctx.oauth.providers[args.type];
         if (!provider) throw new UserFacingError('Oauth type');
+        await this.limitRate('oauth_callback', 60, 5);
         const r = await provider.callback.call(this, args);
         if (this.session.oauthBind === args.type) {
             delete this.session.oauthBind;
