@@ -50,7 +50,7 @@
         "semver": "^7.7.4",
         "shorty.js": "^1.0.1",
         "superagent": "^10.3.0",
-        "tar": "6.2.1",
+        "tar": "7.5.16",
         "thirty-two": "^1.0.2",
         "ua-parser-js": "1.0.41"
     },
