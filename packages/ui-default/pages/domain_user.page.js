@@ -17,7 +17,7 @@ const page = new NamedPage('domain_user', () => {
           <p>${i18n('Users will have to manually join the domain first before selected roles can be applied.')}</p>
           <p>${i18n('To join the domain, users can click the "Join Domain" button on "My Domain" page.')}</p>
           <p>${i18n('Or use the following link:')}</p>
-          <p><a href="/domain/join?target=${UiContext.domain._id}">/domain/join?target=${UiContext.domain._id}</a></p>
+          <p><a href="/domain/join?target=${UiContext.domainId}">/domain/join?target=${UiContext.domainId}</a></p>
         </div>`,
     }).open();
   });
@@ -28,28 +28,27 @@ const page = new NamedPage('domain_user', () => {
         type: 'userId',
         required: true,
         autofocus: true,
+        multi: true,
         label: i18n('Username / UID'),
-        columns: 6,
       },
       role: {
         type: 'text',
         required: true,
         label: 'Role',
         options: UiContext.roles.filter((i) => !['default', 'guest'].includes(i)),
-        columns: -6,
       },
-      ...((UiContext.canForceJoin && UiContext.domain._id !== 'system') ? {
+      ...((UiContext.canForceJoin && UiContext.domainId !== 'system') ? {
         join: {
           type: 'checkbox',
           label: i18n('Mark user as joined using admin privilege'),
         },
       } : {}),
     });
-    if (!res?.user || !res?.role) return;
+    if (!res?.user?.length || !res?.role) return;
     try {
       await request.post('', {
         operation: 'set_users',
-        uids: [res.user],
+        uids: res.user,
         role: res.role,
         join: res.join,
       });

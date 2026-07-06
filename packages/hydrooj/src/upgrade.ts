@@ -102,10 +102,10 @@ export const coreScripts: MigrationScript[] = [
                     doc.domainId, document.TYPE_CONTEST, { docId: doc.docId },
                 ).toArray();
                 for (const ctdoc of ctdocs) {
-                    if (!ctdoc.journal?.filter((i) => isStringPid(i.pid)).length) continue;
+                    if (!ctdoc.journal?.filter((i) => isStringPid(i.pid as any)).length) continue;
                     const journal = [];
                     for (const i of ctdoc.journal) {
-                        const pdoc = await getProblem(doc.domainId, i.pid);
+                        const pdoc = await getProblem(doc.domainId, i.pid as any);
                         if (pdoc) i.pid = pdoc.docId;
                         journal.push(i);
                     }
@@ -431,7 +431,7 @@ export const coreScripts: MigrationScript[] = [
             let pinnedDomains = new Set<string>();
             for (const d of udoc.pinnedDomains) {
                 if (typeof d === 'string') pinnedDomains.add(d);
-                else pinnedDomains = Set.union(pinnedDomains, d);
+                else pinnedDomains = pinnedDomains.union(new Set(d));
             }
             await user.setById(udoc._id, { pinnedDomains: Array.from(pinnedDomains) });
         });

@@ -109,7 +109,36 @@ Hydro 用户群：1085853538
 同时群内可能存在部分令您感到不适或感到冒犯的内容。若对此有顾虑**请勿加群**。
 
 <details>
-<summary><h2>更新日志（点击展开）</h2></summary>
+<summary><h2>更新日志（点击展开）</h2></summary
+
+## Hydro 5.0.4 / UI 4.58.4
+
+- onsite-toolkit: 允许导入用户到指定域
+- core: cli: 添加交互模式
+- ui: 添加 domain 缓存
+- judge: 修复文件IO空输出检查
+- core: 默认关闭查看他人提交记录权限
+
+## Hydro 5.0.2 / UI 4.58.2
+
+- judge: 支持 multi-pass 题型
+- core&ui: bug 与漏洞修复
+
+## Hydro 5.0.0 / UI 4.58.0
+
+- oauth: 添加 oidc 模块
+- onsite-toolkit: 对接外置滚榜组件
+- core&ui: 支持在管理用户中显示 default 权限用户
+- ui: 客观题：支持下拉菜单
+- core: 支持提前退出比赛
+- ui: 用户权限：支持多选
+- ui: 用户小组：支持批量导入导出
+- ui: 用户小组：支持统计小组人数
+- core&ui: 支持设置比赛结束后不公开榜单
+- judge: 支持配置叠加层
+- judge: 添加 pipe_proxy 选项
+- judge: 优化 \r 处理
+- 其他漏洞修复和交互优化
 
 ## Hydro 5.0.0-beta.18 / UI 4.58.0-beta.19
 

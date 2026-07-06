@@ -24,7 +24,7 @@ for (const country of countries) {
     const tz = moment.tz.zonesForCountry(country);
     for (const t of tz) tzs.add(t);
 }
-const timezones = Array.from(tzs).sort().map((tz) => [tz, tz]) as [string, string][];
+const timezones = [...tzs].sort().map((tz) => [tz, tz]) as [string, string][];
 const langRange: Dictionary<string> = {};
 
 export const FLAG_HIDDEN = 1;
@@ -267,7 +267,7 @@ AccountSetting(
         '/components/profile/backgrounds/1.jpg', 'text', 'Profile Background Image',
         'Choose the background image in your profile page.'),
     Setting('setting_storage', 'unreadMsg', 0, 'number', 'Unread Message Count', null, FLAG_DISABLED | FLAG_HIDDEN),
-    Setting('setting_storage', 'badge', '', 'text', 'badge info', null, FLAG_DISABLED | FLAG_HIDDEN),
+    Setting('setting_storage', 'badge', '', 'text', 'badge info', null, FLAG_DISABLED | FLAG_HIDDEN | FLAG_PUBLIC),
     Setting('setting_storage', 'banReason', '', 'text', 'ban reason', null, FLAG_DISABLED | FLAG_HIDDEN),
     Setting('setting_storage', 'pinnedDomains', [], 'json', 'pinned domains', null, FLAG_DISABLED | FLAG_HIDDEN),
 );
@@ -316,11 +316,13 @@ SystemSetting(Schema.object({
     }).extra('family', 'setting_smtp'),
     server: Schema.object({
         allowInvite: Schema.boolean().default(true).description('Allow invite users'),
+        showDefaultRole: Schema.boolean().default(false).description('Show default role users in domain user management'),
         center: Schema.string().default('https://hydro.ac/center').description('Server Center').role('url').hidden(),
         name: Schema.string().default('Hydro').description('Server Name'),
         url: Schema.string().default('/').description('Server BaseURL'),
         upload: Schema.string().default('256m').description('Max upload file size'),
         cdn: Schema.string().default('/').description('CDN Prefix'),
+        cdn_dynamic: Schema.boolean().default(false).description('Dynamic CDN'),
         ws: Schema.string().default('/').description('WebSocket Prefix'),
         host: Schema.string().default('127.0.0.1').description('Listen host'),
         port: Schema.number().step(1).min(1).max(65535).default(8888).description('Server Port'),

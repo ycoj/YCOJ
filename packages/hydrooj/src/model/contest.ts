@@ -9,8 +9,9 @@ import {
     ContestScoreboardHiddenError, ValidationError,
 } from '../error';
 import {
-    BaseUserDict, ContestPrintDoc, ContestRule, ContestRules, ProblemDict, RecordDoc,
-    ScoreboardConfig, ScoreboardNode, ScoreboardRow, SubtaskResult, Tdoc,
+    BaseUserDict, ContestJournalEntry, ContestPrintDoc, ContestRule, ContestRules,
+    ContestStatusDoc, ProblemDict, RecordDoc, ScoreboardConfig, ScoreboardNode,
+    ScoreboardRow, SubtaskResult, Tdoc,
 } from '../interface';
 import avatar from '../lib/avatar';
 import bus from '../service/bus';
@@ -60,14 +61,16 @@ export function isNotStarted(tdoc: Tdoc) {
     return (new Date()) < tdoc.beginAt;
 }
 
-export function isOngoing(tdoc: Tdoc, tsdoc?: any) {
+export function isOngoing(tdoc: Tdoc, tsdoc?: ContestStatusDoc): boolean {
     const now = new Date();
+    if (tsdoc?.endAt && tsdoc.endAt <= now) return false;
     if (tsdoc && tdoc.duration && tsdoc.startAt <= new Date(Date.now() - Math.floor(tdoc.duration * Time.hour))) return false;
     return (tdoc.beginAt <= now && now < tdoc.endAt);
 }
 
-export function isDone(tdoc: Tdoc, tsdoc?: any) {
+export function isDone(tdoc: Tdoc, tsdoc?: ContestStatusDoc): boolean {
     if (tdoc.endAt <= new Date()) return true;
+    if (tsdoc?.endAt && tsdoc.endAt <= new Date()) return true;
     if (tsdoc && tdoc.duration && tsdoc.startAt <= new Date(Date.now() - Math.floor(tdoc.duration * Time.hour))) return true;
     return false;
 }
@@ -78,7 +81,7 @@ export function isLocked(tdoc: Tdoc, time = new Date()) {
 }
 
 export function isExtended(tdoc: Tdoc) {
-    const now = new Date().getTime();
+    const now = Date.now();
     return tdoc.penaltySince.getTime() <= now && now < tdoc.endAt.getTime();
 }
 
@@ -312,9 +315,9 @@ const oi = buildContestRule({
         }
         return { score, detail, display };
     },
-    showScoreboard: (tdoc, now) => now > tdoc.endAt,
-    showSelfRecord: (tdoc, now) => now > tdoc.endAt,
-    showRecord: (tdoc, now) => now > tdoc.endAt,
+    showScoreboard: (tdoc, now) => now > tdoc.endAt && !tdoc.keepScoreboardHidden,
+    showSelfRecord: (tdoc, now) => now > tdoc.endAt && !tdoc.keepScoreboardHidden,
+    showRecord: (tdoc, now) => now > tdoc.endAt && !tdoc.keepScoreboardHidden,
     async scoreboardHeader(config, _, tdoc, pdict) {
         const columns: ScoreboardNode[] = [
             { type: 'rank', value: '#' },
@@ -360,7 +363,7 @@ const oi = buildContestRule({
             row.push({ type: 'string', value: udoc.displayName || '' });
             row.push({ type: 'string', value: udoc.studentId || '' });
         }
-        row.push({ type: 'total_score', value: tsdoc.score || 0 });
+        row.push({ type: 'total_score', value: (tsdoc.score || 0).toString() });
         const accepted = {};
         for (const s of tsdoc.journal || []) {
             if (!pdict[s.pid]) continue;
@@ -477,9 +480,9 @@ const ioi = buildContestRule({
 const strictioi = buildContestRule({
     TEXT: 'IOI(Strict)',
     submitAfterAccept: false,
-    showRecord: (tdoc, now) => now > tdoc.endAt,
-    showSelfRecord: () => true,
-    showScoreboard: (tdoc, now) => now > tdoc.endAt,
+    showRecord: (tdoc, now) => now > tdoc.endAt && !tdoc.keepScoreboardHidden,
+    showSelfRecord: (tdoc) => !tdoc.keepScoreboardHidden || !isDone(tdoc),
+    showScoreboard: (tdoc, now) => now > tdoc.endAt && !tdoc.keepScoreboardHidden,
     stat(tdoc, journal) {
         const detail = {};
         let score = 0;
@@ -508,7 +511,7 @@ const strictioi = buildContestRule({
             row.push({ type: 'string', value: udoc.displayName || '' });
             row.push({ type: 'string', value: udoc.studentId || '' });
         }
-        row.push({ type: 'total_score', value: tsdoc.score || 0 });
+        row.push({ type: 'total_score', value: (tsdoc.score || 0).toString() });
         const accepted = {};
         for (const s of tsdoc.journal || []) {
             if (!pdict[s.pid]) continue;
@@ -601,7 +604,7 @@ const ledo = buildContestRule({
         }
         row.push({
             type: 'total_score',
-            value: tsdoc.score || 0,
+            value: (tsdoc.score || 0).toString(),
             hover: tsdoc.score !== tsdoc.originalScore ? _('Original score: {0}').format(tsdoc.originalScore) : '',
         });
         const accepted = {};
@@ -740,9 +743,9 @@ const homework = buildContestRule({
             row.push({ type: 'string', value: udoc.displayName || '' });
             row.push({ type: 'string', value: udoc.studentId || '' });
         }
-        row.push({ type: 'string', value: tsdoc.penaltyScore || 0 });
+        row.push({ type: 'string', value: (tsdoc.penaltyScore || 0).toString() });
         if (config.isExport) {
-            row.push({ type: 'string', value: tsdoc.score || 0 });
+            row.push({ type: 'string', value: (tsdoc.score || 0).toString() });
         }
         row.push({ type: 'time', value: formatSeconds(tsdoc.time || 0, false), raw: tsdoc.time });
         const accepted = {};
@@ -756,9 +759,9 @@ const homework = buildContestRule({
         }
         for (const pid of tdoc.pids) {
             const rid = tsddict[pid]?.rid;
-            const colScore = tsddict[pid]?.penaltyScore ?? '';
-            const colOriginalScore = tsddict[pid]?.score ?? '';
-            const colTime = tsddict[pid]?.time || '';
+            const colScore = (tsddict[pid]?.penaltyScore ?? '').toString();
+            const colOriginalScore = (tsddict[pid]?.score ?? '').toString();
+            const colTime = (tsddict[pid]?.time || '').toString();
             const colTimeStr = colTime ? formatSeconds(colTime, false) : '';
             if (config.isExport) {
                 row.push(
@@ -803,8 +806,8 @@ export const RULES: ContestRules = {
 
 const collBalloon = db.collection('contest.balloon');
 
-function _getStatusJournal(tsdoc) {
-    return tsdoc.journal.sort((a, b) => (a.rid.getTimestamp() - b.rid.getTimestamp()));
+function _getStatusJournal(tsdoc: ContestStatusDoc): ContestJournalEntry[] {
+    return tsdoc.journal!.sort((a, b) => (a.rid.getTimestamp().getTime() - b.rid.getTimestamp().getTime()));
 }
 
 export async function add(
@@ -940,8 +943,8 @@ export function getMultiStatus(domainId: string, query: any) {
     return document.getMultiStatus(domainId, document.TYPE_CONTEST, query);
 }
 
-export function setStatus(domainId: string, tid: ObjectId, uid: number, $set: any) {
-    return document.setStatus(domainId, document.TYPE_CONTEST, tid, uid, $set);
+export function setStatus(domainId: string, tid: ObjectId, uid: number, $set?: any, $unset?: any) {
+    return document.setStatus(domainId, document.TYPE_CONTEST, tid, uid, $set, $unset);
 }
 
 export function count(domainId: string, query: any) {
@@ -1069,7 +1072,7 @@ export function applyProjection(tdoc: Tdoc, rdoc: RecordDoc, udoc: User) {
     return RULES[tdoc.rule].applyProjection(tdoc, rdoc, udoc);
 }
 
-export const statusText = (tdoc: Tdoc, tsdoc?: any) => (
+export const statusText = (tdoc: Tdoc, tsdoc?: ContestStatusDoc): string => (
     isNew(tdoc)
         ? 'New'
         : isUpcoming(tdoc)

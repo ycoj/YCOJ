@@ -1,7 +1,6 @@
 import { escapeRegExp, omit, pick, uniq } from 'lodash';
 import { LRUCache } from 'lru-cache';
 import { Collection, Filter, ObjectId } from 'mongodb';
-import { serializer } from '@hydrooj/framework';
 import { LoginError, UserAlreadyExistError, UserNotFoundError } from '../error';
 import {
     Authenticator, BaseUserDict, FileInfo, GDoc,
@@ -156,22 +155,28 @@ export class User {
         user.avatarUrl = avatar(user.avatar, 128);
         if (user.pinnedDomains instanceof Array) {
             const result = await Promise.allSettled(user.pinnedDomains.slice(0, 10).map((i) => domain.get(i)));
-            user.domains = result.map((i) => (i.status === 'fulfilled' ? i.value : null)).filter((i) => i);
+            user.domains = result.map((i) => (i.status === 'fulfilled' ? i.value : null)).filter((i) => i)
+                .map((i) => pick(i, ['_id', 'name', 'avatar']));
         }
         user._isPrivate = true;
         return user;
     }
 
     getFields(type: 'public' | 'private' = 'public') {
-        const fields = ['_id', 'uname', 'mail', 'perm', 'role', 'priv', 'regat', 'loginat', 'avatar'].concat(this._publicFields);
+        const fields = ['_id', 'uname', 'mail', 'perm', 'role', 'priv', 'regat', 'loginat', 'avatar', 'avatarUrl'].concat(this._publicFields);
         return type === 'public' ? fields : fields.concat(this._privateFields);
     }
 
-    serialize(h) {
-        if (!this._isPrivate) {
-            return pick(this, this.getFields(h?.user?.hasPerm(PERM.PERM_VIEW_USER_PRIVATE_INFO) ? 'private' : 'public'));
+    serialize(h?) {
+        if (this._isPrivate) {
+            const result: any = {};
+            for (const key of Object.keys(this)) {
+                if (key.startsWith('_') && key !== '_id') continue;
+                result[key] = this[key];
+            }
+            return result;
         }
-        return JSON.stringify(this, serializer(true, h));
+        return pick(this, this.getFields(h?.user?.hasPerm(PERM.PERM_VIEW_USER_PRIVATE_INFO) ? 'private' : 'public'));
     }
 }
 
@@ -475,8 +480,16 @@ class UserModel {
         ]);
     }
 
-    static async listGroup(domainId: string, uid?: number) {
-        const groups = await collGroup.find(typeof uid === 'number' ? { domainId, uids: uid } : { domainId }).toArray();
+    static async listGroup(domainId: string, uid?: number, names?: string[], search?: string, limit?: number) {
+        const filter: Filter<GDoc> = { domainId };
+        if (typeof uid === 'number') filter.uids = uid;
+        const $and: Filter<GDoc>[] = [];
+        if (names?.length) $and.push({ name: { $in: names } });
+        if (search) $and.push({ name: { $regex: escapeRegExp(search), $options: 'i' } });
+        if ($and.length) filter.$and = $and;
+        let cursor = collGroup.find(filter);
+        if (limit) cursor = cursor.limit(limit);
+        const groups = await cursor.toArray();
         if (uid) {
             groups.push({
                 _id: new ObjectId(), domainId, uids: [uid], name: uid.toString(),

@@ -84,7 +84,7 @@ class HomeworkDetailHandler extends Handler {
         this.tdoc = await contest.get(domainId, tid);
         if (this.tdoc.rule !== 'homework') throw new ContestNotFoundError(domainId, tid);
         if (this.tdoc.assign?.length && !this.user.own(this.tdoc) && !this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_HOMEWORK)) {
-            if (!Set.intersection(this.tdoc.assign, this.user.group).size) {
+            if (!new Set(this.tdoc.assign).intersection(new Set(this.user.group)).size) {
                 throw new NotAssignedError('homework', this.tdoc.docId);
             }
         }
@@ -127,7 +127,7 @@ class HomeworkDetailHandler extends Handler {
             const valid = (tsdoc.journal || []).filter((p) => this.tdoc.pids.includes(p.pid));
             for (const pdetail of valid) {
                 psdict[pdetail.pid] = pdetail;
-                rdict[pdetail.rid] = { _id: pdetail.rid };
+                rdict[pdetail.rid.toHexString()] = { _id: pdetail.rid };
             }
             if (contest.canShowSelfRecord.call(this, this.tdoc) && valid.length) {
                 rdict = await record.getList(domainId, valid.map((pdetail) => pdetail.rid));
