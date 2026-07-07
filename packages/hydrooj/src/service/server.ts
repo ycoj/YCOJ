@@ -27,6 +27,10 @@ const ignoredLimit = `,${argv.options.ignoredLimit},`;
 
 const logger = new Logger('server');
 
+function applyWebService(ctx: Context, config: ConstructorParameters<typeof WebService>[1]) {
+    return new WebService(ctx, config);
+}
+
 declare module '@hydrooj/framework' {
     export interface HandlerCommon {
         domain: DomainDoc;
@@ -80,7 +84,7 @@ export class ConnectionHandler extends ConnectionHandlerOriginal {
 }
 
 export async function apply(ctx: Context) {
-    ctx.plugin(WebService, {
+    ctx.plugin(applyWebService, {
         keys: system.get('session.keys'),
         proxy: !!system.get('server.xproxy') || !!system.get('server.xff'),
         cors: system.get('server.cors') || '',
@@ -89,7 +93,7 @@ export async function apply(ctx: Context) {
         host: argv.options.host || system.get('server.host'),
         xff: system.get('server.xff'),
         xhost: system.get('server.xhost'),
-    });
+    } as unknown as ConstructorParameters<typeof WebService>[1]);
     if (process.env.HYDRO_CLI) return;
     await ctx.inject(['server', 'oauth', 'setting'], (childContext) => {
         const { server, on, oauth } = childContext;
