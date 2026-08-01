@@ -9,6 +9,10 @@ import {
 export * from '@hydrooj/framework/error';
 export const RemoteOnlineJudgeError = Err('RemoteOnlineJudgeError', UserFacingError, 'RemoteOnlineJudgeError', 500);
 export const SendMailError = Err('SendMailError', UserFacingError, 'Failed to send mail to {0}. (1)', 500);
+export const HitokotoUnavailableError = Err(
+    'HitokotoUnavailableError', UserFacingError,
+    'External Hitokoto service unavailable. Please try again later.', 503,
+);
 
 export const AlreadyVotedError = Err('AlreadyVotedError', ForbiddenError, "You've already voted.");
 export const BuiltinLoginError = Err('BuiltinLoginError', ForbiddenError, 'Builtin login is disabled.');

@@ -21,6 +21,7 @@ export * as OplogModel from './model/oplog';
 export * as SettingModel from './model/setting';
 export * as DiscussionModel from './model/discussion';
 export * as DocumentModel from './model/document';
+export * as CheckinModel from './model/checkin';
 export { DocType } from './model/document';
 export * as BuiltinModel from './model/builtin';
 export * as ContestModel from './model/contest';
