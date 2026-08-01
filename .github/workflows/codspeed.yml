@@ -1,0 +1,42 @@
+name: CodSpeed
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  # `workflow_dispatch` allows CodSpeed to trigger backtest
+  # performance analysis in order to generate initial data.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # for OpenID Connect authentication with CodSpeed
+
+env:
+  CI: true
+  YARN_ENABLE_IMMUTABLE_INSTALLS: 'false'
+
+jobs:
+  benchmarks:
+    name: Run benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          yarn set version 4.13.0
+          yarn install
+
+      - name: Run benchmarks
+        uses: CodSpeedHQ/action@v5
+        with:
+          mode: simulation
+          run: yarn bench

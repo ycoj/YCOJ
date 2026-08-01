@@ -6,6 +6,7 @@
 ![node-current](https://img.shields.io/node/v/hydrooj)
 ![GitHub contributors](https://img.shields.io/github/contributors/hydro-dev/Hydro)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/y/hydro-dev/Hydro)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://app.codspeed.io/ycoj/YCOJ?utm_source=badge)
 
 Hydro is a high-performance online judge system.  
 It is easy to deploy (with install script), light weight and extensible.  
