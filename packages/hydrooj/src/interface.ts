@@ -184,7 +184,6 @@ export interface CheckinDoc extends Document {
 export interface CheckinRecord {
     date: string;
     fortune: CheckinFortune;
-    createdAt: string;
     hitokoto: {
         id: number;
         uuid: string;

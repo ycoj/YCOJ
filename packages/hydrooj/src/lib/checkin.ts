@@ -131,6 +131,7 @@ export async function requestHitokoto(endpoint: string): Promise<HitokotoSnapsho
         const request = async () => {
             const response = await superagent.get(url.toString())
                 .accept('json')
+                .redirects(0)
                 .timeout({ response: 3000, deadline: 5000 });
             return validateHitokotoResponse(decodeResponseBody(response.body, response.text));
         };
@@ -182,7 +183,6 @@ export function toCheckinRecord(data: CheckinData): CheckinRecord {
     return {
         date: data.localDate,
         fortune: data.fortune,
-        createdAt: data.createdAt.toISOString(),
         hitokoto: {
             id: data.hitokotoId,
             uuid: data.hitokotoUuid,

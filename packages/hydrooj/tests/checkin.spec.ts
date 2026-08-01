@@ -202,7 +202,6 @@ describe('check-in creation', () => {
         assert.deepEqual(toCheckinRecord(result.data), {
             date: '2026-08-01',
             fortune: 'da_ji',
-            createdAt: '2026-08-01T03:21:45.000Z',
             hitokoto: {
                 id: HITOKOTO.id,
                 uuid: HITOKOTO.uuid,
