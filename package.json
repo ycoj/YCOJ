@@ -21,6 +21,7 @@
         "build:ui-next": "tsc -p tsconfig.ui-next.json --noEmit && yarn workspace @hydrooj/ui-next vite build",
         "test": "node -r @hydrooj/register packages/common/tests/subtask.spec.ts && node test/entry.js",
         "benchmark": "cross-env BENCHMARK=true node test/entry.js",
+        "bench": "vitest bench --run",
         "oxlint": "cd framework/eslint-config && node -r @hydrooj/register build.ts && cd ../../ && oxlint --config framework/eslint-config/.oxlintrc.json",
         "lint": "eslint --flag v10_config_lookup_from_file packages plugins modules framework --ext .ts,.tsx,.jsx,.vue,.yaml,.yml --fix",
         "lint:ci": "eslint --flag v10_config_lookup_from_file packages plugins modules framework --ext .ts,.tsx,.jsx,.vue,.yaml,.yml --max-warnings=0",
@@ -33,6 +34,7 @@
     "version": "1.0.0",
     "license": "AGPL-3.0-only",
     "devDependencies": {
+        "@codspeed/vitest-plugin": "^5.7.1",
         "@types/autocannon": "^7.12.7",
         "@types/chai": "^5.2.3",
         "@types/cross-spawn": "^6.0.6",
@@ -61,6 +63,7 @@
         "supertest": "^7.2.2",
         "supports-hyperlinks": "^4.5.0",
         "typescript": "5.8.3",
+        "vitest": "^4.1.10",
         "wtfnode": "^0.10.1"
     },
     "resolutions": {
