@@ -23,6 +23,7 @@ export interface System {
 }
 
 export interface SystemKeys {
+    'checkin.hitokotoUrl': string;
     'smtp.user': string;
     'smtp.from': string;
     'smtp.pass': string;
@@ -161,6 +162,37 @@ export interface Document {
     domainId: string;
     owner: number;
     maintainer?: number[];
+}
+
+export type CheckinFortune = 'da_ji' | 'ji' | 'ping' | 'xiong' | 'da_xiong';
+
+export interface CheckinDoc extends Document {
+    docType: 80;
+    docId: string;
+    owner: number;
+    content: string;
+    localDate: string;
+    fortune: CheckinFortune;
+    hitokotoId: number;
+    hitokotoUuid: string;
+    hitokotoType: string;
+    hitokotoFrom: string;
+    hitokotoFromWho: string | null;
+    createdAt: Date;
+}
+
+export interface CheckinRecord {
+    date: string;
+    fortune: CheckinFortune;
+    createdAt: string;
+    hitokoto: {
+        id: number;
+        uuid: string;
+        text: string;
+        type: string;
+        from: string;
+        fromWho: string | null;
+    };
 }
 
 declare module './model/problem' {
@@ -642,6 +674,7 @@ declare module './service/db' {
 export interface Model {
     blacklist: typeof import('./model/blacklist').default;
     builtin: typeof import('./model/builtin');
+    checkin: typeof import('./model/checkin');
     contest: typeof import('./model/contest');
     discussion: typeof import('./model/discussion');
     document: Omit<typeof import('./model/document'), 'apply'>;

@@ -305,6 +305,11 @@ const ignoreUA = [
 
 // This is a showcase of how to use Schema to define settings.
 SystemSetting(Schema.object({
+    checkin: Schema.object({
+        hitokotoUrl: Schema.string()
+            .default('https://v1.hitokoto.cn/?c=a&c=b&c=d&c=i&c=k&encode=json&charset=utf-8&max_length=30')
+            .description('Check-in Hitokoto service URL').role('url'),
+    }).extra('family', 'setting_server'),
     smtp: Schema.object({
         user: Schema.string().default('').description('SMTP Username'),
         pass: Schema.string().default('').description('SMTP Password').role('password'),

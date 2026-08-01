@@ -13,10 +13,12 @@ import {
 } from '../error';
 import { TokenDoc, Udoc, User } from '../interface';
 import avatar from '../lib/avatar';
+import { CHECKIN_TIMEZONE, toCheckinRecord } from '../lib/checkin';
 import { sendMail } from '../lib/mail';
 import { verifyTFA } from '../lib/verifyTFA';
 import BlackListModel from '../model/blacklist';
 import { PERM, PRIV, STATUS } from '../model/builtin';
+import * as checkin from '../model/checkin';
 import * as ContestModel from '../model/contest';
 import domain from '../model/domain';
 import * as oplog from '../model/oplog';
@@ -403,9 +405,10 @@ class UserDetailHandler extends Handler {
     async get(domainId: string, uid: number) {
         if (uid === 0) throw new UserNotFoundError(0);
         const isSelfProfile = this.user._id === uid;
-        const [udoc, sdoc] = await Promise.all([
+        const [udoc, sdoc, checkinData] = await Promise.all([
             user.getById(domainId, uid),
             token.getMostRecentSessionByUid(uid, ['createAt', 'updateAt']),
+            checkin.getHistory(uid),
         ]);
         if (!udoc) throw new UserNotFoundError(uid);
         const pdocs: ProblemDoc[] = [];
@@ -433,6 +436,13 @@ class UserDetailHandler extends Handler {
         this.response.template = 'user_detail.html';
         this.response.body = {
             isSelfProfile, udoc, sdoc, pdocs, tags, tdocs,
+            checkinHistory: {
+                timezone: CHECKIN_TIMEZONE,
+                from: checkinData.from,
+                to: checkinData.to,
+                total: checkinData.records.length,
+                records: checkinData.records.map(toCheckinRecord),
+            },
         };
         if (this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_SOLUTION)) {
             const psdocs = await SolutionModel.getByUser(domainId, uid).limit(10).toArray();

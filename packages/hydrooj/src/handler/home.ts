@@ -13,10 +13,12 @@ import {
 } from '../error';
 import { DomainDoc, Setting } from '../interface';
 import avatar, { validate } from '../lib/avatar';
+import { CHECKIN_TIMEZONE, toCheckinRecord, utc8Date } from '../lib/checkin';
 import * as mail from '../lib/mail';
 import { verifyTFA } from '../lib/verifyTFA';
 import BlackListModel from '../model/blacklist';
 import { PERM, PRIV } from '../model/builtin';
+import * as checkin from '../model/checkin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
 import domain from '../model/domain';
@@ -169,11 +171,21 @@ export class HomeHandler extends Handler {
             });
         }
         const udict = await user.getList(domainId, Array.from(this.uids));
+        const loggedIn = this.user.hasPriv(PRIV.PRIV_USER_PROFILE);
+        const today = loggedIn
+            ? await checkin.getToday(this.user._id)
+            : { date: utc8Date(), record: null };
         this.response.template = 'main.html';
         this.response.body = {
             contents,
             udict,
             domain: this.domain,
+            checkin: {
+                timezone: CHECKIN_TIMEZONE,
+                date: today.date,
+                canCheckin: loggedIn && !today.record,
+                record: today.record ? toCheckinRecord(today.record) : null,
+            },
         };
     }
 }
