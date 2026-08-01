@@ -2,6 +2,7 @@ import { createReadStream } from 'fs';
 import { PassThrough, Readable, Writable } from 'stream';
 import { Entry, ZipReader } from '@zip.js/zip.js';
 import { readFile } from 'fs-extra';
+import yaml from 'js-yaml';
 import {
     escapeRegExp, flattenDeep, intersection, pick,
 } from 'lodash';
@@ -9,6 +10,7 @@ import { Filter, ObjectId } from 'mongodb';
 import { nanoid } from 'nanoid';
 import sanitize from 'sanitize-filename';
 import Schema from 'schemastery';
+import type { ApiCall } from '@hydrooj/framework/api';
 import parser from '@hydrooj/utils/lib/search';
 import { randomstring, sortFiles, streamToBuffer } from '@hydrooj/utils/lib/utils';
 import type { Context } from '../context';
@@ -1028,7 +1030,7 @@ export class ProblemCreateHandler extends Handler {
     }
 }
 
-export const ProblemApi = {
+export const ProblemApi: Record<'problem' | 'problems' | 'tags', ApiCall<'Query', any, any>> = {
     problem: Query(
         Schema.object({
             id: Schema.union([Schema.number().step(1), Schema.string()]).required(),
@@ -1051,6 +1053,10 @@ export const ProblemApi = {
                 undefined, undefined, true);
             return args.ids.map((id) => pdocs[+id]).filter((i) => i);
         },
+    ),
+    tags: Query(
+        Schema.object({}),
+        async () => yaml.load(system.get('problem.categories') || '') || {},
     ),
 } as const;
 
