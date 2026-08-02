@@ -357,7 +357,7 @@ export class RecordMainConnectionHandler extends ConnectionHandler {
         if (this.pretest) {
             this.queueSend(rdoc._id.toHexString(), async () => ({ rdoc: omit(rdoc, ['code', 'input']) }));
         } else if (this.noTemplate) {
-            this.queueSend(rdoc._id.toHexString(), async () => ({ rdoc }));
+            this.queueSend(rdoc._id.toHexString(), async () => ({ udoc, pdoc, rdoc }));
         } else {
             this.queueSend(rdoc._id.toHexString(), async () => ({
                 html: await this.renderHTML('record_main_tr.html', {
