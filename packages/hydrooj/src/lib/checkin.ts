@@ -10,6 +10,7 @@ export const CHECKIN_HISTORY_DAYS = 365;
 export const CHECKIN_FORTUNES = [
     'da_ji', 'ji', 'ping', 'xiong', 'da_xiong',
 ] as const satisfies readonly CheckinFortune[];
+export const CHECKIN_FORTUNE_WEIGHTS = [0.3, 0.3, 0.25, 0.1, 0.05];
 
 const UTC8_OFFSET_MS = 8 * 60 * 60 * 1000;
 const MAX_HITOKOTO_LENGTH = 200;
@@ -92,7 +93,12 @@ export function generateFortune(random = Math.random): CheckinFortune {
     if (!Number.isFinite(value) || value < 0 || value >= 1) {
         throw new RangeError('Random value must be in [0, 1)');
     }
-    return CHECKIN_FORTUNES[Math.floor(value * CHECKIN_FORTUNES.length)];
+    let cumulative = 0;
+    for (let i = 0; i < CHECKIN_FORTUNES.length; i++) {
+        cumulative += CHECKIN_FORTUNE_WEIGHTS[i];
+        if (value < cumulative) return CHECKIN_FORTUNES[i];
+    }
+    return CHECKIN_FORTUNES[CHECKIN_FORTUNES.length - 1];
 }
 
 export function validateHitokotoResponse(value: unknown): HitokotoSnapshot {

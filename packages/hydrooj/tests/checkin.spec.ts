@@ -71,11 +71,15 @@ describe('check-in UTC+8 dates', () => {
 });
 
 describe('check-in fortune and Hitokoto validation', () => {
-    it('maps equal fifths to all five fortunes', () => {
-        const values = [0, 0.2, 0.4, 0.6, 0.8];
+    it('maps weighted thresholds to all five fortunes', () => {
+        const values = [0, 0.3, 0.6, 0.85, 0.95];
         assert.deepEqual(values.map((value) => generateFortune(() => value)), [
             'da_ji', 'ji', 'ping', 'xiong', 'da_xiong',
         ]);
+        assert.equal(generateFortune(() => 0.299999), 'da_ji');
+        assert.equal(generateFortune(() => 0.599999), 'ji');
+        assert.equal(generateFortune(() => 0.849999), 'ping');
+        assert.equal(generateFortune(() => 0.949999), 'xiong');
         assert.equal(generateFortune(() => 0.999999), 'da_xiong');
     });
 
