@@ -6,7 +6,8 @@ import type {
     CheckinData, CheckinRepository, HitokotoSnapshot,
 } from '../src/lib/checkin';
 import {
-    checkinHistoryRange, createCheckin, generateFortune, shiftDate,
+    buildCheckinStreakCacheEntry, calculateCheckinStreak, checkinHistoryRange,
+    createCheckin, generateFortune, resolveCheckinStreak, shiftDate,
     toCheckinRecord, utc8Date, validateHitokotoResponse,
 } from '../src/lib/checkin';
 
@@ -215,5 +216,48 @@ describe('check-in creation', () => {
                 fromWho: HITOKOTO.fromWho,
             },
         });
+    });
+});
+
+describe('check-in streak', () => {
+    it('returns zero when today is not checked in', () => {
+        assert.equal(calculateCheckinStreak([], '2026-08-10'), 0);
+        assert.equal(calculateCheckinStreak(['2026-08-09'], '2026-08-10'), 0);
+        assert.equal(calculateCheckinStreak([
+            '2026-08-08', '2026-08-09',
+        ], '2026-08-10'), 0);
+    });
+
+    it('counts consecutive days ending today', () => {
+        assert.equal(calculateCheckinStreak(['2026-08-10'], '2026-08-10'), 1);
+        assert.equal(calculateCheckinStreak([
+            '2026-08-08', '2026-08-09', '2026-08-10',
+        ], '2026-08-10'), 3);
+    });
+
+    it('stops at the first gap', () => {
+        assert.equal(calculateCheckinStreak([
+            '2026-08-07', '2026-08-09', '2026-08-10',
+        ], '2026-08-10'), 2);
+        assert.equal(calculateCheckinStreak([
+            '2026-08-08', '2026-08-10',
+        ], '2026-08-10'), 1);
+    });
+
+    it('resolves display streak only for today', () => {
+        assert.equal(resolveCheckinStreak(null, '2026-08-10'), 0);
+        assert.equal(resolveCheckinStreak({ streak: 5, lastDate: '2026-08-10' }, '2026-08-10'), 5);
+        assert.equal(resolveCheckinStreak({ streak: 5, lastDate: '2026-08-09' }, '2026-08-10'), 0);
+        assert.equal(resolveCheckinStreak({ streak: 0, lastDate: '2026-08-10' }, '2026-08-10'), 0);
+    });
+
+    it('builds a cache entry only when today is checked in', () => {
+        assert.equal(buildCheckinStreakCacheEntry([], '2026-08-10'), null);
+        assert.equal(buildCheckinStreakCacheEntry([
+            '2026-08-08', '2026-08-09',
+        ], '2026-08-10'), null);
+        assert.deepEqual(buildCheckinStreakCacheEntry([
+            '2026-08-08', '2026-08-09', '2026-08-10',
+        ], '2026-08-10'), { streak: 3, lastDate: '2026-08-10' });
     });
 });

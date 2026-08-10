@@ -40,6 +40,7 @@ describe('App', () => {
         assert.equal(home.body.checkin.timezone, 'UTC+08:00');
         assert.equal(home.body.checkin.canCheckin, false);
         assert.equal(home.body.checkin.record, null);
+        assert.equal(home.body.checkin.streak, 0);
 
         const profile = await agent.get('/user/1').set('Accept', 'application/json').expect(200);
         assert.equal(profile.body.checkinHistory.timezone, 'UTC+08:00');
@@ -82,6 +83,7 @@ describe('App', () => {
             .expect(200);
         assert.equal(home.body.checkin.canCheckin, true);
         assert.equal(home.body.checkin.record, null);
+        assert.equal(home.body.checkin.streak, 0);
 
         const now = new Date(`${home.body.checkin.date}T04:00:00+08:00`);
         const created = await global.Hydro.model.checkin.add(2, {
@@ -101,6 +103,7 @@ describe('App', () => {
         const checkedHome = await agent.get('/').set('Accept', 'application/json').expect(200);
         const profile = await agent.get('/user/2').set('Accept', 'application/json').expect(200);
         assert.equal(checkedHome.body.checkin.canCheckin, false);
+        assert.equal(checkedHome.body.checkin.streak, 1);
         assert.equal('createdAt' in checkedHome.body.checkin.record, false);
         assert.deepEqual(profile.body.checkinHistory.records, [checkedHome.body.checkin.record]);
         assert.equal(profile.body.checkinHistory.total, 1);

@@ -199,3 +199,45 @@ export function toCheckinRecord(data: CheckinData): CheckinRecord {
         },
     };
 }
+
+export interface CheckinStreakCacheEntry {
+    /** Consecutive days ending today (only valid when user has checked in today) */
+    streak: number;
+    /** UTC+8 YYYY-MM-DD of the check-in day this streak was computed for */
+    lastDate: string;
+}
+
+/**
+ * Count consecutive check-in days ending today.
+ * Returns 0 unless `today` itself is checked in.
+ */
+export function calculateCheckinStreak(localDates: Iterable<string>, today: string): number {
+    const dates = localDates instanceof Set ? localDates : new Set(localDates);
+    if (!dates.has(today)) return 0;
+    let streak = 0;
+    let day = today;
+    while (dates.has(day)) {
+        streak++;
+        day = shiftDate(day, -1);
+    }
+    return streak;
+}
+
+/** Cache hit only counts for the same UTC+8 calendar day. */
+export function resolveCheckinStreak(
+    entry: CheckinStreakCacheEntry | null | undefined,
+    today: string,
+): number {
+    if (!entry || entry.streak <= 0 || entry.lastDate !== today) return 0;
+    return entry.streak;
+}
+
+/** Build a cache entry; null when the user has not checked in today. */
+export function buildCheckinStreakCacheEntry(
+    localDates: Iterable<string>,
+    today: string,
+): CheckinStreakCacheEntry | null {
+    const streak = calculateCheckinStreak(localDates, today);
+    if (streak <= 0) return null;
+    return { streak, lastDate: today };
+}

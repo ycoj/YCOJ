@@ -175,6 +175,8 @@ export class HomeHandler extends Handler {
         const today = loggedIn
             ? await checkin.getToday(this.user._id)
             : { date: utc8Date(), record: null };
+        // Streak is only meaningful after today's check-in (UI only shows it then).
+        const streak = today.record ? checkin.getStreak(this.user._id) : 0;
         this.response.template = 'main.html';
         this.response.body = {
             contents,
@@ -185,6 +187,7 @@ export class HomeHandler extends Handler {
                 date: today.date,
                 canCheckin: loggedIn && !today.record,
                 record: today.record ? toCheckinRecord(today.record) : null,
+                streak,
             },
         };
     }
