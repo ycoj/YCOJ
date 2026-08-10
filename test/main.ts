@@ -105,15 +105,19 @@ describe('App', () => {
         assert.equal(checkedHome.body.checkin.canCheckin, false);
         assert.equal(checkedHome.body.checkin.streak, 1);
         assert.equal('createdAt' in checkedHome.body.checkin.record, false);
+        assert.equal('streak' in checkedHome.body.checkin.record, false);
         assert.deepEqual(profile.body.checkinHistory.records, [checkedHome.body.checkin.record]);
         assert.equal(profile.body.checkinHistory.total, 1);
 
-        // Cold cache with today's check-in already present must rebuild streak from DB.
-        global.Hydro.model.checkin.clearStreakCache(2);
-        const coldHome = await agent.get('/').set('Accept', 'application/json').expect(200);
-        assert.equal(coldHome.body.checkin.canCheckin, false);
-        assert.equal(coldHome.body.checkin.streak, 1);
-        assert.deepEqual(coldHome.body.checkin.record, checkedHome.body.checkin.record);
+        // Streak lives on the check-in doc; a second homepage read needs no cache rebuild.
+        const againHome = await agent.get('/').set('Accept', 'application/json').expect(200);
+        assert.equal(againHome.body.checkin.canCheckin, false);
+        assert.equal(againHome.body.checkin.streak, 1);
+        assert.deepEqual(againHome.body.checkin.record, checkedHome.body.checkin.record);
+        assert.equal(
+            (await global.Hydro.model.checkin.getByDate(2, checkedHome.body.checkin.date)).streak,
+            1,
+        );
 
         const repeated = await agent.post('/checkin')
             .set('Accept', 'application/json')

@@ -32,7 +32,7 @@ export interface HitokotoSnapshot {
 
 export type CheckinData = Pick<
     CheckinDoc,
-    | 'docId' | 'owner' | 'content' | 'localDate' | 'fortune'
+    | 'docId' | 'owner' | 'content' | 'localDate' | 'streak' | 'fortune'
     | 'hitokotoId' | 'hitokotoUuid' | 'hitokotoType'
     | 'hitokotoFrom' | 'hitokotoFromWho' | 'createdAt'
 >;
@@ -149,6 +149,30 @@ export async function requestHitokoto(endpoint: string): Promise<HitokotoSnapsho
     }
 }
 
+/**
+ * Streak to store on a new check-in for `localDate`.
+ * Reads yesterday once when that doc already has a streak (common path).
+ * Walks further only for legacy docs that lack the field.
+ */
+export async function streakForNewCheckin(
+    uid: number,
+    localDate: string,
+    get: (docId: string) => Promise<Pick<CheckinData, 'streak'> | null>,
+): Promise<number> {
+    let streak = 1;
+    let day = shiftDate(localDate, -1);
+    while (true) {
+        const previous = await get(checkinDocId(uid, day));
+        if (!previous) return streak;
+        if (typeof previous.streak === 'number' && Number.isSafeInteger(previous.streak) && previous.streak >= 1) {
+            return previous.streak + streak;
+        }
+        // Legacy doc without streak: count it and keep walking.
+        streak++;
+        day = shiftDate(day, -1);
+    }
+}
+
 export async function createCheckin(
     uid: number, dependencies: CreateCheckinDependencies,
 ): Promise<CreateCheckinResult> {
@@ -159,11 +183,13 @@ export async function createCheckin(
     if (existing) return { created: false, data: existing };
 
     const hitokoto = await dependencies.fetchHitokoto();
+    const streak = await streakForNewCheckin(uid, localDate, (id) => dependencies.repository.get(id));
     const data: CheckinData = {
         docId,
         owner: uid,
         content: hitokoto.text,
         localDate,
+        streak,
         fortune: generateFortune(dependencies.random),
         hitokotoId: hitokoto.id,
         hitokotoUuid: hitokoto.uuid,
@@ -200,15 +226,9 @@ export function toCheckinRecord(data: CheckinData): CheckinRecord {
     };
 }
 
-export interface CheckinStreakCacheEntry {
-    /** Consecutive days ending today (only valid when user has checked in today) */
-    streak: number;
-    /** UTC+8 YYYY-MM-DD of the check-in day this streak was computed for */
-    lastDate: string;
-}
-
 /**
- * Count consecutive check-in days ending today.
+ * Offline verification / migration helper: count consecutive days ending on `today`.
+ * Not the live path — live streak is stored on each CheckinDoc at insert time.
  * Returns 0 unless `today` itself is checked in.
  */
 export function calculateCheckinStreak(localDates: Iterable<string>, today: string): number {
@@ -221,23 +241,4 @@ export function calculateCheckinStreak(localDates: Iterable<string>, today: stri
         day = shiftDate(day, -1);
     }
     return streak;
-}
-
-/** Cache hit only counts for the same UTC+8 calendar day. */
-export function resolveCheckinStreak(
-    entry: CheckinStreakCacheEntry | null | undefined,
-    today: string,
-): number {
-    if (!entry || entry.streak <= 0 || entry.lastDate !== today) return 0;
-    return entry.streak;
-}
-
-/** Build a cache entry; null when the user has not checked in today. */
-export function buildCheckinStreakCacheEntry(
-    localDates: Iterable<string>,
-    today: string,
-): CheckinStreakCacheEntry | null {
-    const streak = calculateCheckinStreak(localDates, today);
-    if (streak <= 0) return null;
-    return { streak, lastDate: today };
 }

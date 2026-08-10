@@ -6,9 +6,8 @@ import type {
     CheckinData, CheckinRepository, HitokotoSnapshot,
 } from '../src/lib/checkin';
 import {
-    buildCheckinStreakCacheEntry, calculateCheckinStreak, checkinHistoryRange,
-    createCheckin, generateFortune, resolveCheckinStreak, shiftDate,
-    toCheckinRecord, utc8Date, validateHitokotoResponse,
+    calculateCheckinStreak, checkinHistoryRange, createCheckin, generateFortune,
+    shiftDate, streakForNewCheckin, toCheckinRecord, utc8Date, validateHitokotoResponse,
 } from '../src/lib/checkin';
 
 const HITOKOTO: HitokotoSnapshot = {
@@ -196,6 +195,26 @@ describe('check-in creation', () => {
         assert.equal(records.size, 2);
     });
 
+    it('persists streak as a write-time fact on the check-in doc', async () => {
+        const { repository } = memoryRepository();
+        let now = new Date('2026-08-08T03:00:00.000Z');
+        const dependencies = {
+            repository,
+            clock: () => now,
+            fetchHitokoto: async () => HITOKOTO,
+        };
+
+        assert.equal((await createCheckin(2, dependencies)).data.streak, 1);
+        now = new Date('2026-08-09T03:00:00.000Z');
+        assert.equal((await createCheckin(2, dependencies)).data.streak, 2);
+        now = new Date('2026-08-10T03:00:00.000Z');
+        assert.equal((await createCheckin(2, dependencies)).data.streak, 3);
+
+        // Gap resets the streak.
+        now = new Date('2026-08-12T03:00:00.000Z');
+        assert.equal((await createCheckin(2, dependencies)).data.streak, 1);
+    });
+
     it('maps the public DTO without internal document fields', async () => {
         const { repository } = memoryRepository();
         const result = await createCheckin(2, {
@@ -204,6 +223,7 @@ describe('check-in creation', () => {
             random: () => 0,
             fetchHitokoto: async () => HITOKOTO,
         });
+        assert.equal(result.data.streak, 1);
         assert.deepEqual(toCheckinRecord(result.data), {
             date: '2026-08-01',
             fortune: 'da_ji',
@@ -216,11 +236,13 @@ describe('check-in creation', () => {
                 fromWho: HITOKOTO.fromWho,
             },
         });
+        assert.equal('streak' in toCheckinRecord(result.data), false);
+        assert.equal('createdAt' in toCheckinRecord(result.data), false);
     });
 });
 
 describe('check-in streak', () => {
-    it('returns zero when today is not checked in', () => {
+    it('returns zero when today is not checked in (offline verification helper)', () => {
         assert.equal(calculateCheckinStreak([], '2026-08-10'), 0);
         assert.equal(calculateCheckinStreak(['2026-08-09'], '2026-08-10'), 0);
         assert.equal(calculateCheckinStreak([
@@ -228,14 +250,14 @@ describe('check-in streak', () => {
         ], '2026-08-10'), 0);
     });
 
-    it('counts consecutive days ending today', () => {
+    it('counts consecutive days ending today (offline verification helper)', () => {
         assert.equal(calculateCheckinStreak(['2026-08-10'], '2026-08-10'), 1);
         assert.equal(calculateCheckinStreak([
             '2026-08-08', '2026-08-09', '2026-08-10',
         ], '2026-08-10'), 3);
     });
 
-    it('stops at the first gap', () => {
+    it('stops at the first gap (offline verification helper)', () => {
         assert.equal(calculateCheckinStreak([
             '2026-08-07', '2026-08-09', '2026-08-10',
         ], '2026-08-10'), 2);
@@ -244,34 +266,25 @@ describe('check-in streak', () => {
         ], '2026-08-10'), 1);
     });
 
-    it('resolves display streak only for today', () => {
-        assert.equal(resolveCheckinStreak(null, '2026-08-10'), 0);
-        assert.equal(resolveCheckinStreak({ streak: 5, lastDate: '2026-08-10' }, '2026-08-10'), 5);
-        assert.equal(resolveCheckinStreak({ streak: 5, lastDate: '2026-08-09' }, '2026-08-10'), 0);
-        assert.equal(resolveCheckinStreak({ streak: 0, lastDate: '2026-08-10' }, '2026-08-10'), 0);
-    });
+    it('derives insert-time streak from yesterday (or walks legacy docs)', async () => {
+        const store = new Map<string, { streak?: number }>();
+        const get = async (docId: string) => store.get(docId) || null;
 
-    it('builds a cache entry only when today is checked in', () => {
-        assert.equal(buildCheckinStreakCacheEntry([], '2026-08-10'), null);
-        assert.equal(buildCheckinStreakCacheEntry([
-            '2026-08-08', '2026-08-09',
-        ], '2026-08-10'), null);
-        assert.deepEqual(buildCheckinStreakCacheEntry([
-            '2026-08-08', '2026-08-09', '2026-08-10',
-        ], '2026-08-10'), { streak: 3, lastDate: '2026-08-10' });
-    });
+        assert.equal(await streakForNewCheckin(2, '2026-08-10', get), 1);
 
-    it('rebuilds streak from history on cold cache when today is already checked in', () => {
-        const today = '2026-08-10';
-        // Cache miss (process restart / multi-instance / eviction)
-        assert.equal(resolveCheckinStreak(null, today), 0);
-        assert.equal(resolveCheckinStreak(undefined, today), 0);
-        // Existing check-ins in DB, including today — homepage must recalculate, not default to 0
-        const dates = ['2026-08-08', '2026-08-09', '2026-08-10'];
-        const rebuilt = buildCheckinStreakCacheEntry(dates, today);
-        assert.deepEqual(rebuilt, { streak: 3, lastDate: today });
-        assert.equal(resolveCheckinStreak(rebuilt, today), 3);
-        // Fast path still works after cache is filled
-        assert.equal(resolveCheckinStreak({ streak: 3, lastDate: today }, today), 3);
+        store.set('2:2026-08-09', { streak: 4 });
+        assert.equal(await streakForNewCheckin(2, '2026-08-10', get), 5);
+
+        // Legacy docs without streak still form a consecutive chain.
+        store.clear();
+        store.set('2:2026-08-08', {});
+        store.set('2:2026-08-09', {});
+        assert.equal(await streakForNewCheckin(2, '2026-08-10', get), 3);
+
+        // Gap stops the walk.
+        store.clear();
+        store.set('2:2026-08-07', { streak: 10 });
+        store.set('2:2026-08-09', { streak: 1 });
+        assert.equal(await streakForNewCheckin(2, '2026-08-10', get), 2);
     });
 });

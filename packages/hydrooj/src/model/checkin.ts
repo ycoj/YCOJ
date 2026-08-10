@@ -1,9 +1,7 @@
-import { LRUCache } from 'lru-cache';
 import type { CheckinDoc } from '../interface';
 import {
-    buildCheckinStreakCacheEntry, checkinDocId, checkinHistoryRange,
-    type CheckinStreakCacheEntry, createCheckin, requestHitokoto,
-    resolveCheckinStreak, utc8Date,
+    checkinDocId, checkinHistoryRange, createCheckin, requestHitokoto,
+    streakForNewCheckin, utc8Date,
 } from '../lib/checkin';
 import * as DocumentModel from './document';
 import { TYPE_CHECKIN } from './document';
@@ -26,12 +24,6 @@ const repository = {
     },
 };
 
-/** Per-process streak cache; filled on check-in and on homepage cache miss. */
-const streakCache = new LRUCache<number, CheckinStreakCacheEntry>({
-    max: 10000,
-    ttl: 7 * 24 * 60 * 60 * 1000,
-});
-
 export interface CheckinOptions {
     clock?: () => Date;
     random?: () => number;
@@ -45,60 +37,39 @@ export function getByDate(uid: number, localDate: string) {
     );
 }
 
+/**
+ * One-time lazy fill for docs created before streak was a write-time field.
+ * Walks consecutive prior days once, then persists on the doc.
+ */
+async function ensureStreak(record: CheckinDoc): Promise<CheckinDoc> {
+    if (typeof record.streak === 'number' && Number.isSafeInteger(record.streak) && record.streak >= 1) {
+        return record;
+    }
+    const streak = await streakForNewCheckin(
+        record.owner,
+        record.localDate,
+        (docId) => DocumentModel.get(CHECKIN_DOMAIN_ID, TYPE_CHECKIN, docId),
+    );
+    await DocumentModel.set(CHECKIN_DOMAIN_ID, TYPE_CHECKIN, record.docId, { streak });
+    return { ...record, streak };
+}
+
 export async function getToday(uid: number, now = new Date()) {
     const date = utc8Date(now);
-    return { date, record: await getByDate(uid, date) };
-}
-
-/**
- * Homepage streak: O(1) when the process cache is warm for today.
- * On cache miss (restart, multi-instance, eviction), rebuild from DB.
- * Prefer calling only when the user has already checked in today.
- */
-export async function getStreak(uid: number, now = new Date()): Promise<number> {
-    const today = utc8Date(now);
-    const cached = resolveCheckinStreak(streakCache.get(uid), today);
-    if (cached > 0) return cached;
-    return recalculateAndCache(uid, now);
-}
-
-/** Drop a user's streak cache entry (tests / forced rebuild). */
-export function clearStreakCache(uid: number) {
-    streakCache.delete(uid);
-}
-
-/**
- * Scan the user's check-in dates and refresh the LRU entry.
- * Used on check-in and on homepage cache miss.
- */
-export async function recalculateAndCache(uid: number, now = new Date()) {
-    const today = utc8Date(now);
-    const records = await DocumentModel.getMulti(
-        CHECKIN_DOMAIN_ID,
-        TYPE_CHECKIN,
-        { owner: uid, localDate: { $lte: today } },
-        ['localDate'],
-    ).toArray() as Pick<CheckinDoc, 'localDate'>[];
-    const entry = buildCheckinStreakCacheEntry(
-        records.map((record) => record.localDate),
-        today,
-    );
-    if (entry) streakCache.set(uid, entry);
-    else streakCache.delete(uid);
-    return entry ? entry.streak : 0;
+    const record = await getByDate(uid, date);
+    if (!record) return { date, record: null };
+    return { date, record: await ensureStreak(record) };
 }
 
 export async function add(uid: number, options: CheckinOptions = {}) {
     const clock = options.clock || (() => new Date());
-    const result = await createCheckin(uid, {
+    return await createCheckin(uid, {
         repository,
         clock,
         random: options.random,
         fetchHitokoto: options.fetchHitokoto
             || (() => requestHitokoto(system.get('checkin.hitokotoUrl'))),
     });
-    await recalculateAndCache(uid, clock());
-    return result;
 }
 
 export async function getHistory(uid: number, now = new Date()) {
@@ -113,10 +84,7 @@ export async function getHistory(uid: number, now = new Date()) {
 global.Hydro.model.checkin = {
     CHECKIN_DOMAIN_ID,
     add,
-    clearStreakCache,
     getByDate,
     getHistory,
-    getStreak,
     getToday,
-    recalculateAndCache,
 };

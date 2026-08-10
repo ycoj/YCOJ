@@ -175,9 +175,8 @@ export class HomeHandler extends Handler {
         const today = loggedIn
             ? await checkin.getToday(this.user._id)
             : { date: utc8Date(), record: null };
-        // Streak is only meaningful after today's check-in (UI only shows it then).
-        // Cache hit is O(1); miss rebuilds from DB when today is already checked in.
-        const streak = today.record ? await checkin.getStreak(this.user._id) : 0;
+        // Streak is a write-time fact on today's check-in doc (0 when not checked in).
+        const streak = today.record?.streak ?? 0;
         this.response.template = 'main.html';
         this.response.body = {
             contents,
