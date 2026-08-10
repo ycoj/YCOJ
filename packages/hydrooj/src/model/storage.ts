@@ -10,6 +10,7 @@ import db from '../service/db';
 import storage from '../service/storage';
 import ScheduleModel from './schedule';
 import system from './system';
+import UserModel from './user';
 
 export class StorageModel {
     static coll = db.collection('storage');
@@ -26,11 +27,18 @@ export class StorageModel {
         // Make sure id is not used
         // eslint-disable-next-line no-await-in-loop
         while (await StorageModel.coll.findOne({ _id })) _id = StorageModel.generateId(extname(path));
-        await storage.put(_id, file, meta);
-        const { metaData, size, etag } = await storage.getMeta(_id);
-        await StorageModel.coll.insertOne({
-            _id, meta: metaData, path, size, etag, lastModified: new Date(), owner,
-        });
+        let uploaded = false;
+        try {
+            await storage.put(_id, file, meta);
+            uploaded = true;
+            const { metaData, size, etag } = await storage.getMeta(_id);
+            await StorageModel.coll.insertOne({
+                _id, meta: metaData, path, size, etag, lastModified: new Date(), owner,
+            });
+        } catch (e) {
+            if (uploaded) await storage.del(_id).catch(() => undefined);
+            throw e;
+        }
         return path;
     }
 
@@ -158,6 +166,10 @@ export class StorageModel {
 }
 
 async function cleanFiles() {
+    const staleUploads = await UserModel.cleanupFileUploads(moment().subtract(24, 'hours').toDate());
+    for (const { uid, uploads } of staleUploads) {
+        await StorageModel.del(uploads.map((i) => `user/${uid}/${i.name}`), 1);
+    }
     const submissionKeepDate = system.get('submission.saveDays');
     if (submissionKeepDate) {
         const shouldDelete = moment().subtract(submissionKeepDate, 'day').toDate();

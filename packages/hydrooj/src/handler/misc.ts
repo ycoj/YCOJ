@@ -1,6 +1,7 @@
 import { writeHeapSnapshot } from 'v8';
 import { pick } from 'lodash';
 import { lookup } from 'mime-types';
+import { randomstring } from '@hydrooj/utils/lib/utils';
 import { Context } from '../context';
 import {
     AccessDeniedError, FileExistsError, FileLimitExceededError, FileUploadError, NotFoundError,
@@ -45,10 +46,11 @@ export class FilesHandler extends Handler {
     }
 
     async get({ }) {
-        if (!this.udoc._files?.length) this.checkPriv(PRIV.PRIV_CREATE_FILE);
+        const udoc = await user.coll.findOne({ _id: this.udoc._id });
+        if (!udoc?._files?.length) this.checkPriv(PRIV.PRIV_CREATE_FILE);
         this.response.body = {
-            files: sortFiles(this.udoc._files),
-            urlForFile: (filename: string) => this.url('fs_download', { uid: this.udoc._id, filename }),
+            files: sortFiles(udoc?._files || []),
+            urlForFile: (filename: string) => this.url('fs_download', { uid: udoc?._id || this.udoc._id, filename }),
         };
         this.response.pjax = 'partials/files.html';
         this.response.template = 'home_files.html';
@@ -57,31 +59,49 @@ export class FilesHandler extends Handler {
     @post('filename', Types.Filename)
     async postUploadFile({ }, filename: string) {
         this.checkPriv(PRIV.PRIV_CREATE_FILE);
-        if ((this.user._files?.length || 0) >= system.get('limit.user_files')) {
-            if (!this.user.hasPriv(PRIV.PRIV_UNLIMITED_QUOTA)) throw new FileLimitExceededError('count');
-        }
         const file = this.request.files?.file;
         if (!file) throw new ValidationError('file');
-        const size = Math.sum((this.user._files || []).map((i) => i.size)) + file.size;
-        if (size >= system.get('limit.user_files_size')) {
-            if (!this.user.hasPriv(PRIV.PRIV_UNLIMITED_QUOTA)) throw new FileLimitExceededError('size');
+        const uid = this.udoc._id;
+        const unlimited = this.user.hasPriv(PRIV.PRIV_UNLIMITED_QUOTA);
+        const reservation = {
+            token: randomstring(32), name: filename, size: file.size, createdAt: new Date(),
+        };
+        const reserved = await user.reserveFileUpload(
+            uid,
+            reservation,
+            unlimited ? undefined : system.get('limit.user_files'),
+            unlimited ? undefined : system.get('limit.user_files_size'),
+        );
+        if (!reserved) {
+            const latest = await user.coll.findOne({ _id: uid });
+            if (latest?._files?.some((i) => i.name === filename)
+                || latest?._fileUploads?.some((i) => i.name === filename)) throw new FileExistsError(filename);
+            if (!unlimited) {
+                const count = (latest?._files?.length || 0) + (latest?._fileUploads?.length || 0);
+                if (count >= system.get('limit.user_files')) throw new FileLimitExceededError('count');
+                const size = Math.sum([...(latest?._files || []), ...(latest?._fileUploads || [])].map((i) => i.size)) + file.size;
+                if (size >= system.get('limit.user_files_size')) throw new FileLimitExceededError('size');
+            }
+            throw new FileUploadError();
         }
-        if (this.user._files.find((i) => i.name === filename)) throw new FileExistsError(filename);
-        await storage.put(`user/${this.user._id}/${filename}`, file.filepath, this.user._id);
-        const meta = await storage.getMeta(`user/${this.user._id}/${filename}`);
-        const payload = { name: filename, ...pick(meta, ['size', 'lastModified', 'etag']) };
-        if (!meta) throw new FileUploadError();
-        this.user._files.push({ _id: filename, ...payload });
-        await user.setById(this.user._id, { _files: this.user._files });
+        const target = `user/${uid}/${filename}`;
+        try {
+            await storage.put(target, file.filepath, this.user._id);
+            const meta = await storage.getMeta(target);
+            if (!meta) throw new FileUploadError();
+            const payload = { _id: filename, name: filename, ...pick(meta, ['size', 'lastModified', 'etag']) };
+            if (!await user.completeFileUpload(uid, reservation.token, payload)) throw new FileUploadError();
+        } catch (e) {
+            await Promise.allSettled([user.cancelFileUpload(uid, reservation.token), storage.del([target], this.user._id)]);
+            throw e;
+        }
         this.back();
     }
 
     @post('files', Types.ArrayOf(Types.Filename))
     async postDeleteFiles({ }, files: string[]) {
-        await Promise.all([
-            storage.del(files.map((t) => `user/${this.udoc._id}/${t}`), this.user._id),
-            user.setById(this.udoc._id, { _files: this.udoc._files.filter((i) => !files.includes(i.name)) }),
-        ]);
+        const removed = await user.removeFiles(this.udoc._id, files);
+        await storage.del(removed.map((t) => `user/${this.udoc._id}/${t}`), this.user._id);
         this.back();
     }
 }
