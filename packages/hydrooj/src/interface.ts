@@ -172,6 +172,8 @@ export interface CheckinDoc extends Document {
     owner: number;
     content: string;
     localDate: string;
+    /** Consecutive check-in days ending on this localDate (write-time fact). */
+    streak: number;
     fortune: CheckinFortune;
     hitokotoId: number;
     hitokotoUuid: string;

@@ -40,6 +40,7 @@ describe('App', () => {
         assert.equal(home.body.checkin.timezone, 'UTC+08:00');
         assert.equal(home.body.checkin.canCheckin, false);
         assert.equal(home.body.checkin.record, null);
+        assert.equal(home.body.checkin.streak, 0);
 
         const profile = await agent.get('/user/1').set('Accept', 'application/json').expect(200);
         assert.equal(profile.body.checkinHistory.timezone, 'UTC+08:00');
@@ -82,6 +83,7 @@ describe('App', () => {
             .expect(200);
         assert.equal(home.body.checkin.canCheckin, true);
         assert.equal(home.body.checkin.record, null);
+        assert.equal(home.body.checkin.streak, 0);
 
         const now = new Date(`${home.body.checkin.date}T04:00:00+08:00`);
         const created = await global.Hydro.model.checkin.add(2, {
@@ -101,9 +103,21 @@ describe('App', () => {
         const checkedHome = await agent.get('/').set('Accept', 'application/json').expect(200);
         const profile = await agent.get('/user/2').set('Accept', 'application/json').expect(200);
         assert.equal(checkedHome.body.checkin.canCheckin, false);
+        assert.equal(checkedHome.body.checkin.streak, 1);
         assert.equal('createdAt' in checkedHome.body.checkin.record, false);
+        assert.equal('streak' in checkedHome.body.checkin.record, false);
         assert.deepEqual(profile.body.checkinHistory.records, [checkedHome.body.checkin.record]);
         assert.equal(profile.body.checkinHistory.total, 1);
+
+        // Streak lives on the check-in doc; a second homepage read needs no cache rebuild.
+        const againHome = await agent.get('/').set('Accept', 'application/json').expect(200);
+        assert.equal(againHome.body.checkin.canCheckin, false);
+        assert.equal(againHome.body.checkin.streak, 1);
+        assert.deepEqual(againHome.body.checkin.record, checkedHome.body.checkin.record);
+        assert.equal(
+            (await global.Hydro.model.checkin.getByDate(2, checkedHome.body.checkin.date)).streak,
+            1,
+        );
 
         const repeated = await agent.post('/checkin')
             .set('Accept', 'application/json')

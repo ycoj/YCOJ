@@ -1,6 +1,7 @@
 import type { CheckinDoc } from '../interface';
 import {
-    checkinDocId, checkinHistoryRange, createCheckin, requestHitokoto, utc8Date,
+    checkinDocId, checkinHistoryRange, createCheckin, requestHitokoto,
+    streakForNewCheckin, utc8Date,
 } from '../lib/checkin';
 import * as DocumentModel from './document';
 import { TYPE_CHECKIN } from './document';
@@ -36,15 +37,35 @@ export function getByDate(uid: number, localDate: string) {
     );
 }
 
+/**
+ * One-time lazy fill for docs created before streak was a write-time field.
+ * Walks consecutive prior days once, then persists on the doc.
+ */
+async function ensureStreak(record: CheckinDoc): Promise<CheckinDoc> {
+    if (typeof record.streak === 'number' && Number.isSafeInteger(record.streak) && record.streak >= 1) {
+        return record;
+    }
+    const streak = await streakForNewCheckin(
+        record.owner,
+        record.localDate,
+        (docId) => DocumentModel.get(CHECKIN_DOMAIN_ID, TYPE_CHECKIN, docId),
+    );
+    await DocumentModel.set(CHECKIN_DOMAIN_ID, TYPE_CHECKIN, record.docId, { streak });
+    return { ...record, streak };
+}
+
 export async function getToday(uid: number, now = new Date()) {
     const date = utc8Date(now);
-    return { date, record: await getByDate(uid, date) };
+    const record = await getByDate(uid, date);
+    if (!record) return { date, record: null };
+    return { date, record: await ensureStreak(record) };
 }
 
 export async function add(uid: number, options: CheckinOptions = {}) {
+    const clock = options.clock || (() => new Date());
     return await createCheckin(uid, {
         repository,
-        clock: options.clock,
+        clock,
         random: options.random,
         fetchHitokoto: options.fetchHitokoto
             || (() => requestHitokoto(system.get('checkin.hitokotoUrl'))),
