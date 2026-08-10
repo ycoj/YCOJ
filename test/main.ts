@@ -108,6 +108,13 @@ describe('App', () => {
         assert.deepEqual(profile.body.checkinHistory.records, [checkedHome.body.checkin.record]);
         assert.equal(profile.body.checkinHistory.total, 1);
 
+        // Cold cache with today's check-in already present must rebuild streak from DB.
+        global.Hydro.model.checkin.clearStreakCache(2);
+        const coldHome = await agent.get('/').set('Accept', 'application/json').expect(200);
+        assert.equal(coldHome.body.checkin.canCheckin, false);
+        assert.equal(coldHome.body.checkin.streak, 1);
+        assert.deepEqual(coldHome.body.checkin.record, checkedHome.body.checkin.record);
+
         const repeated = await agent.post('/checkin')
             .set('Accept', 'application/json')
             .send({ date: '2000-01-01', fortune: 'da_xiong', uid: 1 })

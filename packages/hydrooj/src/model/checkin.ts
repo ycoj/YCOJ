@@ -26,7 +26,7 @@ const repository = {
     },
 };
 
-/** Per-process streak cache; filled/refreshed on check-in only. */
+/** Per-process streak cache; filled on check-in and on homepage cache miss. */
 const streakCache = new LRUCache<number, CheckinStreakCacheEntry>({
     max: 10000,
     ttl: 7 * 24 * 60 * 60 * 1000,
@@ -51,16 +51,25 @@ export async function getToday(uid: number, now = new Date()) {
 }
 
 /**
- * Cache-only streak for homepage (only meaningful after today's check-in).
- * Does not scan check-in history. Cold cache returns 0 until the next check-in.
+ * Homepage streak: O(1) when the process cache is warm for today.
+ * On cache miss (restart, multi-instance, eviction), rebuild from DB.
+ * Prefer calling only when the user has already checked in today.
  */
-export function getStreak(uid: number, now = new Date()): number {
-    return resolveCheckinStreak(streakCache.get(uid), utc8Date(now));
+export async function getStreak(uid: number, now = new Date()): Promise<number> {
+    const today = utc8Date(now);
+    const cached = resolveCheckinStreak(streakCache.get(uid), today);
+    if (cached > 0) return cached;
+    return recalculateAndCache(uid, now);
+}
+
+/** Drop a user's streak cache entry (tests / forced rebuild). */
+export function clearStreakCache(uid: number) {
+    streakCache.delete(uid);
 }
 
 /**
- * Scan all of the user's check-in dates and refresh the LRU entry.
- * Intended to run on check-in, not on homepage loads.
+ * Scan the user's check-in dates and refresh the LRU entry.
+ * Used on check-in and on homepage cache miss.
  */
 export async function recalculateAndCache(uid: number, now = new Date()) {
     const today = utc8Date(now);
@@ -104,6 +113,7 @@ export async function getHistory(uid: number, now = new Date()) {
 global.Hydro.model.checkin = {
     CHECKIN_DOMAIN_ID,
     add,
+    clearStreakCache,
     getByDate,
     getHistory,
     getStreak,

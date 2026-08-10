@@ -260,4 +260,18 @@ describe('check-in streak', () => {
             '2026-08-08', '2026-08-09', '2026-08-10',
         ], '2026-08-10'), { streak: 3, lastDate: '2026-08-10' });
     });
+
+    it('rebuilds streak from history on cold cache when today is already checked in', () => {
+        const today = '2026-08-10';
+        // Cache miss (process restart / multi-instance / eviction)
+        assert.equal(resolveCheckinStreak(null, today), 0);
+        assert.equal(resolveCheckinStreak(undefined, today), 0);
+        // Existing check-ins in DB, including today — homepage must recalculate, not default to 0
+        const dates = ['2026-08-08', '2026-08-09', '2026-08-10'];
+        const rebuilt = buildCheckinStreakCacheEntry(dates, today);
+        assert.deepEqual(rebuilt, { streak: 3, lastDate: today });
+        assert.equal(resolveCheckinStreak(rebuilt, today), 3);
+        // Fast path still works after cache is filled
+        assert.equal(resolveCheckinStreak({ streak: 3, lastDate: today }, today), 3);
+    });
 });
