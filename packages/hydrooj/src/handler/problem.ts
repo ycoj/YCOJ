@@ -2,7 +2,7 @@ import { createReadStream } from 'fs';
 import { PassThrough, Readable, Writable } from 'stream';
 import { Entry, ZipReader } from '@zip.js/zip.js';
 import { readFile } from 'fs-extra';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import {
     escapeRegExp, flattenDeep, intersection, pick,
 } from 'lodash';
