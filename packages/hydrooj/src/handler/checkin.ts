@@ -11,6 +11,7 @@ class CheckinHandler extends Handler {
             this.response.body = {
                 created: false,
                 record: toCheckinRecord(today.record),
+                streak: today.record.streak,
             };
             return;
         }
@@ -20,6 +21,7 @@ class CheckinHandler extends Handler {
         this.response.body = {
             created: result.created,
             record: toCheckinRecord(result.data),
+            streak: result.data.streak,
         };
     }
 }

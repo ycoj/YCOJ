@@ -124,6 +124,7 @@ describe('App', () => {
             .send({ date: '2000-01-01', fortune: 'da_xiong', uid: 1 })
             .expect(200);
         assert.equal(repeated.body.created, false);
+        assert.equal(repeated.body.streak, 1);
         assert.deepEqual(repeated.body.record, checkedHome.body.checkin.record);
         assert.equal(await global.Hydro.model.document.count('system', 80, { owner: 2 }), 1);
     });
