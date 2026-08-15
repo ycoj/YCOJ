@@ -91,6 +91,15 @@ export interface Udoc extends Record<string, any> {
     loginat: Date;
     ip: string[];
     loginip: string;
+    _files?: FileInfo[];
+    _fileUploads?: FileUploadReservation[];
+}
+
+export interface FileUploadReservation {
+    token: string;
+    name: string;
+    size: number;
+    createdAt: Date;
 }
 
 export interface VUdoc {

@@ -27,6 +27,7 @@ import {
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
+import * as document from '../model/document';
 import domain from '../model/domain';
 import * as oplog from '../model/oplog';
 import problem from '../model/problem';
@@ -1013,18 +1014,38 @@ export class ProblemCreateHandler extends Handler {
         if (typeof pid !== 'string') pid = `P${pid}`;
         if (pid && await problem.get(domainId, pid)) throw new ProblemAlreadyExistError(pid);
         const docId = await problem.add(domainId, pid, title, content, this.user._id, tag ?? [], { hidden, difficulty });
-        const files = new Set(Array.from(content.matchAll(/file:\/\/([\w-]+\.[a-zA-Z0-9]+)/g)).map((i) => i[1]));
-        const tasks = [];
-        for (const file of files) {
-            if (this.user._files.find((i) => i.name === file)) {
-                tasks.push(
-                    storage.rename(`user/${this.user._id}/${file}`, `problem/${domainId}/${docId}/additional_file/${file}`, this.user._id)
-                        .then(() => problem.addAdditionalFile(domainId, docId, file, '', this.user._id, true)),
-                    user.setById(this.user._id, { _files: this.user._files.filter((i) => i.name !== file) }),
-                );
+        const files = new Set([...content.matchAll(/file:\/\/([\w-]+\.[a-zA-Z0-9]+)/g)].map((i) => i[1]));
+        const transferred: Array<{ file: any, src: string, dst: string }> = [];
+        try {
+            for (const file of files) {
+                const latest = await user.coll.findOne({ _id: this.user._id });
+                const info = latest?._files?.find((i) => i.name === file);
+                if (!info) continue;
+                const src = `user/${this.user._id}/${file}`;
+                const dst = `problem/${domainId}/${docId}/additional_file/${file}`;
+                const renamed = await storage.rename(src, dst, this.user._id);
+                if (!renamed.modifiedCount) continue;
+                try {
+                    await problem.addAdditionalFile(domainId, docId, file, '', this.user._id, true);
+                    const removed = await user.removeFiles(this.user._id, [file]);
+                    if (!removed.includes(file)) throw new Error(`User file ${file} was removed concurrently`);
+                    transferred.push({ file: info, src, dst });
+                } catch (e) {
+                    await document.deleteSub(domainId, document.TYPE_PROBLEM, docId, 'additional_file', file);
+                    await storage.rename(dst, src, this.user._id);
+                    throw e;
+                }
             }
+        } catch (e) {
+            for (const item of transferred.reverse()) {
+                await Promise.allSettled([
+                    document.deleteSub(domainId, document.TYPE_PROBLEM, docId, 'additional_file', item.file.name),
+                    storage.rename(item.dst, item.src, this.user._id),
+                    user.restoreFile(this.user._id, item.file),
+                ]);
+            }
+            throw e;
         }
-        await Promise.all(tasks);
         this.response.body = { pid: pid || docId };
         this.response.redirect = this.url('problem_files', { pid: pid || docId });
     }

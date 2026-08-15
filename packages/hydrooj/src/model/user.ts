@@ -3,7 +3,7 @@ import { LRUCache } from 'lru-cache';
 import { Collection, Filter, ObjectId } from 'mongodb';
 import { LoginError, UserAlreadyExistError, UserNotFoundError } from '../error';
 import {
-    Authenticator, BaseUserDict, FileInfo, GDoc,
+    Authenticator, BaseUserDict, FileInfo, FileUploadReservation, GDoc,
     OwnerInfo, Udict, Udoc, VUdoc,
 } from '../interface';
 import avatar from '../lib/avatar';
@@ -315,6 +315,134 @@ class UserModel {
         await coll.updateMany({ _id: { $in: ids } }, { $inc: { [field]: n } });
         for (const udoc of udocs) deleteUserCache(udoc);
         return udocs;
+    }
+
+    /** Reserve user-file quota in the same update that records the filename. */
+    @ArgMethod
+    static async reserveFileUpload(
+        uid: number, reservation: FileUploadReservation, maxCount?: number, maxSize?: number,
+    ): Promise<Udoc | null> {
+        const files = { $ifNull: ['$_files', []] };
+        const uploads = { $ifNull: ['$_fileUploads', []] };
+        const fileSize = {
+            $reduce: {
+                input: files, initialValue: 0,
+                in: { $add: ['$$value', { $ifNull: ['$$this.size', 0] }] },
+            },
+        };
+        const uploadSize = {
+            $reduce: {
+                input: uploads, initialValue: 0,
+                in: { $add: ['$$value', { $ifNull: ['$$this.size', 0] }] },
+            },
+        };
+        const conditions: any[] = [];
+        if (typeof maxCount === 'number') {
+            conditions.push({ $lt: [{ $add: [{ $size: files }, { $size: uploads }] }, maxCount] });
+        }
+        if (typeof maxSize === 'number') {
+            conditions.push({ $lt: [{ $add: [fileSize, uploadSize, reservation.size] }, maxSize] });
+        }
+        const filter: any = {
+            _id: uid,
+            $nor: [{ '_files.name': reservation.name }, { '_fileUploads.name': reservation.name }],
+        };
+        if (conditions.length) filter.$expr = { $and: conditions };
+        const res = await coll.findOneAndUpdate(
+            filter,
+            { $push: { _fileUploads: reservation } } as any,
+            { returnDocument: 'after' },
+        );
+        if (res) deleteUserCache(res);
+        return res;
+    }
+
+    @ArgMethod
+    static async completeFileUpload(uid: number, uploadToken: string, file: FileInfo): Promise<Udoc | null> {
+        const res = await coll.findOneAndUpdate(
+            { _id: uid, '_fileUploads.token': uploadToken },
+            [{
+                $set: {
+                    _files: { $concatArrays: [{ $ifNull: ['$_files', []] }, [file]] },
+                    _fileUploads: {
+                        $filter: {
+                            input: { $ifNull: ['$_fileUploads', []] },
+                            as: 'upload',
+                            cond: { $ne: ['$$upload.token', uploadToken] },
+                        },
+                    },
+                },
+            }],
+            { returnDocument: 'after' },
+        );
+        if (res) deleteUserCache(res);
+        return res;
+    }
+
+    @ArgMethod
+    static async cancelFileUpload(uid: number, uploadToken: string): Promise<Udoc | null> {
+        const res = await coll.findOneAndUpdate(
+            { _id: uid, '_fileUploads.token': uploadToken },
+            { $pull: { _fileUploads: { token: uploadToken } } } as any,
+            { returnDocument: 'after' },
+        );
+        if (res) deleteUserCache(res);
+        return res;
+    }
+
+    @ArgMethod
+    static async removeFiles(uid: number, names: string[]): Promise<string[]> {
+        if (!names.length) return [];
+        const before = await coll.findOneAndUpdate(
+            { _id: uid, '_files.name': { $in: names } },
+            { $pull: { _files: { name: { $in: names } } } } as any,
+            { returnDocument: 'before' },
+        );
+        if (!before) return [];
+        const removed = (before._files || []).filter((i) => names.includes(i.name)).map((i) => i.name);
+        if (removed.length) deleteUserCache(before);
+        return removed;
+    }
+
+    @ArgMethod
+    static async restoreFile(uid: number, file: FileInfo): Promise<boolean> {
+        const res = await coll.findOneAndUpdate(
+            { _id: uid, $nor: [{ '_files.name': file.name }, { '_fileUploads.name': file.name }] },
+            { $push: { _files: file } } as any,
+            { returnDocument: 'after' },
+        );
+        if (res) deleteUserCache(res);
+        return !!res;
+    }
+
+    /** Atomically detach stale reservations and return them for storage cleanup. */
+    static async cleanupFileUploads(cutoff: Date): Promise<Array<{ uid: number, uploads: FileUploadReservation[] }>> {
+        const result: Array<{ uid: number, uploads: FileUploadReservation[] }> = [];
+        const uids = await coll.find({ '_fileUploads.createdAt': { $lt: cutoff } }).project({ _id: 1 }).toArray();
+        for (const { _id: uid } of uids) {
+            const before = await coll.findOneAndUpdate(
+                { _id: uid, '_fileUploads.createdAt': { $lt: cutoff } },
+                [{
+                    $set: {
+                        _fileUploads: {
+                            $filter: {
+                                input: { $ifNull: ['$_fileUploads', []] },
+                                as: 'upload',
+                                cond: { $gte: ['$$upload.createdAt', cutoff] },
+                            },
+                        },
+                    },
+                }],
+                { returnDocument: 'before' },
+            );
+            if (!before) continue;
+            const uploads = (before._fileUploads || []).filter((i) => i.createdAt < cutoff);
+            if (uploads.length) {
+                deleteUserCache(before);
+                result.push({ uid, uploads });
+            }
+        }
+        return result;
     }
 
     @ArgMethod
