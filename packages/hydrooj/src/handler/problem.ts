@@ -15,7 +15,8 @@ import parser from '@hydrooj/utils/lib/search';
 import { randomstring, sortFiles, streamToBuffer } from '@hydrooj/utils/lib/utils';
 import type { Context } from '../context';
 import {
-    BadRequestError, ContestNotAttendedError, ContestNotEndedError, ContestNotFoundError, ContestNotLiveError,
+    AiGenerationAlreadyActiveError, AiGenerationDisabledError, BadRequestError,
+    ContestNotAttendedError, ContestNotEndedError, ContestNotFoundError, ContestNotLiveError,
     FileLimitExceededError, FileTooLargeError, HackFailedError, NoProblemError, NotFoundError,
     PermissionError, ProblemAlreadyExistError, ProblemAlreadyUsedByContestError, ProblemConfigError,
     ProblemIsReferencedError, ProblemNotAllowCopyError, ProblemNotAllowLanguageError, ProblemNotAllowPretestError,
@@ -24,6 +25,7 @@ import {
 import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
 } from '../interface';
+import { canGenerateTestdata, isDuplicateKeyError } from '../lib/aiGeneration/policy';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
@@ -35,9 +37,10 @@ import * as setting from '../model/setting';
 import solution from '../model/solution';
 import storage from '../model/storage';
 import system from '../model/system';
+import task from '../model/task';
 import user from '../model/user';
 import {
-    Handler, param, post, Query, query, route, Types,
+    Handler, Mutation, param, post, Query, query, route, Types,
 } from '../service/server';
 import { ContestDetailBaseHandler } from './contest';
 
@@ -1030,7 +1033,10 @@ export class ProblemCreateHandler extends Handler {
     }
 }
 
-export const ProblemApi: Record<'problem' | 'problems' | 'tags', ApiCall<'Query', any, any>> = {
+type ProblemApiType = Record<'problem' | 'problems' | 'tags', ApiCall<'Query', any, any>>
+    & Record<'problem.aiGenerateTestdata', ApiCall<'Mutation', any, any>>;
+
+export const ProblemApi: ProblemApiType = {
     problem: Query(
         Schema.object({
             id: Schema.union([Schema.number().step(1), Schema.string()]).required(),
@@ -1057,6 +1063,62 @@ export const ProblemApi: Record<'problem' | 'problems' | 'tags', ApiCall<'Query'
     tags: Query(
         Schema.object({}),
         async () => yaml.load(system.get('problem.categories') || '') || {},
+    ),
+    'problem.aiGenerateTestdata': Mutation(
+        Schema.object({
+            domainId: Schema.string().required(),
+            id: Schema.union([Schema.number().step(1), Schema.string()]).required(),
+            instructions: Schema.string().max(10_000),
+        }),
+        async (ctx, args) => {
+            if (!system.get('aiGeneration.enabled')) throw new AiGenerationDisabledError();
+            const pdoc = await problem.get(args.domainId, args.id);
+            if (!pdoc) throw new ProblemNotFoundError(args.domainId, args.id);
+            if (!canGenerateTestdata(
+                ctx.user, pdoc, PERM.PERM_EDIT_PROBLEM_SELF, PERM.PERM_EDIT_PROBLEM,
+            )) ctx.checkPerm(PERM.PERM_EDIT_PROBLEM);
+            if (pdoc.reference) throw new ProblemIsReferencedError('generate test data');
+            const active = await record.getMulti(args.domainId, {
+                pid: pdoc.docId,
+                lang: 'ai',
+                'aiGeneration.active': true,
+            }).limit(1).hasNext();
+            if (active) throw new AiGenerationAlreadyActiveError();
+            let rid: ObjectId;
+            try {
+                rid = await record.add(args.domainId, pdoc.docId, ctx.user._id, 'ai', args.instructions || '', false, {
+                    type: 'generate',
+                    aiGeneration: {
+                        active: true,
+                        stage: 'waiting',
+                        model: system.get('aiGeneration.model') || '',
+                    },
+                });
+            } catch (err) {
+                if (isDuplicateKeyError(err)) throw new AiGenerationAlreadyActiveError();
+                throw err;
+            }
+            try {
+                await task.add({
+                    type: 'ai-generate',
+                    rid,
+                    domainId: args.domainId,
+                    pid: pdoc.docId,
+                    uid: ctx.user._id,
+                    instructions: args.instructions || '',
+                });
+            } catch (err) {
+                const latest = await record.update(args.domainId, rid, {
+                    status: STATUS.STATUS_SYSTEM_ERROR,
+                    'aiGeneration.active': false,
+                    'aiGeneration.stage': 'failed',
+                    'aiGeneration.finishedAt': new Date(),
+                } as any, { judgeTexts: 'Unable to enqueue AI generation task.' } as any);
+                if (latest) ctx.broadcast('record/change', latest);
+                throw err;
+            }
+            return { rid };
+        },
     ),
 } as const;
 

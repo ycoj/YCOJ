@@ -115,6 +115,14 @@ export interface RecordPayload extends RecordJudgeInfo {
     contest?: string;
 
     files?: Record<string, string>;
+    aiGeneration?: {
+        active: boolean;
+        stage: 'waiting' | 'preparing' | 'agent' | 'validating' | 'replacing' | 'completed' | 'failed' | 'cancelled';
+        model: string;
+        sessionId?: string;
+        startedAt?: Date;
+        finishedAt?: Date;
+    };
 }
 
 export interface JudgeRequest extends Omit<RecordPayload, 'testCases'> {

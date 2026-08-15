@@ -13,6 +13,11 @@ export const HitokotoUnavailableError = Err(
     'HitokotoUnavailableError', UserFacingError,
     'External Hitokoto service unavailable. Please try again later.', 503,
 );
+export const AiGenerationDisabledError = Err('AiGenerationDisabledError', UserFacingError, 'AI test-data generation is disabled.', 503);
+export const AiGenerationAlreadyActiveError = Err(
+    'AiGenerationAlreadyActiveError', UserFacingError,
+    'An AI test-data generation task is already active for this problem.', 409,
+);
 
 export const AlreadyVotedError = Err('AlreadyVotedError', ForbiddenError, "You've already voted.");
 export const BuiltinLoginError = Err('BuiltinLoginError', ForbiddenError, 'Builtin login is disabled.');
