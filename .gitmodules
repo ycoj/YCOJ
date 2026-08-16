@@ -1,3 +1,6 @@
 [submodule "testlib"]
 path = packages/hydrojudge/vendor/testlib
 url = https://gitcode.com/gh_mirrors/te/testlib.git
+[submodule "packages/hydrooj/docs/cyaron"]
+	path = packages/hydrooj/docs/cyaron
+	url = https://github.com/luogu-dev/cyaron.wiki.git

@@ -40,6 +40,18 @@ export interface SystemKeys {
     'server.language': string;
     'limit.problem_files_max': number;
     'problem.categories': string;
+    'aiGeneration.enabled': boolean;
+    'aiGeneration.apiType': 'openai-completions' | 'openai-responses';
+    'aiGeneration.baseUrl': string;
+    'aiGeneration.model': string;
+    'aiGeneration.apiKey': string;
+    'aiGeneration.reasoning': boolean;
+    'aiGeneration.thinkingLevel': 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+    'aiGeneration.contextTokens': number;
+    'aiGeneration.maxTokens': number;
+    'aiGeneration.concurrency': number;
+    'aiGeneration.sandboxHost': string;
+    'aiGeneration.sandboxToken': string;
     'session.keys': string[];
     'session.saved_expire_seconds': number;
     'session.unsaved_expire_seconds': number;
@@ -242,11 +254,21 @@ export interface ProblemStatusDoc extends StatusDocBase {
     star?: boolean;
 }
 
+export interface AiGenerationMeta {
+    active: boolean;
+    stage: 'waiting' | 'preparing' | 'agent' | 'validating' | 'replacing' | 'completed' | 'failed' | 'cancelled';
+    model: string;
+    sessionId?: string;
+    startedAt?: Date;
+    finishedAt?: Date;
+}
+
 export type RecordDoc = {
     [K in keyof RecordPayload]: K extends 'hackTarget' | 'contest' ? ObjectId : RecordPayload[K];
 } & {
     _id: ObjectId;
     notify?: boolean;
+    aiGeneration?: AiGenerationMeta;
 };
 
 export interface RecordHistoryDoc extends RecordJudgeInfo {

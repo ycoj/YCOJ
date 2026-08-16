@@ -26,7 +26,7 @@ export default class RecordModel {
         '_id', 'score', 'time', 'memory', 'lang',
         'uid', 'pid', 'rejudged', 'progress', 'domainId',
         'contest', 'judger', 'judgeAt', 'status', 'source',
-        'files', 'hackTarget',
+        'files', 'hackTarget', 'aiGeneration',
     ];
 
     static STAT_QUERY = {
@@ -136,6 +136,7 @@ export default class RecordModel {
             hackTarget?: ObjectId;
             type: 'judge' | 'rejudge' | 'pretest' | 'hack' | 'generate';
             notify?: boolean;
+            aiGeneration?: RecordDoc['aiGeneration'];
         } = { type: 'judge' },
     ) {
         const data: RecordDoc = {
@@ -161,6 +162,7 @@ export default class RecordModel {
         if (args.files) data.files = args.files;
         if (args.hackTarget) data.hackTarget = args.hackTarget;
         if (args.notify) data.notify = true;
+        if (args.aiGeneration) data.aiGeneration = args.aiGeneration;
         if (args.type === 'rejudge') {
             args.type = 'judge';
             data.rejudged = true;

@@ -8,10 +8,12 @@
     "author": "undefined <i@undefined.moe>",
     "license": "AGPL-3.0-or-later OR Proprietary",
     "engines": {
-        "node": ">=22"
+        "node": ">=22.19.0"
     },
     "preferUnplugged": true,
     "dependencies": {
+        "@earendil-works/pi-agent-core": "0.84.2",
+        "@earendil-works/pi-ai": "0.84.2",
         "@aws-sdk/client-s3": "3.1048.0",
         "@aws-sdk/lib-storage": "3.1048.0",
         "@aws-sdk/s3-presigned-post": "3.1048.0",
