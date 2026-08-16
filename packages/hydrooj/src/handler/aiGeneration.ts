@@ -8,7 +8,7 @@ import {
 import {
     ArtifactValidationError, collectOutputArtifacts, replaceTestdataWithRollback,
 } from '../lib/aiGeneration/artifacts';
-import { copyCyaronDocsToSession } from '../lib/aiGeneration/documentation';
+import { checkCyaronDocsAvailable, copyCyaronDocsToSession } from '../lib/aiGeneration/documentation';
 import {
     ACTIVE_AI_GENERATION_FILTER, classifyAiGenerationFailure, shouldCleanupAiGeneration,
 } from '../lib/aiGeneration/policy';
@@ -155,6 +155,7 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
     try {
         config = getAiGenerationConfig();
         validateAiGenerationConfig(config);
+        checkCyaronDocsAvailable();
     } catch (err) {
         await finishRecord(ctx, t.domainId, rid, STATUS.STATUS_SYSTEM_ERROR, 'failed', `Configuration error: ${err.message}`);
         return;

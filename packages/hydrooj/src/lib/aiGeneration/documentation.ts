@@ -21,6 +21,21 @@ async function listDocumentationFiles(root: string, relativeDir = ''): Promise<s
     return files;
 }
 
+export function checkCyaronDocsAvailable(sourceDir?: string): string {
+    const resolvedDir = sourceDir || findFileSync('hydrooj/docs/cyaron');
+    if (!resolvedDir) {
+        throw new Error(
+            'CYaRon documentation not found. '
+            + 'For source deployments, initialize the CYaRon submodule with: git submodule update --init --recursive. '
+            + 'For published packages, ensure the documentation is bundled or reinstall the package.',
+        );
+    }
+    if (!fs.existsSync(resolvedDir)) {
+        throw new Error(`CYaRon documentation directory does not exist: ${resolvedDir}`);
+    }
+    return resolvedDir;
+}
+
 export async function copyCyaronDocsToSession(
     client: GoJudgeSessionClient, sessionId: string, options: CopyCyaronDocsOptions = {},
 ) {
