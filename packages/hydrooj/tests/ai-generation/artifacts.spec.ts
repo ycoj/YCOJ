@@ -22,7 +22,7 @@ function fakeClient(source: Record<string, string>) {
         async readFile(_sessionId: string, name: string) {
             return Buffer.from(source[name]);
         },
-    } as GoJudgeSessionClient;
+    } as unknown as GoJudgeSessionClient;
 }
 
 describe('AI output artifact validation', () => {
@@ -62,7 +62,12 @@ describe('AI testdata replacement', () => {
         const files = new Map<string, Buffer>([['old.in', Buffer.from('old')]]);
         await replaceTestdataWithRollback({
             async list() { return [...files.keys()]; },
-            async read(name) { return files.get(name); },
+            async backup(names) { return new Map(names.map((name) => [name, files.get(name)!])); },
+            async restore(backup) {
+                files.clear();
+                for (const [name, content] of backup) files.set(name, content);
+            },
+            async discard() { return undefined; },
             async put(name, content) { files.set(name, content); },
             async delete(names) { for (const name of names) files.delete(name); },
         }, new Map([
@@ -83,7 +88,12 @@ describe('AI testdata replacement', () => {
         let failed = false;
         await assert.rejects(replaceTestdataWithRollback({
             async list() { return [...files.keys()]; },
-            async read(name) { return files.get(name); },
+            async backup(names) { return new Map(names.map((name) => [name, files.get(name)!])); },
+            async restore(backup) {
+                files.clear();
+                for (const [name, content] of backup) files.set(name, content);
+            },
+            async discard() { return undefined; },
             async put(name, content) {
                 if (name === 'new.out' && !failed) {
                     failed = true;
@@ -109,7 +119,12 @@ describe('AI testdata replacement', () => {
         const files = new Map(original);
         await assert.rejects(replaceTestdataWithRollback({
             async list() { return [...files.keys()]; },
-            async read(name) { return files.get(name); },
+            async backup(names) { return new Map(names.map((name) => [name, files.get(name)!])); },
+            async restore(backup) {
+                files.clear();
+                for (const [name, content] of backup) files.set(name, content);
+            },
+            async discard() { return undefined; },
             async put(name, content) {
                 files.set(name, content);
                 controller.abort('cancelled');

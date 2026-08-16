@@ -25,7 +25,8 @@ import {
 import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
 } from '../interface';
-import { canGenerateTestdata, isDuplicateKeyError } from '../lib/aiGeneration/policy';
+import { ACTIVE_AI_GENERATION_FILTER, canGenerateTestdata, isDuplicateKeyError } from '../lib/aiGeneration/policy';
+import { Logger } from '../logger';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
@@ -43,6 +44,8 @@ import {
     Handler, Mutation, param, post, Query, query, route, Types,
 } from '../service/server';
 import { ContestDetailBaseHandler } from './contest';
+
+const logger = new Logger('problem');
 
 export const parseCategory = (value: string) => value.replace(/，/g, ',').split(',').map((e) => e.trim());
 
@@ -1080,8 +1083,7 @@ export const ProblemApi: ProblemApiType = {
             if (pdoc.reference) throw new ProblemIsReferencedError('generate test data');
             const active = await record.getMulti(args.domainId, {
                 pid: pdoc.docId,
-                lang: 'ai',
-                'aiGeneration.active': true,
+                ...ACTIVE_AI_GENERATION_FILTER,
             }).limit(1).hasNext();
             if (active) throw new AiGenerationAlreadyActiveError();
             let rid: ObjectId;
@@ -1108,13 +1110,17 @@ export const ProblemApi: ProblemApiType = {
                     instructions: args.instructions || '',
                 });
             } catch (err) {
-                const latest = await record.update(args.domainId, rid, {
-                    status: STATUS.STATUS_SYSTEM_ERROR,
-                    'aiGeneration.active': false,
-                    'aiGeneration.stage': 'failed',
-                    'aiGeneration.finishedAt': new Date(),
-                } as any, { judgeTexts: 'Unable to enqueue AI generation task.' } as any);
-                if (latest) ctx.broadcast('record/change', latest);
+                try {
+                    const latest = await record.update(args.domainId, rid, {
+                        status: STATUS.STATUS_SYSTEM_ERROR,
+                        'aiGeneration.active': false,
+                        'aiGeneration.stage': 'failed',
+                        'aiGeneration.finishedAt': new Date(),
+                    } as any, { judgeTexts: 'Unable to enqueue AI generation task.' } as any);
+                    if (latest) ctx.broadcast('record/change', latest);
+                } catch (compensationError) {
+                    logger.error('Failed to compensate after AI generation enqueue error for record %s: %O', rid, compensationError);
+                }
                 throw err;
             }
             return { rid };

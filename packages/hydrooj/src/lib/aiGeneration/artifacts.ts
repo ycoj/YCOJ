@@ -88,26 +88,22 @@ export async function collectOutputArtifacts(
     return { files, totalBytes, caseCount: inputs.length };
 }
 
-export interface TestdataRepository {
+export interface TestdataRepository<Backup = unknown> {
     list(): Promise<string[]>;
-    read(name: string): Promise<Buffer>;
     put(name: string, content: Buffer): Promise<void>;
     delete(names: string[]): Promise<void>;
+    backup(names: string[], signal?: AbortSignal): Promise<Backup>;
+    restore(backup: Backup): Promise<void>;
+    discard(backup: Backup): Promise<void>;
 }
 
-export async function replaceTestdataWithRollback(
-    repository: TestdataRepository, generated: Map<string, Buffer>, signal?: AbortSignal,
+export async function replaceTestdataWithRollback<Backup>(
+    repository: TestdataRepository<Backup>, generated: Map<string, Buffer>, signal?: AbortSignal,
 ) {
     const existingNames = await repository.list();
-    const backup = new Map<string, Buffer>();
-    for (const name of existingNames) {
-        signal?.throwIfAborted();
-        // eslint-disable-next-line no-await-in-loop
-        backup.set(name, await repository.read(name));
-    }
-    signal?.throwIfAborted();
-    const generatedNames = [...generated.keys()];
+    const backup = await repository.backup(existingNames, signal);
     try {
+        signal?.throwIfAborted();
         for (const [name, content] of generated) {
             signal?.throwIfAborted();
             // eslint-disable-next-line no-await-in-loop
@@ -120,22 +116,19 @@ export async function replaceTestdataWithRollback(
     } catch (cause) {
         const rollbackErrors: Error[] = [];
         try {
-            const introduced = generatedNames.filter((name) => !backup.has(name));
-            if (introduced.length) await repository.delete(introduced);
+            await repository.restore(backup);
         } catch (err) {
             rollbackErrors.push(err as Error);
         }
-        for (const [name, content] of backup) {
-            try {
-                // eslint-disable-next-line no-await-in-loop
-                await repository.put(name, content);
-            } catch (err) {
-                rollbackErrors.push(err as Error);
-            }
+        try {
+            await repository.discard(backup);
+        } catch (err) {
+            rollbackErrors.push(err as Error);
         }
         if (rollbackErrors.length) {
             throw new AggregateError([cause, ...rollbackErrors], 'Failed to replace test data and rollback completely.');
         }
         throw cause;
     }
+    await repository.discard(backup);
 }

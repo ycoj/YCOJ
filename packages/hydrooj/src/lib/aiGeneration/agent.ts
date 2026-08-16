@@ -203,7 +203,7 @@ export async function createAiAgent(
     });
     let eventUpdates = Promise.resolve();
     agent.subscribe((event: any) => {
-        let update: AiAgentEvent;
+        let update: AiAgentEvent | undefined;
         if (event.type === 'tool_execution_start') {
             update = {
                 phase: 'tool-start', tool: event.toolName, summary: summarizeTool(event.toolName, event.args),
@@ -216,7 +216,12 @@ export async function createAiAgent(
                 failed: event.isError,
             };
         }
-        if (update && onEvent) eventUpdates = eventUpdates.then(() => onEvent(update)).then(() => undefined);
+        if (update && onEvent) {
+            eventUpdates = eventUpdates
+                .then(() => onEvent(update))
+                .catch(() => undefined)
+                .then(() => undefined);
+        }
         // Deliberately ignore thinking and text streaming events. Only the filtered final report is persisted.
     });
     return {

@@ -1,6 +1,5 @@
 import * as yaml from 'js-yaml';
 import { ObjectId } from 'mongodb';
-import { streamToBuffer } from '@hydrooj/utils';
 import { Context } from '../context';
 import { RecordDoc, Task } from '../interface';
 import {
@@ -102,13 +101,39 @@ async function finishRecord(
 }
 
 function createTestdataRepository(domainId: string, pid: number, uid: number) {
+    const prefix = `problem/${domainId}/${pid}/testdata/`;
+    const list = async () => {
+        const pdoc = await problem.get(domainId, pid, ['data']);
+        return (pdoc?.data || []).map((file) => file.name);
+    };
     return {
-        async list() {
-            const pdoc = await problem.get(domainId, pid, ['data']);
-            return (pdoc?.data || []).map((file) => file.name);
+        list,
+        async backup(names: string[], signal?: AbortSignal) {
+            const backupPrefix = `${prefix}.ai-generation-backup-${new ObjectId().toHexString()}/`;
+            const copied: string[] = [];
+            try {
+                for (const name of names) {
+                    signal?.throwIfAborted();
+                    // eslint-disable-next-line no-await-in-loop
+                    await storage.copy(`${prefix}${name}`, `${backupPrefix}${name}`);
+                    copied.push(name);
+                }
+            } catch (err) {
+                if (copied.length) await storage.del(copied.map((name) => `${backupPrefix}${name}`));
+                throw err;
+            }
+            return { names, prefix: backupPrefix };
         },
-        async read(name: string) {
-            return await streamToBuffer(await storage.get(`problem/${domainId}/${pid}/testdata/${name}`));
+        async restore(backup: { names: string[], prefix: string }) {
+            const currentNames = await list();
+            if (currentNames.length) await problem.delTestdata(domainId, pid, currentNames, uid);
+            for (const name of backup.names) {
+                // eslint-disable-next-line no-await-in-loop
+                await problem.addTestdata(domainId, pid, name, await storage.get(`${backup.prefix}${name}`), uid);
+            }
+        },
+        async discard(backup: { names: string[], prefix: string }) {
+            if (backup.names.length) await storage.del(backup.names.map((name) => `${backup.prefix}${name}`));
         },
         async put(name: string, content: Buffer) {
             await problem.addTestdata(domainId, pid, name, content, uid);
@@ -289,14 +314,18 @@ export async function cleanupStaleAiGeneration(ctx: Context, client?: GoJudgeSes
 
 export async function apply(ctx: Context) {
     if (process.env.NODE_APP_INSTANCE !== '0') return;
-    await record.coll.createIndex(
-        { domainId: 1, pid: 1 },
-        {
-            name: 'ai_generation_active_problem',
-            unique: true,
-            partialFilterExpression: { lang: 'ai', 'aiGeneration.active': true },
-        },
-    );
+    try {
+        await record.coll.createIndex(
+            { domainId: 1, pid: 1 },
+            {
+                name: 'ai_generation_active_problem',
+                unique: true,
+                partialFilterExpression: { lang: 'ai', 'aiGeneration.active': true },
+            },
+        );
+    } catch (err) {
+        logger.error('Failed to create AI generation active-record index: %O', err);
+    }
     const initialConfig = getAiGenerationConfig();
     let cleanupClient: GoJudgeSessionClient;
     try {
