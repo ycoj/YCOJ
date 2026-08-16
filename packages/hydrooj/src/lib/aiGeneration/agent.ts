@@ -34,8 +34,7 @@ function summarizeTool(tool: string, args: any) {
     if (tool === 'Read') return String(args?.path || '');
     if (tool === 'Edit') return String(args?.path || '');
     if (tool === 'Shell') {
-        const command = String(args?.command || '').replace(/\s+/g, ' ').trim();
-        return command.length > 240 ? `${command.slice(0, 240)}...` : command;
+        return String(args?.command || '');
     }
     return '';
 }
