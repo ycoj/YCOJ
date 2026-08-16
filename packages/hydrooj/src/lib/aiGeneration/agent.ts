@@ -16,8 +16,10 @@ export interface AiAgentConfig {
 
 export interface AiAgentEvent {
     phase: 'tool-start' | 'tool-end';
+    toolCallId: string;
     tool: string;
     summary: string;
+    details?: Record<string, any>;
     failed?: boolean;
 }
 
@@ -41,6 +43,31 @@ function summarizeToolResult(tool: string, result: any) {
     if (tool === 'Edit') return `${details.bytes || 0} byte(s)`;
     if (tool === 'Shell') return `${details.status || 'unknown status'}, exit ${details.exitStatus ?? 'unknown'}`;
     return '';
+}
+
+function toolResultDetails(tool: string, result: any): Record<string, any> {
+    const details = result?.details || {};
+    if (tool === 'Read') {
+        return {
+            path: details.path,
+            offset: details.offset,
+            lines: details.lines,
+            totalLines: details.totalLines,
+            truncated: !!details.truncated,
+        };
+    }
+    if (tool === 'Edit') return { path: details.path, bytes: details.bytes };
+    if (tool === 'Shell') {
+        return {
+            command: details.command,
+            status: details.status,
+            exitStatus: details.exitStatus,
+            time: details.time,
+            memory: details.memory,
+            runTime: details.runTime,
+        };
+    }
+    return {};
 }
 
 export function createSessionTools(
@@ -206,13 +233,18 @@ export async function createAiAgent(
         let update: AiAgentEvent | undefined;
         if (event.type === 'tool_execution_start') {
             update = {
-                phase: 'tool-start', tool: event.toolName, summary: summarizeTool(event.toolName, event.args),
+                phase: 'tool-start',
+                toolCallId: event.toolCallId,
+                tool: event.toolName,
+                summary: summarizeTool(event.toolName, event.args),
             };
         } else if (event.type === 'tool_execution_end') {
             update = {
                 phase: 'tool-end',
+                toolCallId: event.toolCallId,
                 tool: event.toolName,
                 summary: event.isError ? 'tool execution error' : summarizeToolResult(event.toolName, event.result),
+                details: toolResultDetails(event.toolName, event.result),
                 failed: event.isError,
             };
         }

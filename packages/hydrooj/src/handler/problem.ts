@@ -26,6 +26,7 @@ import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
 } from '../interface';
 import { ACTIVE_AI_GENERATION_FILTER, canGenerateTestdata, isDuplicateKeyError } from '../lib/aiGeneration/policy';
+import { createAiGenerationTrace } from '../lib/aiGeneration/trace';
 import { Logger } from '../logger';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
@@ -1111,13 +1112,16 @@ export const ProblemApi: ProblemApiType = {
                 });
             } catch (err) {
                 try {
-                    const latest = await record.update(args.domainId, rid, {
+                    const trace = createAiGenerationTrace(ctx, record, args.domainId, rid);
+                    const generation = await trace.start('generation', { stage: 'enqueue' });
+                    await trace.finish(generation, 'failed', {
+                        error: 'Unable to enqueue AI generation task.',
+                    }, STATUS.STATUS_SYSTEM_ERROR, {
                         status: STATUS.STATUS_SYSTEM_ERROR,
                         'aiGeneration.active': false,
                         'aiGeneration.stage': 'failed',
                         'aiGeneration.finishedAt': new Date(),
-                    } as any, { judgeTexts: 'Unable to enqueue AI generation task.' } as any);
-                    if (latest) ctx.broadcast('record/change', latest);
+                    });
                 } catch (compensationError) {
                     logger.error('Failed to compensate after AI generation enqueue error for record %s: %O', rid, compensationError);
                 }

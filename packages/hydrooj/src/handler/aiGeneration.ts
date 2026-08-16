@@ -16,6 +16,9 @@ import {
     AI_TESTDATA_SYSTEM_PROMPT, buildInitialPrompt, buildRepairPrompt,
 } from '../lib/aiGeneration/prompt';
 import { GoJudgeSessionClient, SessionError } from '../lib/aiGeneration/session';
+import {
+    AiGenerationTrace, AiTraceHandle, AiTraceState, createAiGenerationTrace,
+} from '../lib/aiGeneration/trace';
 import { Logger } from '../logger';
 import { STATUS } from '../model/builtin';
 import problem from '../model/problem';
@@ -73,12 +76,9 @@ export function validateAiGenerationConfig(config: AiGenerationRuntimeConfig) {
 
 async function updateRecord(
     ctx: Context, domainId: string, rid: ObjectId,
-    $set: Record<string, any> = {}, judgeText?: string,
+    $set: Record<string, any> = {},
 ) {
-    const latest = await record.update(
-        domainId, rid, $set as any,
-        judgeText ? { judgeTexts: judgeText } as any : undefined,
-    );
+    const latest = await record.update(domainId, rid, $set as any);
     if (latest) ctx.broadcast('record/change', latest);
     return latest;
 }
@@ -86,10 +86,17 @@ async function updateRecord(
 async function finishRecord(
     ctx: Context, domainId: string, rid: ObjectId, status: STATUS,
     stage: NonNullable<RecordDoc['aiGeneration']>['stage'], report: string,
+    trace?: AiGenerationTrace, generation?: AiTraceHandle, eventData: Record<string, any> = {},
 ) {
     const current = await record.get(domainId, rid);
     const cancelled = current?.status === STATUS.STATUS_CANCELED;
-    return await updateRecord(ctx, domainId, rid, {
+    const finalStatus = cancelled ? STATUS.STATUS_CANCELED : status;
+    const eventState: Exclude<AiTraceState, 'running'> = finalStatus === STATUS.STATUS_CANCELED
+        ? 'cancelled'
+        : finalStatus === STATUS.STATUS_TIME_LIMIT_EXCEEDED
+            ? 'timed_out'
+            : finalStatus === STATUS.STATUS_ACCEPTED ? 'succeeded' : 'failed';
+    const set = {
         ...cancelled ? {} : { status },
         score: !cancelled && status === STATUS.STATUS_ACCEPTED ? 100 : 0,
         progress: !cancelled && status === STATUS.STATUS_ACCEPTED ? 100 : 0,
@@ -98,7 +105,30 @@ async function finishRecord(
         'aiGeneration.active': false,
         'aiGeneration.stage': cancelled ? 'cancelled' : stage,
         'aiGeneration.finishedAt': new Date(),
-    }, report.slice(0, 20_000));
+    };
+    if (trace && generation) {
+        return await trace.finish(generation, eventState, {
+            status: finalStatus,
+            report: report.slice(0, 20_000),
+            ...eventData,
+        }, finalStatus, set);
+    }
+    return await updateRecord(ctx, domainId, rid, set);
+}
+
+function traceFailure(
+    termination: 'cancelled' | 'timeout' | undefined,
+    err: any,
+    type: 'generation' | 'preparation' | 'agent_turn' | 'tool' | 'validation' | 'replacement',
+) {
+    const kind = termination
+        || (err instanceof SessionError && ['cancelled', 'timeout'].includes(err.kind) ? err.kind : undefined);
+    if (kind === 'cancelled') return { state: 'cancelled' as const, status: STATUS.STATUS_CANCELED };
+    if (kind === 'timeout') return { state: 'timed_out' as const, status: STATUS.STATUS_TIME_LIMIT_EXCEEDED };
+    if (type === 'validation' || err instanceof ArtifactValidationError) {
+        return { state: 'failed' as const, status: STATUS.STATUS_FORMAT_ERROR };
+    }
+    return { state: 'failed' as const, status: STATUS.STATUS_SYSTEM_ERROR };
 }
 
 function createTestdataRepository(domainId: string, pid: number, uid: number) {
@@ -151,13 +181,21 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
     const rdoc = await record.get(t.domainId, rid);
     if (!rdoc || rdoc.status === STATUS.STATUS_CANCELED || !rdoc.aiGeneration?.active) return;
 
+    const trace = createAiGenerationTrace(ctx, record, t.domainId, rid, rdoc.testCases?.length || 0);
+    const generation = await trace.start('generation', {
+        model: system.get('aiGeneration.model') || undefined,
+    });
+
     let config: AiGenerationRuntimeConfig;
     try {
         config = getAiGenerationConfig();
         validateAiGenerationConfig(config);
         checkCyaronDocsAvailable();
     } catch (err) {
-        await finishRecord(ctx, t.domainId, rid, STATUS.STATUS_SYSTEM_ERROR, 'failed', `Configuration error: ${err.message}`);
+        await finishRecord(
+            ctx, t.domainId, rid, STATUS.STATUS_SYSTEM_ERROR, 'failed',
+            `Configuration error: ${err.message}`, trace, generation,
+        );
         return;
     }
 
@@ -171,6 +209,8 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
     let sessionId: string;
     let termination: 'cancelled' | 'timeout';
     let report = '';
+    const toolEvents = new Map<string, AiTraceHandle>();
+    let pdoc: any;
     const abort = (reason: 'cancelled' | 'timeout') => {
         termination ||= reason;
         controller.abort(reason);
@@ -180,29 +220,39 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
     const timeout = setTimeout(() => abort('timeout'), TOTAL_TIMEOUT_MS);
 
     try {
-        await updateRecord(ctx, t.domainId, rid, {
-            status: STATUS.STATUS_JUDGING,
-            progress: 1,
-            'aiGeneration.stage': 'preparing',
-            'aiGeneration.startedAt': new Date(),
-        }, `Starting AI generation with ${config.model}.`);
-        const pdoc = await problem.get(
-            t.domainId, t.pid,
-            ['title', 'content', 'config', 'data', 'additional_file', 'reference'], true,
-        );
-        if (!pdoc) throw new Error('Problem no longer exists.');
-        if (pdoc.reference) throw new Error('Cannot generate data for a referenced problem.');
-
-        ({ sessionId } = await client.create(controller.signal));
-        await updateRecord(ctx, t.domainId, rid, {
-            progress: 5,
-            'aiGeneration.sessionId': sessionId,
+        const preparation = await trace.start('preparation', {
+            model: config.model,
         });
-        const rawConfig = typeof pdoc.config === 'string' ? pdoc.config : yaml.dump(pdoc.config || {});
-        await client.writeFile(sessionId, 'problem.md', `# ${pdoc.title}\n\n${pdoc.content || ''}\n`, controller.signal);
-        await client.writeFile(sessionId, 'problem-config.yaml', rawConfig || '{}\n', controller.signal);
-        await copyCyaronDocsToSession(client, sessionId, { signal: controller.signal });
-        await client.execShell(sessionId, 'mkdir -p output', controller.signal);
+        try {
+            await updateRecord(ctx, t.domainId, rid, {
+                status: STATUS.STATUS_JUDGING,
+                progress: 1,
+                'aiGeneration.stage': 'preparing',
+                'aiGeneration.startedAt': new Date(),
+            });
+            pdoc = await problem.get(
+                t.domainId, t.pid,
+                ['title', 'content', 'config', 'data', 'additional_file', 'reference'], true,
+            );
+            if (!pdoc) throw new Error('Problem no longer exists.');
+            if (pdoc.reference) throw new Error('Cannot generate data for a referenced problem.');
+
+            ({ sessionId } = await client.create(controller.signal));
+            await updateRecord(ctx, t.domainId, rid, {
+                progress: 5,
+                'aiGeneration.sessionId': sessionId,
+            });
+            const rawConfig = typeof pdoc.config === 'string' ? pdoc.config : yaml.dump(pdoc.config || {});
+            await client.writeFile(sessionId, 'problem.md', `# ${pdoc.title}\n\n${pdoc.content || ''}\n`, controller.signal);
+            await client.writeFile(sessionId, 'problem-config.yaml', rawConfig || '{}\n', controller.signal);
+            await copyCyaronDocsToSession(client, sessionId, { signal: controller.signal });
+            await client.execShell(sessionId, 'mkdir -p output', controller.signal);
+            await trace.finish(preparation, 'succeeded', { sessionCreated: true });
+        } catch (err) {
+            const failure = traceFailure(termination, err, 'preparation');
+            await trace.finish(preparation, failure.state, { error: err instanceof Error ? err.message : String(err) }, failure.status);
+            throw err;
+        }
 
         await updateRecord(ctx, t.domainId, rid, {
             progress: 10,
@@ -211,21 +261,65 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
         agent = await createAiAgent(
             config, client, sessionId, `ai-generation-${ridString}`, AI_TESTDATA_SYSTEM_PROMPT,
             async (event) => {
-                const action = event.phase === 'tool-start' ? 'calling' : event.failed ? 'failed' : 'completed';
-                await updateRecord(ctx, t.domainId, rid, {}, `[${event.tool}] ${action}${event.summary ? `: ${event.summary}` : ''}`);
+                if (event.phase === 'tool-start') {
+                    const handle = await trace.start('tool', {
+                        tool: event.tool,
+                        toolCallId: event.toolCallId,
+                        summary: event.summary,
+                    });
+                    toolEvents.set(event.toolCallId, handle);
+                    return;
+                }
+                const handle = toolEvents.get(event.toolCallId);
+                if (!handle) return;
+                toolEvents.delete(event.toolCallId);
+                const failure = event.failed
+                    ? { state: 'failed' as const, status: STATUS.STATUS_SYSTEM_ERROR }
+                    : { state: 'succeeded' as const, status: STATUS.STATUS_ACCEPTED };
+                await trace.finish(handle, failure.state, {
+                    tool: event.tool,
+                    toolCallId: event.toolCallId,
+                    summary: event.summary,
+                    details: event.details || {},
+                }, failure.status);
             },
         );
 
         let artifacts;
         for (let attempt = 0; attempt <= 3; attempt++) {
             // eslint-disable-next-line no-await-in-loop
-            report = await agent.prompt(attempt
-                ? buildRepairPrompt((artifacts as any)?.error, attempt)
-                : buildInitialPrompt(t.instructions));
+            const agentTurn = await trace.start('agent_turn', {
+                attempt: attempt + 1,
+                kind: attempt ? 'repair' : 'initial',
+            });
+            try {
+                // eslint-disable-next-line no-await-in-loop
+                report = await agent.prompt(attempt
+                    ? buildRepairPrompt((artifacts as any)?.error, attempt)
+                    : buildInitialPrompt(t.instructions));
+                // eslint-disable-next-line no-await-in-loop
+                await trace.finish(agentTurn, 'succeeded', {
+                    attempt: attempt + 1,
+                    report: report.slice(0, 20_000),
+                });
+            } catch (err) {
+                const failure = traceFailure(termination, err, 'agent_turn');
+                // eslint-disable-next-line no-await-in-loop
+                await trace.finish(agentTurn, failure.state, {
+                    attempt: attempt + 1,
+                    error: err instanceof Error ? err.message : String(err),
+                }, failure.status);
+                throw err;
+            }
             // eslint-disable-next-line no-await-in-loop
             await updateRecord(ctx, t.domainId, rid, {
                 progress: 70 + attempt * 5,
                 'aiGeneration.stage': 'validating',
+            });
+            // eslint-disable-next-line no-await-in-loop
+            const validation = await trace.start('validation', {
+                attempt: attempt + 1,
+                maxAttempts: 4,
             });
             try {
                 const maxFiles = Math.max(
@@ -239,12 +333,22 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
                 );
                 // eslint-disable-next-line no-await-in-loop
                 artifacts = await collectOutputArtifacts(client, sessionId, { maxFiles, maxBytes }, controller.signal);
+                // eslint-disable-next-line no-await-in-loop
+                await trace.finish(validation, 'succeeded', {
+                    attempt: attempt + 1,
+                    caseCount: artifacts.caseCount,
+                    totalBytes: artifacts.totalBytes,
+                });
                 break;
             } catch (err) {
+                const failure = traceFailure(termination, err, 'validation');
+                // eslint-disable-next-line no-await-in-loop
+                await trace.finish(validation, failure.state, {
+                    attempt: attempt + 1,
+                    error: err instanceof Error ? err.message : String(err),
+                }, failure.status);
                 if (!(err instanceof ArtifactValidationError) || attempt === 3) throw err;
                 artifacts = { error: err.message } as any;
-                // eslint-disable-next-line no-await-in-loop
-                await updateRecord(ctx, t.domainId, rid, {}, `Artifact validation failed; requesting repair ${attempt + 1}/3: ${err.message}`);
             }
         }
         if (!artifacts?.files) throw new ArtifactValidationError('Agent did not produce valid artifacts.');
@@ -254,14 +358,43 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
         });
         const latest = await record.get(t.domainId, rid);
         if (latest?.status === STATUS.STATUS_CANCELED) throw new SessionError('cancelled', 'Generation was cancelled.');
-        await replaceTestdataWithRollback(
-            createTestdataRepository(t.domainId, t.pid, t.uid), artifacts.files, controller.signal,
-        );
+        const replacement = await trace.start('replacement', {
+            caseCount: artifacts.caseCount,
+            totalBytes: artifacts.totalBytes,
+        });
+        try {
+            await replaceTestdataWithRollback(
+                createTestdataRepository(t.domainId, t.pid, t.uid), artifacts.files, controller.signal,
+            );
+            await trace.finish(replacement, 'succeeded', {
+                caseCount: artifacts.caseCount,
+                totalBytes: artifacts.totalBytes,
+            });
+        } catch (err) {
+            const failure = traceFailure(termination, err, 'replacement');
+            await trace.finish(replacement, failure.state, {
+                caseCount: artifacts.caseCount,
+                totalBytes: artifacts.totalBytes,
+                error: err instanceof Error ? err.message : String(err),
+            }, failure.status);
+            throw err;
+        }
         await finishRecord(
             ctx, t.domainId, rid, STATUS.STATUS_ACCEPTED, 'completed',
             `${report || 'AI generation completed.'}\n\nInstalled ${artifacts.caseCount} test case(s), ${artifacts.totalBytes} bytes.`,
+            trace, generation,
+            { caseCount: artifacts.caseCount, totalBytes: artifacts.totalBytes },
         );
     } catch (err) {
+        for (const [toolCallId, handle] of toolEvents) {
+            toolEvents.delete(toolCallId);
+            const failure = traceFailure(termination, err, 'tool');
+            // eslint-disable-next-line no-await-in-loop
+            await trace.finish(handle, failure.state, {
+                toolCallId,
+                error: err instanceof Error ? err.message : String(err),
+            }, failure.status).catch(() => undefined);
+        }
         const failure = classifyAiGenerationFailure(
             termination,
             err instanceof SessionError && ['cancelled', 'timeout'].includes(err.kind) ? err.kind as 'cancelled' | 'timeout' : undefined,
@@ -276,6 +409,7 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
         await finishRecord(
             ctx, t.domainId, rid, status, failure === 'cancelled' ? 'cancelled' : 'failed',
             report ? `${label}\n\nLast agent report:\n${report}` : label,
+            trace, generation,
         );
     } finally {
         clearTimeout(timeout);
@@ -306,10 +440,17 @@ export async function cleanupStaleAiGeneration(ctx: Context, client?: GoJudgeSes
                 logger.warn('Unable to clean stale session %s: %O', rdoc.aiGeneration.sessionId, err);
             }
         }
+        const trace = createAiGenerationTrace(ctx, record, rdoc.domainId, rdoc._id, rdoc.testCases?.length || 0);
+        // eslint-disable-next-line no-await-in-loop
+        const generation = await trace.start('generation', {
+            recovered: false,
+            stage: rdoc.aiGeneration?.stage,
+        });
         // eslint-disable-next-line no-await-in-loop
         await finishRecord(
             ctx, rdoc.domainId, rdoc._id, STATUS.STATUS_SYSTEM_ERROR, 'failed',
             'AI generation could not be resumed after worker restart.',
+            trace, generation,
         );
     }
 }
