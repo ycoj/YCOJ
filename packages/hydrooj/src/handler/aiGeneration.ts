@@ -8,11 +8,12 @@ import {
 import {
     ArtifactValidationError, collectOutputArtifacts, replaceTestdataWithRollback,
 } from '../lib/aiGeneration/artifacts';
+import { copyCyaronDocsToSession } from '../lib/aiGeneration/documentation';
 import {
     ACTIVE_AI_GENERATION_FILTER, classifyAiGenerationFailure, shouldCleanupAiGeneration,
 } from '../lib/aiGeneration/policy';
 import {
-    AI_TESTDATA_SYSTEM_PROMPT, buildInitialPrompt, buildRepairPrompt, CYARON_GUIDE,
+    AI_TESTDATA_SYSTEM_PROMPT, buildInitialPrompt, buildRepairPrompt,
 } from '../lib/aiGeneration/prompt';
 import { GoJudgeSessionClient, SessionError } from '../lib/aiGeneration/session';
 import { Logger } from '../logger';
@@ -199,7 +200,7 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
         const rawConfig = typeof pdoc.config === 'string' ? pdoc.config : yaml.dump(pdoc.config || {});
         await client.writeFile(sessionId, 'problem.md', `# ${pdoc.title}\n\n${pdoc.content || ''}\n`, controller.signal);
         await client.writeFile(sessionId, 'problem-config.yaml', rawConfig || '{}\n', controller.signal);
-        await client.writeFile(sessionId, 'docs/cyaron.md', CYARON_GUIDE, controller.signal);
+        await copyCyaronDocsToSession(client, sessionId, { signal: controller.signal });
         await client.execShell(sessionId, 'mkdir -p output', controller.signal);
 
         await updateRecord(ctx, t.domainId, rid, {
