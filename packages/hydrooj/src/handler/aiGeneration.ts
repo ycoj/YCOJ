@@ -83,6 +83,26 @@ async function updateRecord(
     return latest;
 }
 
+async function clearCancelledAiGeneration(ctx: Context, rdoc: RecordDoc) {
+    const latest = await record.coll.findOneAndUpdate(
+        {
+            _id: rdoc._id,
+            domainId: rdoc.domainId,
+            status: STATUS.STATUS_CANCELED,
+            'aiGeneration.active': true,
+        },
+        {
+            $set: {
+                'aiGeneration.active': false,
+                'aiGeneration.stage': 'cancelled',
+                'aiGeneration.finishedAt': new Date(),
+            },
+        },
+        { returnDocument: 'after' },
+    );
+    if (latest) ctx.broadcast('record/change', latest);
+}
+
 async function finishRecord(
     ctx: Context, domainId: string, rid: ObjectId, status: STATUS,
     stage: NonNullable<RecordDoc['aiGeneration']>['stage'], report: string,
@@ -107,11 +127,13 @@ async function finishRecord(
         'aiGeneration.finishedAt': new Date(),
     };
     if (trace && generation) {
-        return await trace.finish(generation, eventState, {
+        const latest = await trace.finish(generation, eventState, {
             status: finalStatus,
             report: report.slice(0, 20_000),
             ...eventData,
         }, finalStatus, set);
+        if (!latest && cancelled && current) await clearCancelledAiGeneration(ctx, current);
+        return latest;
     }
     return await updateRecord(ctx, domainId, rid, set);
 }
@@ -486,7 +508,11 @@ export async function apply(ctx: Context) {
         consumer.setConcurrency(getAiGenerationConfig().concurrency);
     });
     const disposeRecord = ctx.on('record/change', (rdoc: RecordDoc) => {
-        if (rdoc?.status === STATUS.STATUS_CANCELED) activeRuns.get(rdoc._id.toHexString())?.abort('cancelled');
+        if (rdoc?.status !== STATUS.STATUS_CANCELED || !rdoc.aiGeneration?.active) return;
+        activeRuns.get(rdoc._id.toHexString())?.abort('cancelled');
+        clearCancelledAiGeneration(ctx, rdoc).catch((err) => {
+            logger.error('Failed to clear cancelled AI generation %s: %O', rdoc._id, err);
+        });
     });
     ctx.effect(() => () => {
         consumer.destroy();
