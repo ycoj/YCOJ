@@ -4,6 +4,26 @@ import { createSessionTools } from '../../src/lib/aiGeneration/agent';
 import type { GoJudgeSessionClient } from '../../src/lib/aiGeneration/session';
 
 describe('Pi faux provider ReAct loop', () => {
+    it('rejects overlapping edit matches', async () => {
+        const files = new Map<string, Buffer>([['generator.py', Buffer.from('aaa')]]);
+        const session = {
+            async readFile(_sessionId, path) {
+                return files.get(path);
+            },
+            async writeFile(_sessionId, path, content) {
+                files.set(path, Buffer.from(content));
+            },
+        } as unknown as GoJudgeSessionClient;
+        const ai = await import('@earendil-works/pi-ai');
+        const edit = createSessionTools(session, 'sess', ai.Type)[1];
+
+        await assert.rejects(
+            edit.execute('call-1', { path: 'generator.py', oldText: 'aa', newText: 'b' }),
+            /not unique/,
+        );
+        assert.equal(files.get('generator.py').toString(), 'aaa');
+    });
+
     it('executes only Session-backed tools and never persists thinking', async () => {
         const [{ Agent }, ai] = await Promise.all([
             import('@earendil-works/pi-agent-core'),

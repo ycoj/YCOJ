@@ -281,6 +281,7 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
                     toolCallId: event.toolCallId,
                     summary: event.summary,
                     details: event.details || {},
+                    ...(event.error ? { error: event.error } : {}),
                 }, failure.status);
             },
         );

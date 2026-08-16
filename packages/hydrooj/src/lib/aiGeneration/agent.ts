@@ -20,8 +20,11 @@ export interface AiAgentEvent {
     tool: string;
     summary: string;
     details?: Record<string, any>;
+    error?: string;
     failed?: boolean;
 }
+
+const MAX_TOOL_ERROR_TEXT = 4_096;
 
 function textResult(text: string, details: any) {
     return { content: [{ type: 'text' as const, text }], details };
@@ -70,6 +73,19 @@ function toolResultDetails(tool: string, result: any): Record<string, any> {
     return {};
 }
 
+function boundedToolError(result: any) {
+    const content = Array.isArray(result?.content) ? result.content : [];
+    let text = '';
+    for (const block of content) {
+        if (block?.type !== 'text' || typeof block.text !== 'string') continue;
+        const prefix = text ? '\n' : '';
+        const remaining = MAX_TOOL_ERROR_TEXT - text.length - prefix.length;
+        if (remaining <= 0) break;
+        text += `${prefix}${block.text.slice(0, remaining)}`;
+    }
+    return text || undefined;
+}
+
 export function createSessionTools(
     client: GoJudgeSessionClient, sessionId: string, Type: any,
 ): any[] {
@@ -114,7 +130,7 @@ export function createSessionTools(
             const original = (await client.readFile(sessionId, params.path, signal)).toString('utf8');
             const first = original.indexOf(params.oldText);
             if (first < 0) throw new Error(`Edit target was not found in ${params.path}.`);
-            if (original.includes(params.oldText, first + params.oldText.length)) {
+            if (original.includes(params.oldText, first + 1)) {
                 throw new Error(`Edit target is not unique in ${params.path}.`);
             }
             const updated = `${original.slice(0, first)}${params.newText}${original.slice(first + params.oldText.length)}`;
@@ -239,13 +255,15 @@ export async function createAiAgent(
                 summary: summarizeTool(event.toolName, event.args),
             };
         } else if (event.type === 'tool_execution_end') {
+            const failed = event.isError === true;
             update = {
                 phase: 'tool-end',
                 toolCallId: event.toolCallId,
                 tool: event.toolName,
-                summary: event.isError ? 'tool execution error' : summarizeToolResult(event.toolName, event.result),
+                summary: failed ? 'tool execution error' : summarizeToolResult(event.toolName, event.result),
                 details: toolResultDetails(event.toolName, event.result),
-                failed: event.isError,
+                error: failed ? boundedToolError(event.result) : undefined,
+                failed,
             };
         }
         if (update && onEvent) {
