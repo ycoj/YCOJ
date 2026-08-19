@@ -294,7 +294,12 @@ export class ContestProblemListHandler extends ContestDetailBaseHandler {
     @param('tid', Types.ObjectId)
     async get(domainId: string, tid: ObjectId) {
         if (contest.isNotStarted(this.tdoc)) throw new ContestNotLiveError(domainId, tid);
-        if (!this.tsdoc?.attend && !contest.isDone(this.tdoc)) throw new ContestNotAttendedError(domainId, tid);
+        const canViewUnattended = this.user.own(this.tdoc)
+            || this.user.hasPerm(PERM.PERM_EDIT_CONTEST)
+            || this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST);
+        if (!this.tsdoc?.attend && !contest.isDone(this.tdoc) && !canViewUnattended) {
+            throw new ContestNotAttendedError(domainId, tid);
+        }
         const [pdict, udict, tcdocs] = await Promise.all([
             problem.getList(domainId, this.tdoc.pids, true, true, problem.PROJECTION_CONTEST_LIST),
             user.getList(domainId, [this.tdoc.owner, this.user._id]),

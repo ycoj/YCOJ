@@ -292,6 +292,7 @@ export interface ScoreboardNode {
     value: string; // 显示分数
     raw?: any;
     score?: number; // 原始分数（100，不含赛制加成）
+    first?: boolean;
     style?: string;
     hover?: string;
 }
