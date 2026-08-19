@@ -314,12 +314,9 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         if (tid) {
             if (!this.tdoc?.pids?.includes(this.pdoc.docId)) throw new ContestNotFoundError(domainId, tid);
             if (contest.isNotStarted(this.tdoc)) throw new ContestNotLiveError(tid);
-            const canViewUnattendedContest = this.user.own(this.tdoc)
-                || this.user.hasPerm(PERM.PERM_EDIT_CONTEST)
-                || this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST);
             if (!contest.isDone(this.tdoc, this.tsdoc)
                 && (!this.tsdoc?.attend || !this.tsdoc.startAt)
-                && !canViewUnattendedContest) {
+                && !contest.canViewUnattended(this.tdoc, this.user)) {
                 throw new ContestNotAttendedError(tid);
             }
             // Delete problem-related info in contest mode

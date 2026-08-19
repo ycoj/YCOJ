@@ -85,6 +85,12 @@ export function isExtended(tdoc: Tdoc) {
     return tdoc.penaltySince.getTime() <= now && now < tdoc.endAt.getTime();
 }
 
+export function canViewUnattended(tdoc: Tdoc, udoc: User) {
+    return udoc.own(tdoc)
+        || udoc.hasPerm(PERM.PERM_EDIT_CONTEST)
+        || udoc.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST);
+}
+
 export function buildContestRule<T>(def: Optional<ContestRule<T>, 'applyProjection'>): ContestRule<T>;
 export function buildContestRule<T>(def: Partial<ContestRule<T>>, baseRule: ContestRule<T>): ContestRule<T>;
 export function buildContestRule<T>(def: Partial<ContestRule<T>>, baseRule: ContestRule<T> = {} as any) {
@@ -1185,6 +1191,7 @@ global.Hydro.model.contest = {
     canShowSelfRecord,
     canShowScoreboard,
     canViewHiddenScoreboard,
+    canViewUnattended,
     getScoreboard,
     addClarification,
     addClarificationReply,
