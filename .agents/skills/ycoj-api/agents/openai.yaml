@@ -1,0 +1,4 @@
+interface:
+  display_name: "YCOJ API"
+  short_description: "Use YCOJ backend APIs without reading server code"
+  default_prompt: "Use $ycoj-api to perform this YCOJ backend workflow through HTTP APIs."
