@@ -1,0 +1,15 @@
+# Connection endpoint contracts
+
+Native transport is WebSocket. When `server.enableSSE` is enabled the server exposes its connection/SSE fallback using the same URL/query handshake: outbound frames are SSE data and inbound frames must be sent through the supported fallback transport. Session auth uses `sid` cookie or Bearer where stated.
+
+## `WS /websocket`
+Description: subscription gateway. Handshake has optional header `x-hydro-websocket-gateway: <websocket.secret>` for privileged gateway mode. Normal inbound type `Subscribe={operation:"subscribe"|"unsubscribe";credential?:string;channels:string[];request_id?:string;subscription_id?:string;metadata?:object}`, example `{"operation":"subscribe","credential":"sid-token","channels":["record/66aa"],"request_id":"1"}`. Gateway can send `type Resume={operation:"resume";channels:string[]}`, example `{"operation":"resume","channels":["record/66aa"]}`. Response `type Verify={operation:"verify";accept:string[];reject:string[];request_id?:string;subscription_id?:string}`, example `{"operation":"verify","accept":["record/66aa"],"reject":[],"request_id":"1"}`; failed unprivileged resume yields `{"operation":"resume_failed"}`. Subsequent response type is channel-provider-defined `unknown` event. Invalid gateway secret is forbidden.
+
+## `WS /judge/conn`
+Description: judge-daemon work connection. Handshake: connect as a user with `PRIV_JUDGE`; no query/inbound frame is required. Initial response `type LanguageConfig={language:Record<string,unknown>}`, example `{"language":{"cpp":{"display":"C++17"}}}`; later frames are the internal judge task/result protocol (`Task` dispatch and judge callbacks), not a stable public API. Handler accepts one task concurrently.
+
+## `WS /manage/check-conn`
+Description: stream system diagnostic checks. Handshake: authenticated administrator, no request payload; example `WS /manage/check-conn` with sid. Response `type CheckEvent={type:"log"|"warn"|"error";payload:unknown}`, example `{"type":"log","payload":"Checking database"}`. Closing invokes cancellation. Requires `PRIV_EDIT_SYSTEM`.
+
+## `WS /api/:op/conn`
+Description: framework subscription/RPC connection. Request query uses `type Handshake={op:string;args?:string|object;projection?:string|object|string[];domainId?:string}`, example `/api/{registered-subscription-op}/conn?args={}`. Only a registered `Subscription` op is accepted. No production Subscription op is registered by the current source inventory (test-only subscriptions require `applyTestApis`); therefore the example is a placeholder, not a callable current operation. When an add-on registers one, response `type Event=unknown` is its emitted payload. Special `/api/rpc/conn` accepts inbound `type Rpc={op:string;args?:object|string;projection?:object|string|string[]}`, example `{"op":"{registered-subscription-op}","args":{}}`; it becomes usable only after such registration. Auth/permissions are each operation's own checks.
