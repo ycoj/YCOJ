@@ -85,6 +85,12 @@ export function isExtended(tdoc: Tdoc) {
     return tdoc.penaltySince.getTime() <= now && now < tdoc.endAt.getTime();
 }
 
+export function canViewUnattended(tdoc: Tdoc, udoc: User) {
+    return udoc.own(tdoc)
+        || udoc.hasPerm(PERM.PERM_EDIT_CONTEST)
+        || udoc.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST);
+}
+
 export function buildContestRule<T>(def: Optional<ContestRule<T>, 'applyProjection'>): ContestRule<T>;
 export function buildContestRule<T>(def: Partial<ContestRule<T>>, baseRule: ContestRule<T>): ContestRule<T>;
 export function buildContestRule<T>(def: Partial<ContestRule<T>>, baseRule: ContestRule<T> = {} as any) {
@@ -229,6 +235,9 @@ const acm = buildContestRule({
                     value,
                     hover: accept ? formatSeconds(doc.time) : '',
                     raw: doc.rid,
+                    first: accept && doc.rid.getTimestamp().getTime() === meta?.first?.[pid]
+                        ? true
+                        : undefined,
                     style: accept && doc.rid.getTimestamp().getTime() === meta?.first?.[pid]
                         ? 'background-color: rgb(217, 240, 199);'
                         : undefined,
@@ -405,6 +414,7 @@ const oi = buildContestRule({
             if (tsddict[pid]?.status === STATUS.STATUS_ACCEPTED) {
                 const startAt = (useRelativeTime ? tsdoc.startAt || tdoc.beginAt : tdoc.beginAt).getTime();
                 if (tsddict[pid].rid.getTimestamp().getTime() - startAt === meta?.first?.[pid]) {
+                    node.first = true;
                     node.style = 'background-color: rgb(217, 240, 199);';
                 }
             }
@@ -548,6 +558,7 @@ const strictioi = buildContestRule({
             n.hover = Object.values(tsddict[pid]?.subtasks || {}).map((i: SubtaskResult) => `${STATUS_SHORT_TEXTS[i.status]} ${i.score}`).join(',');
             if (tsddict[pid]?.status === STATUS.STATUS_ACCEPTED
                 && tsddict[pid].rid.getTimestamp().getTime() - (tsdoc.startAt || tdoc.beginAt).getTime() === meta?.first?.[pid]) {
+                n.first = true;
                 n.style = 'background-color: rgb(217, 240, 199);';
             }
             row.push(n);
@@ -623,6 +634,10 @@ const ledo = buildContestRule({
                 hover: tsddict[pid]?.ntry ? `-${tsddict[pid].ntry} (${Math.round(Math.max(0.7, 0.95 ** tsddict[pid].ntry) * 100)}%)` : '',
                 raw: tsddict[pid]?.rid,
                 score: tsddict[pid]?.score,
+                first: tsddict[pid]?.status === STATUS.STATUS_ACCEPTED
+                    && tsddict[pid].rid.getTimestamp().getTime() - (tsdoc.startAt || tdoc.beginAt).getTime() === meta?.first?.[pid]
+                    ? true
+                    : undefined,
                 style: tsddict[pid]?.status === STATUS.STATUS_ACCEPTED
                     && tsddict[pid].rid.getTimestamp().getTime() - (tsdoc.startAt || tdoc.beginAt).getTime() === meta?.first?.[pid]
                     ? 'background-color: rgb(217, 240, 199);'
@@ -1176,6 +1191,7 @@ global.Hydro.model.contest = {
     canShowSelfRecord,
     canShowScoreboard,
     canViewHiddenScoreboard,
+    canViewUnattended,
     getScoreboard,
     addClarification,
     addClarificationReply,
