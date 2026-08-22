@@ -2,7 +2,7 @@
 
 ## Description
 
-Retrieves a visible problem (or a contest-context problem with `tid`) and performs rejudge, delete, or star actions. Hidden normal-mode problems require `PERM_VIEW_PROBLEM_HIDDEN`; delete is owner-self-edit or `PERM_EDIT_PROBLEM`; rejudge requires `PERM_REJUDGE_PROBLEM` and a structured config.
+Retrieves a visible problem (or a contest-context problem with `tid`) and performs rejudge, delete, or star actions. During a contest, every contest-context request requires an attended status with `startAt`, including requests from contest owners and administrators; otherwise it fails with `ContestNotAttendedError`. After the contest is done this attendance check no longer applies. Hidden normal-mode problems require `PERM_VIEW_PROBLEM_HIDDEN`; delete is owner-self-edit or `PERM_EDIT_PROBLEM`; rejudge requires `PERM_REJUDGE_PROBLEM` and a structured config.
 
 ## Request format
 
@@ -42,11 +42,12 @@ Submit source (or a source file) or create a hack record. Both routes require `P
 ## Request format
 
 ```ts
+type ContestContext = { tid?: string }; // accepted from the query string or mutation body
 type SubmitBody = { lang: string; code?: string; file?: File; pretest: boolean; input?: string[]; tid?: string };
 type HackBody = { input?: string; file?: File; autoOrganizeInput?: boolean; tid?: string };
 ```
 
-For file upload use `multipart/form-data`, field `file`; otherwise use normal mutation request data. Pretests require at least one input and only default/remote-judge problem types. Hack input files must be at most 2 MiB.
+Contest-context preparation and the submit or hack method read `tid` from the same merged request parameters. Whether `tid` is supplied in the query string or only in the mutation body, the route loads the contest and applies problem membership, not-started, and attendance validation before creating a record. For file upload use `multipart/form-data`, field `file`; otherwise use normal mutation request data. Pretests require at least one input and only default/remote-judge problem types. Hack input files must be at most 2 MiB.
 
 ```http
 POST /p/P1000/submit HTTP/1.1
@@ -68,7 +69,7 @@ type HackResponse = { rid: string; url: string };
 {"rid":"66b5c0e00000000000000000","url":"/record/66b5c0e00000000000000000"}
 ```
 
-An active contest that hides self-records returns `{ "tid":"…", "url":"/contest/{tid}/problems" }` (route rendering determines the exact domain prefix).
+An active contest that hides self-records returns `{ "tid":"…", "url":"/contest/{tid}/problems" }` (route rendering determines the exact domain prefix). Both query-string and body-only `tid` requests reject an unattended contest owner or administrator with `ContestNotAttendedError` before any submission or hack record is created.
 
 # GET `/p/:pid/stat`
 
