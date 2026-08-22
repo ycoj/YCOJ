@@ -307,7 +307,7 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
     psdoc: ProblemStatusDoc;
 
     @route('pid', Types.ProblemId, true)
-    @query('tid', Types.ObjectId, true)
+    @param('tid', Types.ObjectId, true)
     async _prepare(domainId: string, pid: number | string, tid?: ObjectId) {
         this.pdoc = await problem.get(domainId, pid);
         if (!this.pdoc) throw new ProblemNotFoundError(domainId, pid);

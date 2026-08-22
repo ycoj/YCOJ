@@ -133,6 +133,28 @@ describe('App', () => {
         await agent.get('/api/user?args={"id":2}&projection=uname').expect({ uname: 'root' });
     });
 
+    it('Validates contest attendance for query and body problem mutations', async () => {
+        const pid = await global.Hydro.model.problem.add(
+            'system', 'CONTEST_CONTEXT_TEST', 'Contest context test', '', 2,
+        );
+        const tid = await global.Hydro.model.contest.add(
+            'system', 'Contest context test', '', 2, 'acm',
+            new Date(Date.now() - 60_000), new Date(Date.now() + 60_000), [pid],
+        );
+        const contestId = tid.toString();
+        const requests = [
+            agent.post(`/p/${pid}/submit?tid=${contestId}`).send({ lang: 'cc.cc17', code: 'int main() {}', pretest: false }),
+            agent.post(`/p/${pid}/submit`).send({ lang: 'cc.cc17', code: 'int main() {}', pretest: false, tid: contestId }),
+            agent.post(`/p/${pid}/hack/000000000000000000000000?tid=${contestId}`).send({ input: '1' }),
+            agent.post(`/p/${pid}/hack/000000000000000000000000`).send({ input: '1', tid: contestId }),
+        ];
+        for (const request of requests) {
+            // eslint-disable-next-line no-await-in-loop
+            const response = await request.set('Accept', 'application/json').expect(403);
+            assert.match(response.body.error.message, /haven't attended this contest yet/i);
+        }
+    });
+
     // TODO add more tests
 
     const results: Record<string, autocannon.Result> = {};
