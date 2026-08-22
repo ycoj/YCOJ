@@ -294,7 +294,10 @@ export class ContestProblemListHandler extends ContestDetailBaseHandler {
     @param('tid', Types.ObjectId)
     async get(domainId: string, tid: ObjectId) {
         if (contest.isNotStarted(this.tdoc)) throw new ContestNotLiveError(domainId, tid);
-        if (!this.tsdoc?.attend && !contest.isDone(this.tdoc) && !contest.canViewUnattended(this.tdoc, this.user)) {
+        if (!this.tsdoc?.attend && !contest.isDone(this.tdoc)
+            && !this.user.own(this.tdoc)
+            && !this.user.hasPerm(PERM.PERM_EDIT_CONTEST)
+            && !this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST)) {
             throw new ContestNotAttendedError(domainId, tid);
         }
         const [pdict, udict, tcdocs] = await Promise.all([
@@ -995,7 +998,7 @@ export async function apply(ctx: Context) {
                 }
                 const [pdict, teams] = await Promise.all([
                     problem.getList(tdoc.domainId, tdoc.pids, true, false, problem.PROJECTION_LIST, true),
-                    contest.getMultiStatus(tdoc.domainId, { docId: tdoc._id }).toArray(),
+                    contest.getMultiStatus(tdoc.domainId, { docId: tdoc._id, attend: { $gt: 0 } }).toArray(),
                 ]);
                 const udict = await user.getList(tdoc.domainId, teams.map((i) => i.uid));
                 const teamIds: Record<number, number> = {};

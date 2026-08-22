@@ -85,12 +85,6 @@ export function isExtended(tdoc: Tdoc) {
     return tdoc.penaltySince.getTime() <= now && now < tdoc.endAt.getTime();
 }
 
-export function canViewUnattended(tdoc: Tdoc, udoc: User) {
-    return udoc.own(tdoc)
-        || udoc.hasPerm(PERM.PERM_EDIT_CONTEST)
-        || udoc.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST);
-}
-
 export function buildContestRule<T>(def: Optional<ContestRule<T>, 'applyProjection'>): ContestRule<T>;
 export function buildContestRule<T>(def: Partial<ContestRule<T>>, baseRule: ContestRule<T>): ContestRule<T>;
 export function buildContestRule<T>(def: Partial<ContestRule<T>>, baseRule: ContestRule<T> = {} as any) {
@@ -258,6 +252,7 @@ const acm = buildContestRule({
                     domainId: tdoc.domainId,
                     docType: document.TYPE_CONTEST,
                     docId: tdoc.docId,
+                    attend: { $gt: 0 },
                     accept: { $gte: 1 },
                 },
             },
@@ -1047,7 +1042,7 @@ export async function getScoreboard(
 ): Promise<[Tdoc, ScoreboardRow[], BaseUserDict, ProblemDict]> {
     const tdoc = await get(domainId, tid);
     if (!canShowScoreboard.call(this, tdoc)) throw new ContestScoreboardHiddenError(tid);
-    const tsdocsCursor = getMultiStatus(domainId, { docId: tid }).sort(RULES[tdoc.rule].statusSort);
+    const tsdocsCursor = getMultiStatus(domainId, { docId: tid, attend: { $gt: 0 } }).sort(RULES[tdoc.rule].statusSort);
     const pdict = await problem.getList(domainId, tdoc.pids, true, true, problem.PROJECTION_CONTEST_DETAIL);
     const [rows, udict] = await RULES[tdoc.rule].scoreboard(
         config, this.translate.bind(this),
@@ -1191,7 +1186,6 @@ global.Hydro.model.contest = {
     canShowSelfRecord,
     canShowScoreboard,
     canViewHiddenScoreboard,
-    canViewUnattended,
     getScoreboard,
     addClarification,
     addClarificationReply,

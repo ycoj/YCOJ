@@ -2,7 +2,7 @@
 
 ## Description
 
-Retrieves a visible problem (or a contest-context problem with `tid`) and performs rejudge, delete, or star actions. Hidden normal-mode problems require `PERM_VIEW_PROBLEM_HIDDEN`; delete is owner-self-edit or `PERM_EDIT_PROBLEM`; rejudge requires `PERM_REJUDGE_PROBLEM` and a structured config.
+Retrieves a visible problem (or a contest-context problem with `tid`) and performs rejudge, delete, or star actions. During a contest, every contest-context request requires an attended status with `startAt`, including requests from contest owners and administrators; otherwise it fails with `ContestNotAttendedError`. After the contest is done this attendance check no longer applies. Hidden normal-mode problems require `PERM_VIEW_PROBLEM_HIDDEN`; delete is owner-self-edit or `PERM_EDIT_PROBLEM`; rejudge requires `PERM_REJUDGE_PROBLEM` and a structured config.
 
 ## Request format
 
@@ -68,7 +68,7 @@ type HackResponse = { rid: string; url: string };
 {"rid":"66b5c0e00000000000000000","url":"/record/66b5c0e00000000000000000"}
 ```
 
-An active contest that hides self-records returns `{ "tid":"…", "url":"/contest/{tid}/problems" }` (route rendering determines the exact domain prefix).
+An active contest that hides self-records returns `{ "tid":"…", "url":"/contest/{tid}/problems" }` (route rendering determines the exact domain prefix). Supplying `tid` does not let an unattended contest owner or administrator submit or hack: inherited contest-context preparation rejects the request with `ContestNotAttendedError` before any record is created.
 
 # GET `/p/:pid/stat`
 

@@ -24,7 +24,7 @@ Description: delete a contest and associated files. Request: `type B={operation:
 ## Problems, code, files
 
 ### GET `/contest/:tid/problems`
-Description: render contest problem list and visible submissions. Request: `type Q={tid:ObjectId}`; `GET /contest/665f.../problems`. Response: `type R={tdoc:Tdoc;pids:number[];pdict:Record<number,ProblemDoc>;psdict:Record<number,ProblemStatus>;rdict:Record<string,RecordDoc>}`; `{ "pids":[1001],"pdict":{},"psdict":{} }` as HTML/PJAX.
+Description: render contest problem list and visible submissions. Before the contest ends, participants must have attended; contest owners and users with contest-edit or hidden-contest-view permission may inspect this list without attending. This exception applies only to the list and does not grant access to contest-context problem detail or mutation endpoints. Request: `type Q={tid:ObjectId}`; `GET /contest/665f.../problems`. Response: `type R={tdoc:Tdoc;pids:number[];pdict:Record<number,ProblemDoc>;psdict:Record<number,ProblemStatus>;rdict:Record<string,RecordDoc>}`; `{ "pids":[1001],"pdict":{},"psdict":{} }` as HTML/PJAX. Other unattended users receive `ContestNotAttendedError`.
 
 ### GET `/contest/:tid/code`
 Description: show permitted contest source code. Request: `type Q={tid:ObjectId;all?:boolean}`; `GET /contest/665f.../code?all=false`. Response: `type R={tdoc:Tdoc;rdocs:RecordDoc[]}`; `{ "tdoc":{"docId":"665f..."},"rdocs":[] }` rendered HTML; code visibility is permission-filtered.
@@ -59,7 +59,7 @@ Description: set balloon color. Request: `type B={operation:"setColor";color:str
 Description: mark one balloon delivered. Request: `type B={operation:"done";balloon:ObjectId}`; `{ "operation":"done","balloon":"665f00000000000000000003" }`. Response: `type R=BackResponse`; handler calls `back()`; browser redirect/JSON URL depends on referrer.
 
 ### GET/POST `/contest/:tid/scoreboard[/:view]`
-Description: render a selected scoreboard view or unlock a hidden scoreboard. Request: `type Q={tid:ObjectId;view?:string}`; `GET /contest/665f.../scoreboard/default`; unlock body `type B={operation:"unlock"}`. Response: `type R={tdoc:Tdoc;rows:unknown[]}|{url:string}`; `{ "tdoc":{"docId":"665f..."},"rows":[] }` HTML or `{ "url":"/contest/665f.../scoreboard" }` JSON.
+Description: render a selected scoreboard view or unlock a hidden scoreboard. Only status documents with `attend > 0` are included as contestants; status documents created for users who only inspect a contest are excluded in all scoreboard views and exports. Request: `type Q={tid:ObjectId;view?:string}`; `GET /contest/665f.../scoreboard/default`; unlock body `type B={operation:"unlock"}`. Response: `type R={tdoc:Tdoc;rows:unknown[]}|{url:string}`; `{ "tdoc":{"docId":"665f..."},"rows":[] }` HTML or `{ "url":"/contest/665f.../scoreboard" }` JSON.
 
 ## Exact alternate print route: `GET/POST /contest/:tid/api/printing/team`
 Description: alternate route bound to the same print handler for team-print clients. Request: `type Query={tid:ObjectId}`; `GET /contest/665f.../api/printing/team`. Response: `type Response={tdoc:Tdoc}`; `{ "tdoc":{"docId":"665f..."} }` rendered print HTML. POST uses the print operations and response contracts above; with JSON negotiation logical redirects are `{url:string}`.
