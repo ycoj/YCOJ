@@ -42,11 +42,12 @@ Submit source (or a source file) or create a hack record. Both routes require `P
 ## Request format
 
 ```ts
+type ContestContextQuery = { tid?: string };
 type SubmitBody = { lang: string; code?: string; file?: File; pretest: boolean; input?: string[]; tid?: string };
 type HackBody = { input?: string; file?: File; autoOrganizeInput?: boolean; tid?: string };
 ```
 
-For file upload use `multipart/form-data`, field `file`; otherwise use normal mutation request data. Pretests require at least one input and only default/remote-judge problem types. Hack input files must be at most 2 MiB.
+Inherited contest-context preparation reads `tid` from the query string. A query `tid` therefore loads the contest and applies the not-started and attendance checks. The submit and hack methods also read merged request parameters, so a body-only `tid` is consumed during submission or hack processing without passing through that inherited validation. For file upload use `multipart/form-data`, field `file`; otherwise use normal mutation request data. Pretests require at least one input and only default/remote-judge problem types. Hack input files must be at most 2 MiB.
 
 ```http
 POST /p/P1000/submit HTTP/1.1
@@ -68,7 +69,7 @@ type HackResponse = { rid: string; url: string };
 {"rid":"66b5c0e00000000000000000","url":"/record/66b5c0e00000000000000000"}
 ```
 
-An active contest that hides self-records returns `{ "tid":"…", "url":"/contest/{tid}/problems" }` (route rendering determines the exact domain prefix). Supplying `tid` does not let an unattended contest owner or administrator submit or hack: inherited contest-context preparation rejects the request with `ContestNotAttendedError` before any record is created.
+An active contest that hides self-records returns `{ "tid":"…", "url":"/contest/{tid}/problems" }` (route rendering determines the exact domain prefix). A query-string `tid` invokes inherited contest-context preparation and rejects an unattended contest owner or administrator with `ContestNotAttendedError` before any record is created. A body-only `tid` does not invoke that inherited attendance check in the current implementation.
 
 # GET `/p/:pid/stat`
 
