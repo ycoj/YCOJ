@@ -97,6 +97,14 @@ type TagsResponse = Record<string, unknown>;
 
 Returns generation availability, safe selectable model fields, testcase limits, and current judge limits. Only models configured by an administrator in `/manage/ai-provider` are returned; provider endpoints and credentials are never exposed. The caller must be an owner with self-edit permission or have `PERM_EDIT_PROBLEM`, contest context is rejected, and referenced problems are rejected.
 
+## Request format
+
+```http
+GET /p/P1000/generate HTTP/1.1
+Accept: application/json
+Cookie: sid=…
+```
+
 ## Response format
 
 ```ts
@@ -110,6 +118,10 @@ type AiGenerationOptions = {
     timeLimitMs: number;
     memoryLimitMb: number;
 };
+```
+
+```json
+{"enabled":true,"profiles":[{"id":"provider-1:model-1","label":"OpenAI / GPT-5","model":"gpt-5"}],"defaultProfileId":"provider-1:model-1","defaultTarget":20,"maxWithoutChecker":49,"maxWithChecker":48,"timeLimitMs":1000,"memoryLimitMb":256}
 ```
 
 # POST `/p/:pid/generate` — enqueue AI test-data generation
@@ -132,14 +144,23 @@ type AiGenerateRequest = {
 };
 ```
 
+```http
+POST /p/P1000/generate HTTP/1.1
+Accept: application/json
+Content-Type: application/json
+Cookie: sid=…
+
+{"profileId":"provider-1:model-1","testcaseTarget":10,"instructions":"Cover large-input edge cases."}
+```
+
 ## Response format
 
 ```ts
-type AiGenerateResponse = { rid: string };
+type AiGenerateResponse = { rid: string; url: string };
 ```
 
 ```json
-{"rid":"66b5c0e00000000000000000"}
+{"rid":"66b5c0e00000000000000000","url":"/record/66b5c0e00000000000000000"}
 ```
 
-The record begins with `aiGeneration.active: true` and stage `waiting`; a second active generation produces `AiGenerationAlreadyActiveError`. Poll a record-detail API/page outside this problem-route scope to observe completion.
+Under `Accept: application/json` the response is the JSON body above, with `url` pointing at the record-detail route; non-JSON form submissions receive a 302 redirect instead. The record begins with `aiGeneration.active: true` and stage `waiting`; a second active generation produces `AiGenerationAlreadyActiveError`. Poll a record-detail API/page outside this problem-route scope to observe completion.
