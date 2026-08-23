@@ -7,6 +7,30 @@ Handled Requests: Req
 Hint::icon::difficulty: The difficulty of the problems in Hydro will be calculated by algorithm, depending on current submission, sometimes the difficulty may not so exact.
 Hint::icon::switch_account: As a superadmin, you can switch to anyone's account.
 manage: System Manage
+manage_ai_provider: AI Providers
+Add Provider: Add Provider
+Add model: Add model
+Remove provider: Remove provider
+Remove model: Remove model
+Provider: Provider
+Model: Model
+New model: New model
+New provider: New provider
+Provider name: Provider name
+Base URL: Base URL
+API type: API type
+API key: API key
+OpenAI Responses compatible: OpenAI Responses compatible
+OpenAI Chat Completions compatible: OpenAI Chat Completions compatible
+AI data generation model: AI data generation model
+Display name: Display name
+API model ID: API model ID
+Reasoning support: Reasoning support
+Supported: Supported
+Not supported: Not supported
+Default thinking level: Default thinking level
+Context window: Context window
+Maximum output tokens: Maximum output tokens
 no_translation_warn: <blockquote class="warn">This part of content is under translation.</blockquote>
 page.problem_detail.sidebar.show_category: Click to Show
 page.training_detail.invalid_when_not_enrolled: You cannot view problem details unless enrolled.

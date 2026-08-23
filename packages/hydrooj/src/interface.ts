@@ -41,16 +41,6 @@ export interface SystemKeys {
     'limit.problem_files_max': number;
     'problem.categories': string;
     'aiGeneration.enabled': boolean;
-    'aiGeneration.apiType': 'openai-completions' | 'openai-responses';
-    'aiGeneration.baseUrl': string;
-    'aiGeneration.model': string;
-    'aiGeneration.apiKey': string;
-    'aiGeneration.profiles': AiGenerationProfile[];
-    'aiGeneration.defaultProfileId': string;
-    'aiGeneration.reasoning': boolean;
-    'aiGeneration.thinkingLevel': 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
-    'aiGeneration.contextTokens': number;
-    'aiGeneration.maxTokens': number;
     'aiGeneration.concurrency': number;
     'aiGeneration.sandboxHost': string;
     'aiGeneration.sandboxToken': string;
@@ -261,6 +251,8 @@ export interface AiGenerationMeta {
     stage: 'waiting' | 'preparing' | 'agent' | 'validating' | 'replacing' | 'completed' | 'failed' | 'cancelled';
     model: string;
     profileId?: string;
+    providerId?: string;
+    modelId?: string;
     testcaseTarget?: number;
     testcaseCount?: number;
     timeLimitMs?: number;
@@ -270,19 +262,6 @@ export interface AiGenerationMeta {
     sessionId?: string;
     startedAt?: Date;
     finishedAt?: Date;
-}
-
-export interface AiGenerationProfile {
-    id: string;
-    label: string;
-    apiType: 'openai-completions' | 'openai-responses';
-    baseUrl: string;
-    model: string;
-    apiKey: string;
-    reasoning: boolean;
-    thinkingLevel: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
-    contextTokens: number;
-    maxTokens: number;
 }
 
 export type RecordDoc = {

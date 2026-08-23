@@ -11,7 +11,7 @@ import {
     ArtifactValidationError, collectOutputArtifacts, replaceTestdataWithRollback,
 } from '../lib/aiGeneration/artifacts';
 import {
-    AiGenerationRuntimeConfig, getAiGenerationConfig, validateAiGenerationConfig,
+    AI_PROVIDER_CONFIG_KEY, LEGACY_AI_PROVIDER_KEYS, legacyAiProviderConfig,
 } from '../lib/aiGeneration/config';
 import { checkCyaronDocsAvailable, copyCyaronDocsToSession } from '../lib/aiGeneration/documentation';
 import {
@@ -23,6 +23,9 @@ import {
 import {
     AiGenerationRequest, DEFAULT_TESTCASE_TARGET, getAiGenerationJudgeDefaults,
 } from '../lib/aiGeneration/request';
+import {
+    AiGenerationRuntimeConfig, getAiGenerationConfig, validateAiGenerationConfig,
+} from '../lib/aiGeneration/runtime';
 import { GoJudgeSessionClient, SessionError } from '../lib/aiGeneration/session';
 import {
     AiGenerationTrace, AiTraceHandle, AiTraceState, createAiGenerationTrace,
@@ -245,6 +248,8 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
                 'aiGeneration.sessionId': sessionId,
                 'aiGeneration.model': config.model,
                 'aiGeneration.profileId': config.profileId,
+                'aiGeneration.providerId': config.providerId,
+                'aiGeneration.modelId': config.modelId,
             });
             const rawConfig = typeof pdoc.config === 'string' ? pdoc.config : yaml.dump(pdoc.config || {});
             await client.writeFile(sessionId, 'problem.md', `# ${pdoc.title}\n\n${pdoc.content || ''}\n`, controller.signal);
@@ -490,6 +495,13 @@ export async function cleanupStaleAiGeneration(ctx: Context, client?: GoJudgeSes
 
 export async function apply(ctx: Context) {
     if (process.env.NODE_APP_INSTANCE !== '0') return;
+    if (!system.get(AI_PROVIDER_CONFIG_KEY)) {
+        const values = Object.fromEntries(LEGACY_AI_PROVIDER_KEYS.map((key) => [key, system.get(key)]));
+        if (Object.values(values).some((value) => value !== undefined)) {
+            await system.set(AI_PROVIDER_CONFIG_KEY, legacyAiProviderConfig(values));
+            await Promise.all(LEGACY_AI_PROVIDER_KEYS.map((key) => system.del(key, false)));
+        }
+    }
     try {
         await record.coll.createIndex(
             { domainId: 1, pid: 1 },

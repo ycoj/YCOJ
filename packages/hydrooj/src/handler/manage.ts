@@ -6,6 +6,9 @@ import Schema from 'schemastery';
 import {
     CannotEditSuperAdminError, NotLaunchedByPM2Error, UserNotFoundError, ValidationError,
 } from '../error';
+import {
+    AI_PROVIDER_CONFIG_KEY, createAiProviderConfigDraft, getAiProviderConfig, normalizeAiProviderConfig, redactAiProviderConfig,
+} from '../lib/aiGeneration/config';
 import { Logger } from '../logger';
 import { PRIV, STATUS } from '../model/builtin';
 import domain from '../model/domain';
@@ -168,6 +171,56 @@ class SystemSettingHandler extends SystemHandler {
         }
         await Promise.all(tasks);
         this.ctx.broadcast('system/setting', args);
+        this.back();
+    }
+}
+
+class AiProviderHandler extends SystemHandler {
+    @requireSudo
+    async get() {
+        this.response.template = 'manage_ai_provider.html';
+        this.response.body.config = JSON.stringify(
+            redactAiProviderConfig(getAiProviderConfig(system.get(AI_PROVIDER_CONFIG_KEY))) || createAiProviderConfigDraft(), null, 2,
+        );
+    }
+
+    @requireSudo
+    @param('value', Types.Content)
+    async post({ }, value: string) {
+        let raw: any;
+        try {
+            raw = JSON.parse(value);
+        } catch {
+            throw new ValidationError('value');
+        }
+        const current = getAiProviderConfig(system.get(AI_PROVIDER_CONFIG_KEY));
+        let config;
+        try {
+            config = normalizeAiProviderConfig(raw, current);
+        } catch (err) {
+            throw new ValidationError('value', '', err.message);
+        }
+        const selectedProvider = current?.providers.find((item) => item.id === current.dataGeneration?.providerId);
+        const selectedModel = selectedProvider?.models.find((item) => item.id === current?.dataGeneration?.modelId);
+        if (selectedProvider && selectedModel) {
+            const provider = config.providers.find((item) => item.id === selectedProvider.id);
+            if (!provider?.models.some((item) => item.id === selectedModel.id)) {
+                throw new ValidationError('value', '', 'Select and save another data-generation model before removing the current one.');
+            }
+        }
+        const activeSelections = await record.coll.find({
+            lang: 'ai',
+            'aiGeneration.active': true,
+            'aiGeneration.providerId': { $exists: true },
+            'aiGeneration.modelId': { $exists: true },
+        }, { projection: { 'aiGeneration.providerId': 1, 'aiGeneration.modelId': 1 } }).toArray();
+        for (const rdoc of activeSelections) {
+            const provider = config.providers.find((item) => item.id === rdoc.aiGeneration.providerId);
+            if (!provider?.models.some((item) => item.id === rdoc.aiGeneration.modelId)) {
+                throw new ValidationError('value', '', 'An active AI generation still uses a provider or model being removed.');
+            }
+        }
+        await system.set(AI_PROVIDER_CONFIG_KEY, config);
         this.back();
     }
 }
@@ -357,6 +410,7 @@ export async function apply(ctx) {
     ctx.Route('manage_dashboard', '/manage/dashboard', SystemDashboardHandler);
     ctx.Route('manage_script', '/manage/script', SystemScriptHandler);
     ctx.Route('manage_setting', '/manage/setting', SystemSettingHandler);
+    ctx.Route('manage_ai_provider', '/manage/ai-provider', AiProviderHandler);
     ctx.Route('manage_config', '/manage/config', SystemConfigHandler);
     ctx.Route('manage_user_import', '/manage/userimport', SystemUserImportHandler);
     ctx.Route('manage_user_priv', '/manage/userpriv', SystemUserPrivHandler);

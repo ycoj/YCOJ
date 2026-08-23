@@ -409,6 +409,30 @@ manage_join_applications: 참여 요청 관리
 manage_module: 모듈 관리
 manage_script: 스크립트 관리
 manage_setting: 설정 관리
+manage_ai_provider: AI 제공자
+Add Provider: 제공자 추가
+Add model: 모델 추가
+Remove provider: 제공자 삭제
+Remove model: 모델 삭제
+Provider: 제공자
+Model: 모델
+New model: 새 모델
+New provider: 새 제공자
+Provider name: 제공자 이름
+Base URL: 기본 URL
+API type: API 유형
+API key: API 키
+OpenAI Responses compatible: OpenAI Responses 호환
+OpenAI Chat Completions compatible: OpenAI Chat Completions 호환
+AI data generation model: AI 데이터 생성 모델
+Display name: 표시 이름
+API model ID: API 모델 ID
+Reasoning support: 추론 지원
+Supported: 지원됨
+Not supported: 지원되지 않음
+Default thinking level: 기본 사고 수준
+Context window: 컨텍스트 창
+Maximum output tokens: 최대 출력 토큰
 manage_user_import: 사용자 불러오기
 manage: 관리
 Manage: 관리

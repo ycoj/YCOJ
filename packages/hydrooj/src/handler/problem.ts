@@ -25,16 +25,16 @@ import {
 import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
 } from '../interface';
-import {
-    getAiGenerationConfig, getAiGenerationProfiles, getDefaultAiGenerationProfileId, getPublicAiGenerationProfiles,
-    resolveAiGenerationProfile, validateAiGenerationConfig,
-} from '../lib/aiGeneration/config';
 import { ACTIVE_AI_GENERATION_FILTER, canGenerateTestdata, isDuplicateKeyError } from '../lib/aiGeneration/policy';
 import type { AiGenerationCheckerRequest } from '../lib/aiGeneration/request';
 import {
     DEFAULT_TESTCASE_TARGET, getAiGenerationCaseLimits, getAiGenerationJudgeDefaults,
     MAX_GENERATION_SOURCE_LENGTH, MAX_GENERATION_TEXT_LENGTH,
 } from '../lib/aiGeneration/request';
+import {
+    getAiGenerationConfig, getAiGenerationProfiles, getDefaultAiGenerationProfileId, getPublicAiGenerationProfiles,
+    resolveAiGenerationProfile, validateAiGenerationConfig,
+} from '../lib/aiGeneration/runtime';
 import { createAiGenerationTrace } from '../lib/aiGeneration/trace';
 import { Logger } from '../logger';
 import { PERM, PRIV, STATUS } from '../model/builtin';
@@ -1150,6 +1150,8 @@ export class ProblemGenerateHandler extends Handler {
                     stage: 'waiting',
                     model: profile.model,
                     profileId,
+                    providerId: profile.providerId,
+                    modelId: profile.modelId,
                     testcaseTarget,
                     timeLimitMs,
                     memoryLimitMb,

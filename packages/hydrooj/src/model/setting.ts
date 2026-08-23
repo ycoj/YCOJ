@@ -307,39 +307,6 @@ const ignoreUA = [
 SystemSetting(Schema.object({
     aiGeneration: Schema.object({
         enabled: Schema.boolean().default(false).description('Enable AI test-data generation'),
-        apiType: Schema.union([
-            Schema.const('openai-completions').description('OpenAI Chat Completions compatible'),
-            Schema.const('openai-responses').description('OpenAI Responses compatible'),
-        ]).default('openai-completions').description('AI API type'),
-        baseUrl: Schema.string().default('https://api.openai.com/v1').description('AI API base URL').role('url'),
-        model: Schema.string().default('gpt-5').description('AI model name'),
-        apiKey: Schema.string().default('').description('AI API key (AI_GENERATION_API_KEY overrides this value)').role('password'),
-        profiles: Schema.array(Schema.object({
-            id: Schema.string().required().description('Stable profile ID'),
-            label: Schema.string().required().description('Profile display name'),
-            apiType: Schema.union([
-                Schema.const('openai-completions').description('OpenAI Chat Completions compatible'),
-                Schema.const('openai-responses').description('OpenAI Responses compatible'),
-            ]).default('openai-completions').description('AI API type'),
-            baseUrl: Schema.string().required().description('AI API base URL').role('url'),
-            model: Schema.string().required().description('AI model name'),
-            apiKey: Schema.string().default('').description('AI API key (AI_GENERATION_API_KEY overrides this value)').role('password'),
-            reasoning: Schema.boolean().default(true).description('Model supports reasoning'),
-            thinkingLevel: Schema.union([
-                Schema.const('off'), Schema.const('minimal'), Schema.const('low'), Schema.const('medium'),
-                Schema.const('high'), Schema.const('xhigh'), Schema.const('max'),
-            ]).default('high').description('Reasoning/thinking level'),
-            contextTokens: Schema.number().step(1).min(8192).max(2_000_000).default(128_000).description('Model context window'),
-            maxTokens: Schema.number().step(1).min(1024).max(1_000_000).default(32_000).description('Maximum output tokens'),
-        })).default([]).description('Selectable AI generation model profiles'),
-        defaultProfileId: Schema.string().default('').description('Default AI generation profile ID'),
-        reasoning: Schema.boolean().default(true).description('Model supports reasoning'),
-        thinkingLevel: Schema.union([
-            Schema.const('off'), Schema.const('minimal'), Schema.const('low'), Schema.const('medium'),
-            Schema.const('high'), Schema.const('xhigh'), Schema.const('max'),
-        ]).default('high').description('Reasoning/thinking level'),
-        contextTokens: Schema.number().step(1).min(8192).max(2_000_000).default(128_000).description('Model context window'),
-        maxTokens: Schema.number().step(1).min(1024).max(1_000_000).default(32_000).description('Maximum output tokens'),
         concurrency: Schema.number().step(1).min(1).max(32).default(1).description('Concurrent AI generation tasks'),
         sandboxHost: Schema.string().default('http://localhost:5050').description('go-judge Session API host').role('url'),
         sandboxToken: Schema.string().default('').description('go-judge authentication token').role('password'),

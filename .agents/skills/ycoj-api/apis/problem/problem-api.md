@@ -91,25 +91,45 @@ type TagsResponse = Record<string, unknown>;
 {"algorithm":["dp","graph"]}
 ```
 
-# POST `/api/problem.aiGenerateTestdata` — enqueue AI test-data generation
+# GET `/p/:pid/generate` — AI test-data generation options
 
 ## Description
 
-Starts exactly one active AI generation record for a problem and returns its record ID. It is available only when `aiGeneration.enabled` is true; the caller must be an owner with self-edit permission or have `PERM_EDIT_PROBLEM`, and referenced problems are rejected.
+Returns generation availability, safe selectable model fields, testcase limits, and current judge limits. Only models configured by an administrator in `/manage/ai-provider` are returned; provider endpoints and credentials are never exposed. The caller must be an owner with self-edit permission or have `PERM_EDIT_PROBLEM`, contest context is rejected, and referenced problems are rejected.
+
+## Response format
+
+```ts
+type AiGenerationOptions = {
+    enabled: boolean;
+    profiles: { id: string; label: string; model: string }[];
+    defaultProfileId: string;
+    defaultTarget: number;
+    maxWithoutChecker: number;
+    maxWithChecker: number;
+    timeLimitMs: number;
+    memoryLimitMb: number;
+};
+```
+
+# POST `/p/:pid/generate` — enqueue AI test-data generation
+
+## Description
+
+Starts exactly one active AI generation record for a problem and returns its record ID. `profileId` must be one of the configured IDs returned by GET. The queue stores only that ID and resolves the provider credentials again when the worker starts.
 
 ## Request format
 
 ```ts
-type AiGenerateArgs = { domainId: string; id: number | string; instructions?: string /* max 10,000 */ };
-```
-
-```http
-POST /api/problem.aiGenerateTestdata HTTP/1.1
-Accept: application/json
-Content-Type: application/json
-Cookie: sid=…
-
-{"domainId":"system","id":"P1000","instructions":"Create edge-case tests for overflow."}
+type AiGenerateRequest = {
+    profileId?: string;
+    testcaseTarget?: number;
+    timeLimitMs?: number;
+    memoryLimitMb?: number;
+    instructions?: string;
+    standardSolution?: { source: string };
+    checker?: { mode: 'provided'; source: string } | { mode: 'generated'; requirements: string };
+};
 ```
 
 ## Response format
