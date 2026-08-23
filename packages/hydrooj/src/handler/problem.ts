@@ -32,7 +32,7 @@ import {
     MAX_GENERATION_SOURCE_LENGTH, MAX_GENERATION_TEXT_LENGTH,
 } from '../lib/aiGeneration/request';
 import {
-    getAiGenerationConfig, getAiGenerationProfiles, getDefaultAiGenerationProfileId, getPublicAiGenerationProfiles,
+    getAiGenerationConfig, getDefaultAiGenerationProfileId, getPublicAiGenerationProfiles,
     resolveAiGenerationProfile, validateAiGenerationConfig,
 } from '../lib/aiGeneration/runtime';
 import { createAiGenerationTrace } from '../lib/aiGeneration/trace';
@@ -1115,8 +1115,13 @@ export class ProblemGenerateHandler extends Handler {
         if (checker?.mode === 'provided' && !checker.source.trim()) throw new ValidationError('checker.source');
         if (checker?.mode === 'generated' && !checker.requirements.trim()) throw new ValidationError('checker.requirements');
 
-        profileId ||= getDefaultAiGenerationProfileId();
-        if (!getAiGenerationProfiles().some((item) => item.id === profileId)) {
+        const publicProfiles = getPublicAiGenerationProfiles();
+        if (!profileId) {
+            const defaultProfileId = getDefaultAiGenerationProfileId();
+            profileId = publicProfiles.some((profile) => profile.id === defaultProfileId)
+                ? defaultProfileId : publicProfiles[0]?.id;
+        }
+        if (!profileId || !publicProfiles.some((profile) => profile.id === profileId)) {
             throw new ValidationError('profileId');
         }
         const profile = resolveAiGenerationProfile(profileId);
