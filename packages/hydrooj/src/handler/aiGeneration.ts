@@ -8,6 +8,10 @@ import {
 import {
     ArtifactValidationError, collectOutputArtifacts, replaceTestdataWithRollback,
 } from '../lib/aiGeneration/artifacts';
+import {
+    AI_PROVIDER_CONFIG_KEY, getAiDataGenerationConfig, getAiDataGenerationConfigByIds,
+    getAiProviderConfig, LEGACY_AI_PROVIDER_KEYS, legacyAiProviderConfig,
+} from '../lib/aiGeneration/config';
 import { checkCyaronDocsAvailable, copyCyaronDocsToSession } from '../lib/aiGeneration/documentation';
 import {
     ACTIVE_AI_GENERATION_FILTER, classifyAiGenerationFailure, shouldCleanupAiGeneration,
@@ -39,16 +43,19 @@ export interface AiGenerationRuntimeConfig extends AiAgentConfig {
 }
 
 export function getAiGenerationConfig(): AiGenerationRuntimeConfig {
+    const provider = getAiDataGenerationConfig(getAiProviderConfig(system.get(AI_PROVIDER_CONFIG_KEY)));
     return {
         enabled: !!system.get('aiGeneration.enabled'),
-        apiType: system.get('aiGeneration.apiType') || 'openai-completions',
-        baseUrl: system.get('aiGeneration.baseUrl') || '',
-        model: system.get('aiGeneration.model') || '',
-        apiKey: process.env.AI_GENERATION_API_KEY || system.get('aiGeneration.apiKey') || '',
-        reasoning: system.get('aiGeneration.reasoning') !== false,
-        thinkingLevel: system.get('aiGeneration.thinkingLevel') || 'high',
-        contextTokens: +system.get('aiGeneration.contextTokens') || 128_000,
-        maxTokens: +system.get('aiGeneration.maxTokens') || 32_000,
+        apiType: provider?.apiType || 'openai-completions',
+        baseUrl: provider?.baseUrl || '',
+        model: provider?.model || '',
+        apiKey: provider?.apiKey || '',
+        reasoning: provider?.reasoning !== false,
+        thinkingLevel: provider?.thinkingLevel || 'high',
+        contextTokens: provider?.contextTokens || 128_000,
+        maxTokens: provider?.maxTokens || 32_000,
+        providerId: provider?.providerId,
+        providerName: provider?.providerName,
         concurrency: Math.min(32, Math.max(1, Math.trunc(+system.get('aiGeneration.concurrency') || 1))),
         sandboxHost: system.get('aiGeneration.sandboxHost') || 'http://localhost:5050',
         sandboxToken: system.get('aiGeneration.sandboxToken') || '',
@@ -204,13 +211,19 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
     if (!rdoc || rdoc.status === STATUS.STATUS_CANCELED || !rdoc.aiGeneration?.active) return;
 
     const trace = createAiGenerationTrace(ctx, record, t.domainId, rid, rdoc.testCases?.length || 0);
-    const generation = await trace.start('generation', {
-        model: system.get('aiGeneration.model') || undefined,
-    });
+    const generation = await trace.start('generation');
 
     let config: AiGenerationRuntimeConfig;
     try {
-        config = getAiGenerationConfig();
+        const snapshot = t.aiConfig;
+        const provider = snapshot && getAiDataGenerationConfigByIds(
+            snapshot.providerId, snapshot.modelId, getAiProviderConfig(system.get(AI_PROVIDER_CONFIG_KEY)),
+        );
+        config = {
+            ...getAiGenerationConfig(),
+            ...(snapshot || {}),
+            apiKey: provider?.apiKey || '',
+        };
         validateAiGenerationConfig(config);
         checkCyaronDocsAvailable();
     } catch (err) {
@@ -480,6 +493,13 @@ export async function cleanupStaleAiGeneration(ctx: Context, client?: GoJudgeSes
 
 export async function apply(ctx: Context) {
     if (process.env.NODE_APP_INSTANCE !== '0') return;
+    if (!system.get(AI_PROVIDER_CONFIG_KEY)) {
+        const values = Object.fromEntries(LEGACY_AI_PROVIDER_KEYS.map((key) => [key, system.get(key)]));
+        if (Object.values(values).some((value) => value !== undefined)) {
+            await system.set(AI_PROVIDER_CONFIG_KEY, legacyAiProviderConfig(values));
+            await Promise.all(LEGACY_AI_PROVIDER_KEYS.map((key) => system.del(key, false)));
+        }
+    }
     try {
         await record.coll.createIndex(
             { domainId: 1, pid: 1 },

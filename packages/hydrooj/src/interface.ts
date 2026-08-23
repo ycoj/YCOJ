@@ -41,14 +41,6 @@ export interface SystemKeys {
     'limit.problem_files_max': number;
     'problem.categories': string;
     'aiGeneration.enabled': boolean;
-    'aiGeneration.apiType': 'openai-completions' | 'openai-responses';
-    'aiGeneration.baseUrl': string;
-    'aiGeneration.model': string;
-    'aiGeneration.apiKey': string;
-    'aiGeneration.reasoning': boolean;
-    'aiGeneration.thinkingLevel': 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
-    'aiGeneration.contextTokens': number;
-    'aiGeneration.maxTokens': number;
     'aiGeneration.concurrency': number;
     'aiGeneration.sandboxHost': string;
     'aiGeneration.sandboxToken': string;
@@ -258,6 +250,8 @@ export interface AiGenerationMeta {
     active: boolean;
     stage: 'waiting' | 'preparing' | 'agent' | 'validating' | 'replacing' | 'completed' | 'failed' | 'cancelled';
     model: string;
+    providerId?: string;
+    modelId?: string;
     sessionId?: string;
     startedAt?: Date;
     finishedAt?: Date;

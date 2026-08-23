@@ -95,7 +95,7 @@ type TagsResponse = Record<string, unknown>;
 
 ## Description
 
-Starts exactly one active AI generation record for a problem and returns its record ID. It is available only when `aiGeneration.enabled` is true; the caller must be an owner with self-edit permission or have `PERM_EDIT_PROBLEM`, and referenced problems are rejected.
+Starts exactly one active AI generation record for a problem and returns its record ID. It is available only when `aiGeneration.enabled` is true and a valid selected provider/model with an API key exists in `/manage/ai-provider`; the caller must be an owner with self-edit permission or have `PERM_EDIT_PROBLEM`, and referenced problems are rejected. The selected provider/model profile is snapshotted onto the queued task (the API key is not).
 
 ## Request format
 

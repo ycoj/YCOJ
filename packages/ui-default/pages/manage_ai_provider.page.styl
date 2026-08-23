@@ -1,0 +1,84 @@
+.page--manage_ai_provider
+  .ai-provider
+    padding: rem(4px 0 8px)
+
+    + .ai-provider
+      border-top: 1px solid $table-border-color
+
+  .ai-provider__header
+    display: flex
+    align-items: center
+    justify-content: space-between
+    gap: rem(10px)
+    padding: rem(8px 0 4px)
+
+    .button
+      flex: 0 0 auto
+
+  .ai-provider__body
+    padding: 0
+
+  .ai-provider-model
+    margin: rem(10px 0 8px)
+    padding: rem(8px 12px 2px)
+    border: 1px solid $table-border-color
+    background: $section-bg-color
+
+  .ai-provider-model__header
+    display: flex
+    align-items: center
+    justify-content: space-between
+    gap: rem(10px)
+    margin-bottom: rem(4px)
+
+    .button
+      flex: 0 0 auto
+
+  .ai-provider-model__title
+    overflow: hidden
+    margin: 0
+    font-size: 1rem
+    font-weight: 600
+    text-overflow: ellipsis
+    white-space: nowrap
+
+  .ai-provider-model__body
+    display: grid
+    grid-template-columns: repeat(3, minmax(0, 1fr))
+    gap: rem(0 10px)
+    max-width: none
+    margin: 0
+
+    &::before, &::after
+      display: none
+      content: none
+
+    .columns
+      width: auto
+      float: none
+      padding-left: 0
+      padding-right: 0
+
+    .form__item
+      margin-bottom: rem(4px)
+
+    input.textbox.compact, select.select.compact
+      box-sizing: border-box
+      height: rem($compact-control-height)
+      line-height: rem($compact-control-height - 2)
+      margin-bottom: 0
+      padding-top: 0
+      padding-bottom: 0
+
+    label
+      line-height: 1.5
+
+  +mobile()
+    .ai-provider-model
+      margin-left: rem(-4px)
+      margin-right: rem(-4px)
+      padding-left: rem(8px)
+      padding-right: rem(8px)
+
+    .ai-provider-model__body
+      grid-template-columns: 1fr
