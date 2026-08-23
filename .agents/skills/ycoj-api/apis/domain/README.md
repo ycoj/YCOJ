@@ -21,6 +21,7 @@ These are HTML/PJAX management pages, not REST resources. `GET` renders the name
 | `/manage/dashboard` GET, `POST restart` | Server dashboard/restart. | HTML; restart redirects and only works under PM2. `PRIV_EDIT_SYSTEM`. |
 | `/manage/script` GET, POST | Run an allowlisted management script. `{id:name,args?:string}` (args is JSON text, defaults `{}`). | GET HTML; POST body from script then redirect. System administrator. |
 | `/manage/setting` GET, POST | View/update system settings. POST is dynamic keys from the registered settings schema. | HTML/redirect; secret values are not overwritten by empty input. System administrator. |
+| `/manage/ai-provider` GET, POST | View/save the global AI provider registry, nested models, and the model selected for AI data generation. POST `{value:string}` is a JSON configuration document. | HTML/redirect; sudo-protected system administrator. Provider API keys are never returned; an empty key preserves an existing provider key, while a new provider requires one. |
 | `/manage/config` GET, POST | View/save raw server config. `POST {value:string}` (configuration text). | HTML/redirect; system administrator. |
 | `/manage/config/schema.json` GET | Machine-readable JSON Schema of settings. | JSON Schema; `PRIV_EDIT_SYSTEM`. |
 | `/manage/userimport` GET, POST | Parse/import user data. `POST {users:string,draft:boolean}`. | HTML/redirect; system administrator. |

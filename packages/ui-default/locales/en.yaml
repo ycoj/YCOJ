@@ -7,6 +7,7 @@ Handled Requests: Req
 Hint::icon::difficulty: The difficulty of the problems in Hydro will be calculated by algorithm, depending on current submission, sometimes the difficulty may not so exact.
 Hint::icon::switch_account: As a superadmin, you can switch to anyone's account.
 manage: System Manage
+manage_ai_provider: AI Providers
 no_translation_warn: <blockquote class="warn">This part of content is under translation.</blockquote>
 page.problem_detail.sidebar.show_category: Click to Show
 page.training_detail.invalid_when_not_enrolled: You cannot view problem details unless enrolled.

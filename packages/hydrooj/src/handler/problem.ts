@@ -25,6 +25,7 @@ import {
 import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
 } from '../interface';
+import { AI_PROVIDER_CONFIG_KEY, getAiDataGenerationConfig, getAiProviderConfig } from '../lib/aiGeneration/config';
 import { ACTIVE_AI_GENERATION_FILTER, canGenerateTestdata, isDuplicateKeyError } from '../lib/aiGeneration/policy';
 import { createAiGenerationTrace } from '../lib/aiGeneration/trace';
 import { Logger } from '../logger';
@@ -1078,6 +1079,8 @@ export const ProblemApi: ProblemApiType = {
         }),
         async (ctx, args) => {
             if (!system.get('aiGeneration.enabled')) throw new AiGenerationDisabledError();
+            const aiConfig = getAiDataGenerationConfig(getAiProviderConfig(system.get(AI_PROVIDER_CONFIG_KEY)));
+            if (!aiConfig?.apiKey) throw new AiGenerationDisabledError();
             const pdoc = await problem.get(args.domainId, args.id);
             if (!pdoc) throw new ProblemNotFoundError(args.domainId, args.id);
             if (!canGenerateTestdata(
@@ -1096,7 +1099,9 @@ export const ProblemApi: ProblemApiType = {
                     aiGeneration: {
                         active: true,
                         stage: 'waiting',
-                        model: system.get('aiGeneration.model') || '',
+                        model: aiConfig.model,
+                        providerId: aiConfig.providerId,
+                        modelId: aiConfig.modelId,
                     },
                 });
             } catch (err) {
@@ -1111,6 +1116,19 @@ export const ProblemApi: ProblemApiType = {
                     pid: pdoc.docId,
                     uid: ctx.user._id,
                     instructions: args.instructions || '',
+                    aiConfig: {
+                        providerId: aiConfig.providerId,
+                        providerName: aiConfig.providerName,
+                        modelId: aiConfig.modelId,
+                        modelName: aiConfig.modelName,
+                        apiType: aiConfig.apiType,
+                        baseUrl: aiConfig.baseUrl,
+                        model: aiConfig.model,
+                        reasoning: aiConfig.reasoning,
+                        thinkingLevel: aiConfig.thinkingLevel,
+                        contextTokens: aiConfig.contextTokens,
+                        maxTokens: aiConfig.maxTokens,
+                    },
                 });
             } catch (err) {
                 try {

@@ -14,6 +14,9 @@ Description: display/run a registered admin script. GET `type Query={}`, example
 ## `GET|POST /manage/setting`
 Description: display/save registered settings. GET `type Query={}`, example `GET /manage/setting`, response `HTML`. POST `type Input=Record<string,string|boolean|number>`, example `{"server.name":"YCOJ"}`, response `Redirect`, example `{"url":"/manage/setting"}`; values are typed/validated by each setting and empty secret fields preserve existing secret.
 
+## `GET|POST /manage/ai-provider`
+Description: display/save the global provider registry and the model selected for AI test-data generation. GET returns HTML with the JSON configuration document and never returns stored API keys. POST accepts `{value:string}`, where `value` is JSON with `version: 1`, a nonempty `providers` array, and `dataGeneration: {providerId, modelId}`. Each provider requires a stable 6-64 character ID, name, `apiType` (`openai-completions` or `openai-responses`), HTTP(S) `baseUrl`, API key, and a nonempty model list. Each model requires ID, name, API model ID, reasoning flag, thinking level, 8192-2000000 context tokens, and 1024-1000000 output tokens no larger than its context limit. An empty key preserves an existing provider key; a new provider requires one. The selected model must belong to the selected provider, duplicate IDs and invalid values fail validation, and providers/models used by active generations cannot be removed. Successful saves redirect to `/manage/ai-provider`; this route requires `PRIV_EDIT_SYSTEM` and sudo.
+
 ## `GET|POST /manage/config`
 Description: display/save raw system config. GET `type Query={}`, example `GET /manage/config`, response `HTML`. POST `type Input={value:string}`, example `{"value":"server:\n  name: YCOJ\n"}`, response `Redirect`, example `{"url":"/manage/config"}`.
 

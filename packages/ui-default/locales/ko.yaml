@@ -409,6 +409,7 @@ manage_join_applications: 참여 요청 관리
 manage_module: 모듈 관리
 manage_script: 스크립트 관리
 manage_setting: 설정 관리
+manage_ai_provider: AI 제공자
 manage_user_import: 사용자 불러오기
 manage: 관리
 Manage: 관리

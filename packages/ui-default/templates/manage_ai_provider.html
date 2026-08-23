@@ -1,0 +1,183 @@
+{% extends "manage_base.html" %}
+{% block manage_content %}
+<div class="section">
+  <div class="section__header">
+    <h1 class="section__title" data-heading>{{ _('manage_ai_provider') }}</h1>
+  </div>
+  <div class="section__body">
+    <form method="post" id="ai-provider-form">
+      <textarea name="value" id="ai-provider-value" hidden>{{ config }}</textarea>
+      <div id="ai-provider-editor"></div>
+      <div class="row"><div class="column">
+        <button type="button" class="rounded button" id="add-provider">{{ _('Add Provider') }}</button>
+        <button type="submit" class="rounded primary button">{{ _('Save') }}</button>
+      </div></div>
+    </form>
+  </div>
+</div>
+<script>
+(function () {
+  var form = document.getElementById('ai-provider-form');
+  var value = document.getElementById('ai-provider-value');
+  var editor = document.getElementById('ai-provider-editor');
+  var addProvider = document.getElementById('add-provider');
+  var config = JSON.parse(value.value);
+  var thinkingLevels = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
+
+  function newId(prefix) {
+    return prefix + '-' + Math.random().toString(36).slice(2, 12);
+  }
+
+  function newModel() {
+    return {
+      id: newId('model'), name: 'New model', model: '', reasoning: true,
+      thinkingLevel: 'high', contextTokens: 128000, maxTokens: 32000
+    };
+  }
+
+  function newProvider() {
+    var provider = {
+      id: newId('provider'), name: 'New provider', apiType: 'openai-responses',
+      baseUrl: 'https://api.openai.com/v1', apiKey: '', models: [newModel()]
+    };
+    config.providers.push(provider);
+    if (!config.dataGeneration) config.dataGeneration = { providerId: provider.id, modelId: provider.models[0].id };
+  }
+
+  function input(label, current, type, change) {
+    var row = document.createElement('div');
+    row.className = 'row';
+    var column = document.createElement('div');
+    column.className = 'medium-6 columns form__item';
+    var labelElement = document.createElement('label');
+    labelElement.textContent = label;
+    var element = document.createElement('input');
+    element.className = 'textbox';
+    element.type = type || 'text';
+    element.value = current || '';
+    element.addEventListener('input', function () { change(element.value); });
+    labelElement.appendChild(element);
+    column.appendChild(labelElement);
+    row.appendChild(column);
+    return row;
+  }
+
+  function select(label, current, options, change) {
+    var row = document.createElement('div');
+    row.className = 'row';
+    var column = document.createElement('div');
+    column.className = 'medium-6 columns form__item';
+    var labelElement = document.createElement('label');
+    labelElement.textContent = label;
+    var element = document.createElement('select');
+    element.className = 'select';
+    options.forEach(function (option) {
+      var item = document.createElement('option');
+      item.value = option[0];
+      item.textContent = option[1];
+      item.selected = option[0] === current;
+      element.appendChild(item);
+    });
+    element.addEventListener('change', function () { change(element.value); });
+    labelElement.appendChild(element);
+    column.appendChild(labelElement);
+    row.appendChild(column);
+    return row;
+  }
+
+  function button(text, click, primary) {
+    var element = document.createElement('button');
+    element.type = 'button';
+    element.className = 'rounded button' + (primary ? ' primary' : '');
+    element.textContent = text;
+    element.addEventListener('click', click);
+    return element;
+  }
+
+  function selectDataGeneration() {
+    var options = [];
+    config.providers.forEach(function (provider) {
+      provider.models.forEach(function (model) {
+        options.push([provider.id + ':' + model.id, provider.name + ' / ' + model.name]);
+      });
+    });
+    var selected = config.dataGeneration && config.dataGeneration.providerId + ':' + config.dataGeneration.modelId;
+    if (!options.some(function (option) { return option[0] === selected; })) {
+      config.dataGeneration = options.length ? {
+        providerId: options[0][0].split(':')[0], modelId: options[0][0].split(':')[1]
+      } : undefined;
+      selected = options.length ? options[0][0] : '';
+    }
+    return select('AI data generation model', selected, options, function (next) {
+      var ids = next.split(':');
+      config.dataGeneration = { providerId: ids[0], modelId: ids[1] };
+    });
+  }
+
+  function renderModel(provider, model) {
+    var section = document.createElement('div');
+    section.className = 'section';
+    var header = document.createElement('div');
+    header.className = 'section__header';
+    var title = document.createElement('h2');
+    title.className = 'section__title';
+    title.textContent = model.name || 'Model';
+    header.appendChild(title);
+    header.appendChild(button('Remove model', function () {
+      if (config.dataGeneration && config.dataGeneration.providerId === provider.id && config.dataGeneration.modelId === model.id) return;
+      if (provider.models.length === 1) return;
+      provider.models = provider.models.filter(function (item) { return item !== model; });
+      render();
+    }));
+    section.appendChild(header);
+    var body = document.createElement('div');
+    body.className = 'section__body';
+    body.appendChild(input('Display name', model.name, 'text', function (next) { model.name = next; render(); }));
+    body.appendChild(input('API model ID', model.model, 'text', function (next) { model.model = next; }));
+    body.appendChild(select('Reasoning support', String(model.reasoning), [['true', 'Supported'], ['false', 'Not supported']], function (next) { model.reasoning = next === 'true'; }));
+    body.appendChild(select('Default thinking level', model.thinkingLevel, thinkingLevels.map(function (level) { return [level, level]; }), function (next) { model.thinkingLevel = next; }));
+    body.appendChild(input('Context window', String(model.contextTokens), 'number', function (next) { model.contextTokens = Number(next); }));
+    body.appendChild(input('Maximum output tokens', String(model.maxTokens), 'number', function (next) { model.maxTokens = Number(next); }));
+    section.appendChild(body);
+    return section;
+  }
+
+  function renderProvider(provider) {
+    var section = document.createElement('div');
+    section.className = 'section';
+    var header = document.createElement('div');
+    header.className = 'section__header';
+    var title = document.createElement('h1');
+    title.className = 'section__title';
+    title.textContent = provider.name || 'Provider';
+    header.appendChild(title);
+    header.appendChild(button('Remove provider', function () {
+      if (config.dataGeneration && config.dataGeneration.providerId === provider.id) return;
+      config.providers = config.providers.filter(function (item) { return item !== provider; });
+      render();
+    }));
+    section.appendChild(header);
+    var body = document.createElement('div');
+    body.className = 'section__body';
+    body.appendChild(input('Provider name', provider.name, 'text', function (next) { provider.name = next; render(); }));
+    body.appendChild(input('Base URL', provider.baseUrl, 'url', function (next) { provider.baseUrl = next; }));
+    body.appendChild(select('API type', provider.apiType, [['openai-responses', 'OpenAI Responses compatible'], ['openai-completions', 'OpenAI Chat Completions compatible']], function (next) { provider.apiType = next; }));
+    body.appendChild(input('API key', provider.apiKey, 'password', function (next) { provider.apiKey = next; }));
+    provider.models.forEach(function (model) { body.appendChild(renderModel(provider, model)); });
+    body.appendChild(button('Add model', function () { provider.models.push(newModel()); render(); }));
+    section.appendChild(body);
+    return section;
+  }
+
+  function render() {
+    editor.textContent = '';
+    if (config.providers.length) editor.appendChild(selectDataGeneration());
+    config.providers.forEach(function (provider) { editor.appendChild(renderProvider(provider)); });
+  }
+
+  addProvider.addEventListener('click', function () { newProvider(); render(); });
+  form.addEventListener('submit', function () { value.value = JSON.stringify(config); });
+  render();
+}());
+</script>
+{% endblock %}

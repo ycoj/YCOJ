@@ -12,6 +12,8 @@ export interface AiAgentConfig {
     thinkingLevel: AiThinkingLevel;
     contextTokens: number;
     maxTokens: number;
+    providerId?: string;
+    providerName?: string;
 }
 
 export interface AiAgentEvent {
@@ -197,7 +199,7 @@ export async function createAiAgent(
             ? load('@earendil-works/pi-ai/api/openai-responses.lazy')
             : load('@earendil-works/pi-ai/api/openai-completions.lazy'),
     ]);
-    const providerId = 'ai-generation';
+    const providerId = config.providerId || 'ai-generation';
     const baseUrl = config.baseUrl.replace(/\/+$/, '');
     const model = {
         id: config.model,
@@ -213,14 +215,14 @@ export async function createAiAgent(
     };
     const provider = ai.createProvider({
         id: providerId,
-        name: 'AI testdata generation',
+        name: config.providerName || 'AI testdata generation',
         baseUrl,
         auth: {
             apiKey: {
                 name: 'AI generation API key',
                 resolve: async ({ signal }) => {
                     signal.throwIfAborted();
-                    return config.apiKey ? { auth: { apiKey: config.apiKey }, source: 'Hydro system setting' } : undefined;
+                    return config.apiKey ? { auth: { apiKey: config.apiKey }, source: 'Hydro AI provider configuration' } : undefined;
                 },
             },
         },
