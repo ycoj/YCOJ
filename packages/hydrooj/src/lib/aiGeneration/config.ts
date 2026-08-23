@@ -208,7 +208,7 @@ export function redactAiProviderConfig(config?: AiProviderConfig) {
 export function legacyAiProviderConfig(values: Record<string, any>): AiProviderConfig {
     const providerId = 'legacy-openai';
     const modelId = 'legacy-model';
-    return {
+    const config: AiProviderConfig = {
         version: 1,
         providers: [{
             id: providerId, name: 'Migrated AI provider',
@@ -225,4 +225,5 @@ export function legacyAiProviderConfig(values: Record<string, any>): AiProviderC
         }],
         dataGeneration: { providerId, modelId },
     };
+    return normalizeAiProviderConfig(config, config);
 }

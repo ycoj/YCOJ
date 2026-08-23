@@ -47,7 +47,7 @@ describe('AI provider configuration', () => {
             'aiGeneration.maxTokens': 4_000,
         });
         const resolved = getAiDataGenerationConfig(config);
-        assert.equal(resolved?.baseUrl, 'https://example.test/v1/');
+        assert.equal(resolved?.baseUrl, 'https://example.test/v1');
         assert.equal(resolved?.model, 'legacy-model');
         assert.equal(resolved?.reasoning, false);
     });

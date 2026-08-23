@@ -108,7 +108,7 @@
       } : undefined;
       selected = options.length ? options[0][0] : '';
     }
-    return select('AI data generation model', selected, options, function (next) {
+    return select({{ _('AI data generation model')|json|safe }}, selected, options, function (next) {
       var ids = next.split(':');
       config.dataGeneration = { providerId: ids[0], modelId: ids[1] };
     });
@@ -121,9 +121,9 @@
     header.className = 'section__header';
     var title = document.createElement('h2');
     title.className = 'section__title';
-    title.textContent = model.name || 'Model';
+    title.textContent = model.name || {{ _('Model')|json|safe }};
     header.appendChild(title);
-    header.appendChild(button('Remove model', function () {
+    header.appendChild(button({{ _('Remove model')|json|safe }}, function () {
       if (config.dataGeneration && config.dataGeneration.providerId === provider.id && config.dataGeneration.modelId === model.id) return;
       if (provider.models.length === 1) return;
       provider.models = provider.models.filter(function (item) { return item !== model; });
@@ -132,12 +132,15 @@
     section.appendChild(header);
     var body = document.createElement('div');
     body.className = 'section__body';
-    body.appendChild(input('Display name', model.name, 'text', function (next) { model.name = next; render(); }));
-    body.appendChild(input('API model ID', model.model, 'text', function (next) { model.model = next; }));
-    body.appendChild(select('Reasoning support', String(model.reasoning), [['true', 'Supported'], ['false', 'Not supported']], function (next) { model.reasoning = next === 'true'; }));
-    body.appendChild(select('Default thinking level', model.thinkingLevel, thinkingLevels.map(function (level) { return [level, level]; }), function (next) { model.thinkingLevel = next; }));
-    body.appendChild(input('Context window', String(model.contextTokens), 'number', function (next) { model.contextTokens = Number(next); }));
-    body.appendChild(input('Maximum output tokens', String(model.maxTokens), 'number', function (next) { model.maxTokens = Number(next); }));
+    body.appendChild(input({{ _('Display name')|json|safe }}, model.name, 'text', function (next) {
+      model.name = next;
+      title.textContent = next || {{ _('Model')|json|safe }};
+    }));
+    body.appendChild(input({{ _('API model ID')|json|safe }}, model.model, 'text', function (next) { model.model = next; }));
+    body.appendChild(select({{ _('Reasoning support')|json|safe }}, String(model.reasoning), [['true', {{ _('Supported')|json|safe }}], ['false', {{ _('Not supported')|json|safe }}]], function (next) { model.reasoning = next === 'true'; }));
+    body.appendChild(select({{ _('Default thinking level')|json|safe }}, model.thinkingLevel, thinkingLevels.map(function (level) { return [level, level]; }), function (next) { model.thinkingLevel = next; }));
+    body.appendChild(input({{ _('Context window')|json|safe }}, String(model.contextTokens), 'number', function (next) { model.contextTokens = Number(next); }));
+    body.appendChild(input({{ _('Maximum output tokens')|json|safe }}, String(model.maxTokens), 'number', function (next) { model.maxTokens = Number(next); }));
     section.appendChild(body);
     return section;
   }
@@ -149,9 +152,9 @@
     header.className = 'section__header';
     var title = document.createElement('h1');
     title.className = 'section__title';
-    title.textContent = provider.name || 'Provider';
+    title.textContent = provider.name || {{ _('Provider')|json|safe }};
     header.appendChild(title);
-    header.appendChild(button('Remove provider', function () {
+    header.appendChild(button({{ _('Remove provider')|json|safe }}, function () {
       if (config.dataGeneration && config.dataGeneration.providerId === provider.id) return;
       config.providers = config.providers.filter(function (item) { return item !== provider; });
       render();
@@ -159,12 +162,15 @@
     section.appendChild(header);
     var body = document.createElement('div');
     body.className = 'section__body';
-    body.appendChild(input('Provider name', provider.name, 'text', function (next) { provider.name = next; render(); }));
-    body.appendChild(input('Base URL', provider.baseUrl, 'url', function (next) { provider.baseUrl = next; }));
-    body.appendChild(select('API type', provider.apiType, [['openai-responses', 'OpenAI Responses compatible'], ['openai-completions', 'OpenAI Chat Completions compatible']], function (next) { provider.apiType = next; }));
-    body.appendChild(input('API key', provider.apiKey, 'password', function (next) { provider.apiKey = next; }));
+    body.appendChild(input({{ _('Provider name')|json|safe }}, provider.name, 'text', function (next) {
+      provider.name = next;
+      title.textContent = next || {{ _('Provider')|json|safe }};
+    }));
+    body.appendChild(input({{ _('Base URL')|json|safe }}, provider.baseUrl, 'url', function (next) { provider.baseUrl = next; }));
+    body.appendChild(select({{ _('API type')|json|safe }}, provider.apiType, [['openai-responses', {{ _('OpenAI Responses compatible')|json|safe }}], ['openai-completions', {{ _('OpenAI Chat Completions compatible')|json|safe }}]], function (next) { provider.apiType = next; }));
+    body.appendChild(input({{ _('API key')|json|safe }}, provider.apiKey, 'password', function (next) { provider.apiKey = next; }));
     provider.models.forEach(function (model) { body.appendChild(renderModel(provider, model)); });
-    body.appendChild(button('Add model', function () { provider.models.push(newModel()); render(); }));
+    body.appendChild(button({{ _('Add model')|json|safe }}, function () { provider.models.push(newModel()); render(); }));
     section.appendChild(body);
     return section;
   }
