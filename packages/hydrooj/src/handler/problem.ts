@@ -25,8 +25,16 @@ import {
 import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
 } from '../interface';
-import { AI_PROVIDER_CONFIG_KEY, getAiDataGenerationConfig, getAiProviderConfig } from '../lib/aiGeneration/config';
 import { ACTIVE_AI_GENERATION_FILTER, canGenerateTestdata, isDuplicateKeyError } from '../lib/aiGeneration/policy';
+import type { AiGenerationCheckerRequest } from '../lib/aiGeneration/request';
+import {
+    DEFAULT_TESTCASE_TARGET, getAiGenerationCaseLimits, getAiGenerationJudgeDefaults,
+    MAX_GENERATION_SOURCE_LENGTH, MAX_GENERATION_TEXT_LENGTH,
+} from '../lib/aiGeneration/request';
+import {
+    getAiGenerationConfig, getDefaultAiGenerationProfileId, getPublicAiGenerationProfiles,
+    resolveAiGenerationProfile, validateAiGenerationConfig,
+} from '../lib/aiGeneration/runtime';
 import { createAiGenerationTrace } from '../lib/aiGeneration/trace';
 import { Logger } from '../logger';
 import { PERM, PRIV, STATUS } from '../model/builtin';
@@ -43,7 +51,7 @@ import system from '../model/system';
 import task from '../model/task';
 import user from '../model/user';
 import {
-    Handler, Mutation, param, post, Query, query, route, Types,
+    Handler, param, post, Query, query, route, Types,
 } from '../service/server';
 import { ContestDetailBaseHandler } from './contest';
 
@@ -1040,8 +1048,167 @@ export class ProblemCreateHandler extends Handler {
     }
 }
 
-type ProblemApiType = Record<'problem' | 'problems' | 'tags', ApiCall<'Query', any, any>>
-    & Record<'problem.aiGenerateTestdata', ApiCall<'Mutation', any, any>>;
+const standardSolutionSchema = Schema.object({
+    source: Schema.string().max(MAX_GENERATION_SOURCE_LENGTH).required(),
+});
+
+const checkerSchema = Schema.union([
+    Schema.object({
+        mode: Schema.const('provided').required(),
+        source: Schema.string().max(MAX_GENERATION_SOURCE_LENGTH).required(),
+    }),
+    Schema.object({
+        mode: Schema.const('generated').required(),
+        requirements: Schema.string().max(MAX_GENERATION_TEXT_LENGTH).required(),
+    }),
+]);
+
+export class ProblemGenerateHandler extends Handler {
+    pdoc: ProblemDoc;
+
+    @route('pid', Types.ProblemId)
+    async prepare(domainId: string, pid: number | string) {
+        if (this.request.query.tid) throw new ValidationError('tid');
+        this.pdoc = await problem.get(domainId, pid, undefined, true);
+        if (!this.pdoc) throw new ProblemNotFoundError(domainId, pid);
+        if (!canGenerateTestdata(
+            this.user, this.pdoc, PERM.PERM_EDIT_PROBLEM_SELF, PERM.PERM_EDIT_PROBLEM,
+        )) this.checkPerm(PERM.PERM_EDIT_PROBLEM);
+        if (this.pdoc.reference) throw new ProblemIsReferencedError('generate test data');
+    }
+
+    async get() {
+        const profiles = getPublicAiGenerationProfiles();
+        const configuredDefaultProfileId = getDefaultAiGenerationProfileId();
+        const limits = getAiGenerationCaseLimits(
+            this.pdoc.additional_file?.length || 0,
+            system.get('limit.problem_files_max') || 100,
+        );
+        this.response.body = {
+            enabled: !!system.get('aiGeneration.enabled'),
+            profiles,
+            defaultProfileId: profiles.some((profile) => profile.id === configuredDefaultProfileId)
+                ? configuredDefaultProfileId : profiles[0]?.id || '',
+            ...limits,
+            ...getAiGenerationJudgeDefaults(this.pdoc.config),
+        };
+    }
+
+    @post('profileId', Schema.string(), true)
+    @post('testcaseTarget', Schema.number().step(1).min(1), true)
+    @post('timeLimitMs', Schema.number().step(1).min(1), true)
+    @post('memoryLimitMb', Schema.number().step(1).min(1), true)
+    @post('instructions', Schema.string().max(MAX_GENERATION_TEXT_LENGTH), true)
+    @post('standardSolution', standardSolutionSchema, true)
+    @post('checker', checkerSchema, true)
+    async post(
+        domainId: string, profileId?: string, testcaseTarget?: number,
+        timeLimitMs?: number, memoryLimitMb?: number, instructions = '',
+        standardSolution?: { source: string }, checker?: AiGenerationCheckerRequest,
+    ) {
+        if (!system.get('aiGeneration.enabled')) throw new AiGenerationDisabledError();
+        const body = this.request.body || {};
+        if ('testcaseTarget' in body && testcaseTarget === undefined) throw new ValidationError('testcaseTarget');
+        if ('timeLimitMs' in body && timeLimitMs === undefined) throw new ValidationError('timeLimitMs');
+        if ('memoryLimitMb' in body && memoryLimitMb === undefined) throw new ValidationError('memoryLimitMb');
+        if (standardSolution && !standardSolution.source.trim()) throw new ValidationError('standardSolution.source');
+        if (checker?.mode === 'provided' && !checker.source.trim()) throw new ValidationError('checker.source');
+        if (checker?.mode === 'generated' && !checker.requirements.trim()) throw new ValidationError('checker.requirements');
+
+        const publicProfiles = getPublicAiGenerationProfiles();
+        if (!profileId) {
+            const defaultProfileId = getDefaultAiGenerationProfileId();
+            profileId = publicProfiles.some((profile) => profile.id === defaultProfileId)
+                ? defaultProfileId : publicProfiles[0]?.id;
+        }
+        if (!profileId || !publicProfiles.some((profile) => profile.id === profileId)) {
+            throw new ValidationError('profileId');
+        }
+        const profile = resolveAiGenerationProfile(profileId);
+        validateAiGenerationConfig(getAiGenerationConfig(profileId));
+        const limits = getAiGenerationCaseLimits(
+            this.pdoc.additional_file?.length || 0,
+            system.get('limit.problem_files_max') || 100,
+        );
+        const maxTarget = checker ? limits.maxWithChecker : limits.maxWithoutChecker;
+        testcaseTarget ??= Math.min(DEFAULT_TESTCASE_TARGET, maxTarget);
+        if (!Number.isSafeInteger(testcaseTarget) || testcaseTarget < 1 || testcaseTarget > maxTarget) {
+            throw new ValidationError('testcaseTarget');
+        }
+        const judgeDefaults = getAiGenerationJudgeDefaults(this.pdoc.config);
+        timeLimitMs ??= judgeDefaults.timeLimitMs;
+        memoryLimitMb ??= judgeDefaults.memoryLimitMb;
+        if (!Number.isSafeInteger(timeLimitMs) || timeLimitMs < 1) throw new ValidationError('timeLimitMs');
+        if (!Number.isSafeInteger(memoryLimitMb) || memoryLimitMb < 1) throw new ValidationError('memoryLimitMb');
+
+        const active = await record.getMulti(domainId, {
+            pid: this.pdoc.docId,
+            ...ACTIVE_AI_GENERATION_FILTER,
+        }).limit(1).hasNext();
+        if (active) throw new AiGenerationAlreadyActiveError();
+        let rid: ObjectId;
+        try {
+            rid = await record.add(domainId, this.pdoc.docId, this.user._id, 'ai', instructions || '', false, {
+                type: 'generate',
+                aiGeneration: {
+                    active: true,
+                    stage: 'waiting',
+                    model: profile.model,
+                    profileId,
+                    providerId: profile.providerId,
+                    modelId: profile.modelId,
+                    testcaseTarget,
+                    timeLimitMs,
+                    memoryLimitMb,
+                    standardSolutionProvided: !!standardSolution,
+                    checkerMode: checker?.mode || 'default',
+                },
+            });
+        } catch (err) {
+            if (isDuplicateKeyError(err)) throw new AiGenerationAlreadyActiveError();
+            throw err;
+        }
+        try {
+            await task.add({
+                type: 'ai-generate',
+                rid,
+                domainId,
+                pid: this.pdoc.docId,
+                uid: this.user._id,
+                instructions: instructions || '',
+                profileId,
+                testcaseTarget,
+                timeLimitMs,
+                memoryLimitMb,
+                standardSolution,
+                checker,
+            });
+        } catch (err) {
+            try {
+                const trace = createAiGenerationTrace(this.ctx, record, domainId, rid);
+                const generation = await trace.start('generation', { stage: 'enqueue' });
+                await trace.finish(generation, 'failed', {
+                    error: 'Unable to enqueue AI generation task.',
+                }, STATUS.STATUS_SYSTEM_ERROR, {
+                    status: STATUS.STATUS_SYSTEM_ERROR,
+                    'aiGeneration.active': false,
+                    'aiGeneration.stage': 'failed',
+                    'aiGeneration.finishedAt': new Date(),
+                });
+            } catch (compensationError) {
+                logger.error(
+                    'Failed to compensate after AI generation enqueue error for record %s: %O',
+                    rid, compensationError,
+                );
+            }
+            throw err;
+        }
+        this.response.body = { rid };
+        this.response.redirect = this.url('record_detail', { rid });
+    }
+}
+
+type ProblemApiType = Record<'problem' | 'problems' | 'tags', ApiCall<'Query', any, any>>;
 
 export const ProblemApi: ProblemApiType = {
     problem: Query(
@@ -1071,85 +1238,6 @@ export const ProblemApi: ProblemApiType = {
         Schema.object({}),
         async () => yaml.load(system.get('problem.categories') || '') || {},
     ),
-    'problem.aiGenerateTestdata': Mutation(
-        Schema.object({
-            domainId: Schema.string().required(),
-            id: Schema.union([Schema.number().step(1), Schema.string()]).required(),
-            instructions: Schema.string().max(10_000),
-        }),
-        async (ctx, args) => {
-            if (!system.get('aiGeneration.enabled')) throw new AiGenerationDisabledError();
-            const aiConfig = getAiDataGenerationConfig(getAiProviderConfig(system.get(AI_PROVIDER_CONFIG_KEY)));
-            if (!aiConfig?.apiKey) throw new AiGenerationDisabledError();
-            const pdoc = await problem.get(args.domainId, args.id);
-            if (!pdoc) throw new ProblemNotFoundError(args.domainId, args.id);
-            if (!canGenerateTestdata(
-                ctx.user, pdoc, PERM.PERM_EDIT_PROBLEM_SELF, PERM.PERM_EDIT_PROBLEM,
-            )) ctx.checkPerm(PERM.PERM_EDIT_PROBLEM);
-            if (pdoc.reference) throw new ProblemIsReferencedError('generate test data');
-            const active = await record.getMulti(args.domainId, {
-                pid: pdoc.docId,
-                ...ACTIVE_AI_GENERATION_FILTER,
-            }).limit(1).hasNext();
-            if (active) throw new AiGenerationAlreadyActiveError();
-            let rid: ObjectId;
-            try {
-                rid = await record.add(args.domainId, pdoc.docId, ctx.user._id, 'ai', args.instructions || '', false, {
-                    type: 'generate',
-                    aiGeneration: {
-                        active: true,
-                        stage: 'waiting',
-                        model: aiConfig.model,
-                        providerId: aiConfig.providerId,
-                        modelId: aiConfig.modelId,
-                    },
-                });
-            } catch (err) {
-                if (isDuplicateKeyError(err)) throw new AiGenerationAlreadyActiveError();
-                throw err;
-            }
-            try {
-                await task.add({
-                    type: 'ai-generate',
-                    rid,
-                    domainId: args.domainId,
-                    pid: pdoc.docId,
-                    uid: ctx.user._id,
-                    instructions: args.instructions || '',
-                    aiConfig: {
-                        providerId: aiConfig.providerId,
-                        providerName: aiConfig.providerName,
-                        modelId: aiConfig.modelId,
-                        modelName: aiConfig.modelName,
-                        apiType: aiConfig.apiType,
-                        baseUrl: aiConfig.baseUrl,
-                        model: aiConfig.model,
-                        reasoning: aiConfig.reasoning,
-                        thinkingLevel: aiConfig.thinkingLevel,
-                        contextTokens: aiConfig.contextTokens,
-                        maxTokens: aiConfig.maxTokens,
-                    },
-                });
-            } catch (err) {
-                try {
-                    const trace = createAiGenerationTrace(ctx, record, args.domainId, rid);
-                    const generation = await trace.start('generation', { stage: 'enqueue' });
-                    await trace.finish(generation, 'failed', {
-                        error: 'Unable to enqueue AI generation task.',
-                    }, STATUS.STATUS_SYSTEM_ERROR, {
-                        status: STATUS.STATUS_SYSTEM_ERROR,
-                        'aiGeneration.active': false,
-                        'aiGeneration.stage': 'failed',
-                        'aiGeneration.finishedAt': new Date(),
-                    });
-                } catch (compensationError) {
-                    logger.error('Failed to compensate after AI generation enqueue error for record %s: %O', rid, compensationError);
-                }
-                throw err;
-            }
-            return { rid };
-        },
-    ),
 } as const;
 
 declare module '@hydrooj/framework' {
@@ -1166,6 +1254,7 @@ export async function apply(ctx: Context) {
     ctx.Route('problem_hack', '/p/:pid/hack/:rid', ProblemHackHandler, PERM.PERM_SUBMIT_PROBLEM);
     ctx.Route('problem_edit', '/p/:pid/edit', ProblemEditHandler);
     ctx.Route('problem_config', '/p/:pid/config', ProblemConfigHandler);
+    ctx.Route('problem_generate', '/p/:pid/generate', ProblemGenerateHandler);
     ctx.Route('problem_files', '/p/:pid/files', ProblemFilesHandler, PERM.PERM_VIEW_PROBLEM);
     ctx.Route('problem_file_download', '/p/:pid/file/:filename', ProblemFileDownloadHandler);
     ctx.Route('problem_solution', '/p/:pid/solution', ProblemSolutionHandler, PERM.PERM_VIEW_PROBLEM);

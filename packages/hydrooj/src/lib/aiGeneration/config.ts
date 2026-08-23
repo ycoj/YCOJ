@@ -227,3 +227,41 @@ export function legacyAiProviderConfig(values: Record<string, any>): AiProviderC
     };
     return normalizeAiProviderConfig(config, config);
 }
+
+export interface PublicAiGenerationProfile {
+    id: string;
+    label: string;
+    model: string;
+}
+
+export interface AiGenerationModelProfile extends AiDataGenerationConfig {
+    id: string;
+    label: string;
+}
+
+export function getAiGenerationProfileId(providerId: string, modelId: string) {
+    return `${providerId}:${modelId}`;
+}
+
+export function getAiGenerationProfiles(config?: AiProviderConfig): AiGenerationModelProfile[] {
+    return (config?.providers || []).flatMap((provider) => provider.models.map((model) => ({
+        ...getAiDataGenerationConfigByIds(provider.id, model.id, config)!,
+        id: getAiGenerationProfileId(provider.id, model.id),
+        label: `${provider.name} / ${model.name}`,
+    })));
+}
+
+export function getDefaultAiGenerationProfileId(config?: AiProviderConfig) {
+    const selection = config?.dataGeneration;
+    if (!selection) return '';
+    const profileId = getAiGenerationProfileId(selection.providerId, selection.modelId);
+    return getAiGenerationProfiles(config).some((profile) => profile.id === profileId) ? profileId : '';
+}
+
+export function resolveAiGenerationProfile(
+    profileId: string, config?: AiProviderConfig,
+): AiGenerationModelProfile {
+    const profile = getAiGenerationProfiles(config).find((item) => item.id === profileId);
+    if (!profile) throw new Error(`AI generation profile not found: ${profileId}`);
+    return profile;
+}

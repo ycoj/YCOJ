@@ -250,8 +250,15 @@ export interface AiGenerationMeta {
     active: boolean;
     stage: 'waiting' | 'preparing' | 'agent' | 'validating' | 'replacing' | 'completed' | 'failed' | 'cancelled';
     model: string;
+    profileId?: string;
     providerId?: string;
     modelId?: string;
+    testcaseTarget?: number;
+    testcaseCount?: number;
+    timeLimitMs?: number;
+    memoryLimitMb?: number;
+    standardSolutionProvided?: boolean;
+    checkerMode?: 'default' | 'provided' | 'generated';
     sessionId?: string;
     startedAt?: Date;
     finishedAt?: Date;

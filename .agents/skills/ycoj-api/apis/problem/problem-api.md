@@ -91,35 +91,76 @@ type TagsResponse = Record<string, unknown>;
 {"algorithm":["dp","graph"]}
 ```
 
-# POST `/api/problem.aiGenerateTestdata` — enqueue AI test-data generation
+# GET `/p/:pid/generate` — AI test-data generation options
 
 ## Description
 
-Starts exactly one active AI generation record for a problem and returns its record ID. It is available only when `aiGeneration.enabled` is true and a valid selected provider/model with an API key exists in `/manage/ai-provider`; the caller must be an owner with self-edit permission or have `PERM_EDIT_PROBLEM`, and referenced problems are rejected. The selected provider/model profile is snapshotted onto the queued task (the API key is not).
+Returns generation availability, safe selectable model fields, testcase limits, and current judge limits. Only models configured by an administrator in `/manage/ai-provider` are returned; provider endpoints and credentials are never exposed. The caller must be an owner with self-edit permission or have `PERM_EDIT_PROBLEM`, contest context is rejected, and referenced problems are rejected.
 
 ## Request format
 
-```ts
-type AiGenerateArgs = { domainId: string; id: number | string; instructions?: string /* max 10,000 */ };
-```
-
 ```http
-POST /api/problem.aiGenerateTestdata HTTP/1.1
+GET /p/P1000/generate HTTP/1.1
 Accept: application/json
-Content-Type: application/json
 Cookie: sid=…
-
-{"domainId":"system","id":"P1000","instructions":"Create edge-case tests for overflow."}
 ```
 
 ## Response format
 
 ```ts
-type AiGenerateResponse = { rid: string };
+type AiGenerationOptions = {
+    enabled: boolean;
+    profiles: { id: string; label: string; model: string }[];
+    defaultProfileId: string;
+    defaultTarget: number;
+    maxWithoutChecker: number;
+    maxWithChecker: number;
+    timeLimitMs: number;
+    memoryLimitMb: number;
+};
 ```
 
 ```json
-{"rid":"66b5c0e00000000000000000"}
+{"enabled":true,"profiles":[{"id":"provider-1:model-1","label":"OpenAI / GPT-5","model":"gpt-5"}],"defaultProfileId":"provider-1:model-1","defaultTarget":20,"maxWithoutChecker":49,"maxWithChecker":48,"timeLimitMs":1000,"memoryLimitMb":256}
 ```
 
-The record begins with `aiGeneration.active: true` and stage `waiting`; a second active generation produces `AiGenerationAlreadyActiveError`. Poll a record-detail API/page outside this problem-route scope to observe completion.
+# POST `/p/:pid/generate` — enqueue AI test-data generation
+
+## Description
+
+Starts exactly one active AI generation record for a problem and returns its record ID. `profileId` must be one of the configured IDs returned by GET. The queue stores only that ID and resolves the provider credentials again when the worker starts.
+
+## Request format
+
+```ts
+type AiGenerateRequest = {
+    profileId?: string;
+    testcaseTarget?: number;
+    timeLimitMs?: number;
+    memoryLimitMb?: number;
+    instructions?: string;
+    standardSolution?: { source: string };
+    checker?: { mode: 'provided'; source: string } | { mode: 'generated'; requirements: string };
+};
+```
+
+```http
+POST /p/P1000/generate HTTP/1.1
+Accept: application/json
+Content-Type: application/json
+Cookie: sid=…
+
+{"profileId":"provider-1:model-1","testcaseTarget":10,"instructions":"Cover large-input edge cases."}
+```
+
+## Response format
+
+```ts
+type AiGenerateResponse = { rid: string; url: string };
+```
+
+```json
+{"rid":"66b5c0e00000000000000000","url":"/record/66b5c0e00000000000000000"}
+```
+
+Under `Accept: application/json` the response is the JSON body above, with `url` pointing at the record-detail route; non-JSON form submissions receive a 302 redirect instead. The record begins with `aiGeneration.active: true` and stage `waiting`; a second active generation produces `AiGenerationAlreadyActiveError`. Poll a record-detail API/page outside this problem-route scope to observe completion.

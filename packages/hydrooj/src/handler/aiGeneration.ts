@@ -1,16 +1,17 @@
+import { readFile } from 'fs-extra';
 import * as yaml from 'js-yaml';
 import { ObjectId } from 'mongodb';
+import { findFileSync } from '@hydrooj/utils/lib/utils';
 import { Context } from '../context';
 import { RecordDoc, Task } from '../interface';
 import {
-    AiAgentConfig, AiAgentRunner, createAiAgent,
+    AiAgentRunner, createAiAgent,
 } from '../lib/aiGeneration/agent';
 import {
     ArtifactValidationError, collectOutputArtifacts, replaceTestdataWithRollback,
 } from '../lib/aiGeneration/artifacts';
 import {
-    AI_PROVIDER_CONFIG_KEY, getAiDataGenerationConfig, getAiDataGenerationConfigByIds,
-    getAiProviderConfig, LEGACY_AI_PROVIDER_KEYS, legacyAiProviderConfig,
+    AI_PROVIDER_CONFIG_KEY, LEGACY_AI_PROVIDER_KEYS, legacyAiProviderConfig,
 } from '../lib/aiGeneration/config';
 import { checkCyaronDocsAvailable, copyCyaronDocsToSession } from '../lib/aiGeneration/documentation';
 import {
@@ -19,6 +20,12 @@ import {
 import {
     AI_TESTDATA_SYSTEM_PROMPT, buildInitialPrompt, buildRepairPrompt,
 } from '../lib/aiGeneration/prompt';
+import {
+    AiGenerationRequest, DEFAULT_TESTCASE_TARGET, getAiGenerationJudgeDefaults,
+} from '../lib/aiGeneration/request';
+import {
+    AiGenerationRuntimeConfig, getAiGenerationConfig, validateAiGenerationConfig,
+} from '../lib/aiGeneration/runtime';
 import { GoJudgeSessionClient, SessionError } from '../lib/aiGeneration/session';
 import {
     AiGenerationTrace, AiTraceHandle, AiTraceState, createAiGenerationTrace,
@@ -34,52 +41,6 @@ import task from '../model/task';
 const logger = new Logger('ai-generation');
 const TOTAL_TIMEOUT_MS = 30 * 60 * 1000;
 const activeRuns = new Map<string, { abort: (reason: 'cancelled' | 'timeout') => void }>();
-
-export interface AiGenerationRuntimeConfig extends AiAgentConfig {
-    enabled: boolean;
-    concurrency: number;
-    sandboxHost: string;
-    sandboxToken?: string;
-}
-
-export function getAiGenerationConfig(): AiGenerationRuntimeConfig {
-    const provider = getAiDataGenerationConfig(getAiProviderConfig(system.get(AI_PROVIDER_CONFIG_KEY)));
-    return {
-        enabled: !!system.get('aiGeneration.enabled'),
-        apiType: provider?.apiType || 'openai-completions',
-        baseUrl: provider?.baseUrl || '',
-        model: provider?.model || '',
-        apiKey: provider?.apiKey || '',
-        reasoning: provider?.reasoning !== false,
-        thinkingLevel: provider?.thinkingLevel || 'high',
-        contextTokens: provider?.contextTokens || 128_000,
-        maxTokens: provider?.maxTokens || 32_000,
-        providerId: provider?.providerId,
-        providerName: provider?.providerName,
-        concurrency: Math.min(32, Math.max(1, Math.trunc(+system.get('aiGeneration.concurrency') || 1))),
-        sandboxHost: system.get('aiGeneration.sandboxHost') || 'http://localhost:5050',
-        sandboxToken: system.get('aiGeneration.sandboxToken') || '',
-    };
-}
-
-export function validateAiGenerationConfig(config: AiGenerationRuntimeConfig) {
-    if (!config.enabled) throw new Error('AI test-data generation is disabled.');
-    if (!['openai-completions', 'openai-responses'].includes(config.apiType)) throw new Error('Invalid AI API type.');
-    if (!/^https?:\/\//.test(config.baseUrl)) throw new Error('Invalid AI API base URL.');
-    if (!config.model.trim()) throw new Error('AI model is not configured.');
-    if (!config.apiKey) throw new Error('AI API key is not configured.');
-    if (!['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].includes(config.thinkingLevel)) {
-        throw new Error('Invalid AI thinking level.');
-    }
-    if (!Number.isSafeInteger(config.contextTokens) || config.contextTokens < 8192 || config.contextTokens > 2_000_000) {
-        throw new Error('Invalid AI context token limit.');
-    }
-    if (!Number.isSafeInteger(config.maxTokens)
-        || config.maxTokens < 1024 || config.maxTokens > 1_000_000 || config.maxTokens > config.contextTokens) {
-        throw new Error('Invalid AI maximum token limit.');
-    }
-    if (!/^https?:\/\//.test(config.sandboxHost)) throw new Error('Invalid go-judge Session API host.');
-}
 
 async function updateRecord(
     ctx: Context, domainId: string, rid: ObjectId,
@@ -125,6 +86,9 @@ async function finishRecord(
             : finalStatus === STATUS.STATUS_ACCEPTED ? 'succeeded' : 'failed';
     const set = {
         ...cancelled ? {} : { status },
+        ...Number.isSafeInteger(eventData.caseCount)
+            ? { 'aiGeneration.testcaseCount': eventData.caseCount }
+            : {},
         score: !cancelled && status === STATUS.STATUS_ACCEPTED ? 100 : 0,
         progress: !cancelled && status === STATUS.STATUS_ACCEPTED ? 100 : 0,
         judgeAt: new Date(),
@@ -211,19 +175,13 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
     if (!rdoc || rdoc.status === STATUS.STATUS_CANCELED || !rdoc.aiGeneration?.active) return;
 
     const trace = createAiGenerationTrace(ctx, record, t.domainId, rid, rdoc.testCases?.length || 0);
-    const generation = await trace.start('generation');
+    const generation = await trace.start('generation', {
+        profileId: t.profileId || rdoc.aiGeneration?.profileId,
+    });
 
     let config: AiGenerationRuntimeConfig;
     try {
-        const snapshot = t.aiConfig;
-        const provider = snapshot && getAiDataGenerationConfigByIds(
-            snapshot.providerId, snapshot.modelId, getAiProviderConfig(system.get(AI_PROVIDER_CONFIG_KEY)),
-        );
-        config = {
-            ...getAiGenerationConfig(),
-            ...(snapshot || {}),
-            apiKey: provider?.apiKey || '',
-        };
+        config = getAiGenerationConfig(t.profileId || rdoc.aiGeneration?.profileId);
         validateAiGenerationConfig(config);
         checkCyaronDocsAvailable();
     } catch (err) {
@@ -246,6 +204,7 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
     let report = '';
     const toolEvents = new Map<string, AiTraceHandle>();
     let pdoc: any;
+    let request: AiGenerationRequest;
     const abort = (reason: 'cancelled' | 'timeout') => {
         termination ||= reason;
         controller.abort(reason);
@@ -272,14 +231,51 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
             if (!pdoc) throw new Error('Problem no longer exists.');
             if (pdoc.reference) throw new Error('Cannot generate data for a referenced problem.');
 
+            const judgeDefaults = getAiGenerationJudgeDefaults(pdoc.config);
+            request = {
+                profileId: config.profileId,
+                testcaseTarget: t.testcaseTarget || DEFAULT_TESTCASE_TARGET,
+                timeLimitMs: t.timeLimitMs || judgeDefaults.timeLimitMs,
+                memoryLimitMb: t.memoryLimitMb || judgeDefaults.memoryLimitMb,
+                instructions: t.instructions || '',
+                standardSolution: t.standardSolution,
+                checker: t.checker,
+            };
+
             ({ sessionId } = await client.create(controller.signal));
             await updateRecord(ctx, t.domainId, rid, {
                 progress: 5,
                 'aiGeneration.sessionId': sessionId,
+                'aiGeneration.model': config.model,
+                'aiGeneration.profileId': config.profileId,
+                'aiGeneration.providerId': config.providerId,
+                'aiGeneration.modelId': config.modelId,
             });
             const rawConfig = typeof pdoc.config === 'string' ? pdoc.config : yaml.dump(pdoc.config || {});
             await client.writeFile(sessionId, 'problem.md', `# ${pdoc.title}\n\n${pdoc.content || ''}\n`, controller.signal);
             await client.writeFile(sessionId, 'problem-config.yaml', rawConfig || '{}\n', controller.signal);
+            await client.writeFile(sessionId, 'generation-request.json', `${JSON.stringify({
+                testcaseTarget: request.testcaseTarget,
+                timeLimitMs: request.timeLimitMs,
+                memoryLimitMb: request.memoryLimitMb,
+                standardSolutionProvided: !!request.standardSolution,
+                checkerMode: request.checker?.mode || 'default',
+                checkerRequirements: request.checker?.mode === 'generated' ? request.checker.requirements : undefined,
+            }, null, 2)}\n`, controller.signal);
+            if (request.standardSolution) {
+                await client.writeFile(
+                    sessionId, 'provided-standard-solution.cc', request.standardSolution.source, controller.signal,
+                );
+            }
+            if (request.checker) {
+                await client.writeFile(
+                    sessionId, 'testlib.h', await readFile(findFileSync('@hydrooj/hydrojudge/vendor/testlib/testlib.h')),
+                    controller.signal,
+                );
+                if (request.checker.mode === 'provided') {
+                    await client.writeFile(sessionId, 'provided-checker.cc', request.checker.source, controller.signal);
+                }
+            }
             await copyCyaronDocsToSession(client, sessionId, { signal: controller.signal });
             await client.execShell(sessionId, 'mkdir -p output', controller.signal);
             await trace.finish(preparation, 'succeeded', { sessionCreated: true });
@@ -316,7 +312,6 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
                     toolCallId: event.toolCallId,
                     summary: event.summary,
                     details: event.details || {},
-                    ...(event.error ? { error: event.error } : {}),
                 }, failure.status);
             },
         );
@@ -332,11 +327,11 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
                 // eslint-disable-next-line no-await-in-loop
                 report = await agent.prompt(attempt
                     ? buildRepairPrompt((artifacts as any)?.error, attempt)
-                    : buildInitialPrompt(t.instructions));
+                    : buildInitialPrompt(request));
                 // eslint-disable-next-line no-await-in-loop
                 await trace.finish(agentTurn, 'succeeded', {
                     attempt: attempt + 1,
-                    report: report.slice(0, 20_000),
+                    reportLength: report.length,
                 });
             } catch (err) {
                 const failure = traceFailure(termination, err, 'agent_turn');
@@ -368,7 +363,13 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
                     (system.get('limit.problem_files_max_size') || 256 * 1024 * 1024) - additionalBytes - 1,
                 );
                 // eslint-disable-next-line no-await-in-loop
-                artifacts = await collectOutputArtifacts(client, sessionId, { maxFiles, maxBytes }, controller.signal);
+                artifacts = await collectOutputArtifacts(
+                    client, sessionId, { maxFiles, maxBytes }, {
+                        timeLimitMs: request.timeLimitMs,
+                        memoryLimitMb: request.memoryLimitMb,
+                        checker: request.checker,
+                    }, controller.signal,
+                );
                 // eslint-disable-next-line no-await-in-loop
                 await trace.finish(validation, 'succeeded', {
                     attempt: attempt + 1,
@@ -417,9 +418,10 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
         }
         await finishRecord(
             ctx, t.domainId, rid, STATUS.STATUS_ACCEPTED, 'completed',
-            `${report || 'AI generation completed.'}\n\nInstalled ${artifacts.caseCount} test case(s), ${artifacts.totalBytes} bytes.`,
+            `AI generation completed. Installed ${artifacts.caseCount} test case(s) `
+            + `against a target of ${request.testcaseTarget}, ${artifacts.totalBytes} bytes.`,
             trace, generation,
-            { caseCount: artifacts.caseCount, totalBytes: artifacts.totalBytes },
+            { caseCount: artifacts.caseCount, testcaseTarget: request.testcaseTarget, totalBytes: artifacts.totalBytes },
         );
     } catch (err) {
         for (const [toolCallId, handle] of toolEvents) {
@@ -444,7 +446,7 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
                 : `AI generation failed: ${err instanceof Error ? err.message : String(err)}`;
         await finishRecord(
             ctx, t.domainId, rid, status, failure === 'cancelled' ? 'cancelled' : 'failed',
-            report ? `${label}\n\nLast agent report:\n${report}` : label,
+            label,
             trace, generation,
         );
     } finally {

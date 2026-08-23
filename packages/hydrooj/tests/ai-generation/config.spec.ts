@@ -1,8 +1,9 @@
 import assert from 'assert';
 import { describe, it } from 'node:test';
 import {
-    createAiProviderConfigDraft, getAiDataGenerationConfig, legacyAiProviderConfig,
-    normalizeAiProviderConfig, redactAiProviderConfig,
+    createAiProviderConfigDraft, getAiDataGenerationConfig, getAiGenerationProfiles,
+    legacyAiProviderConfig, normalizeAiProviderConfig, redactAiProviderConfig,
+    resolveAiGenerationProfile,
 } from '../../src/lib/aiGeneration/config';
 
 describe('AI provider configuration', () => {
@@ -14,6 +15,29 @@ describe('AI provider configuration', () => {
         assert.equal(resolved?.model, 'gpt-5');
         assert.equal(resolved?.apiKey, 'test-key');
         assert.equal(redactAiProviderConfig(config)?.providers[0].apiKey, '');
+    });
+
+    it('exposes only configured provider models as selectable profiles', () => {
+        const config = createAiProviderConfigDraft();
+        config.providers[0].apiKey = 'test-key';
+        config.providers[0].models.push({
+            ...config.providers[0].models[0],
+            id: 'model-2',
+            name: 'GPT-5 mini',
+            model: 'gpt-5-mini',
+        });
+        assert.deepEqual(
+            getAiGenerationProfiles(config).map(({ id, label, model }) => ({ id, label, model })),
+            [
+                { id: 'provider-1:model-1', label: 'OpenAI / GPT-5', model: 'gpt-5' },
+                { id: 'provider-1:model-2', label: 'OpenAI / GPT-5 mini', model: 'gpt-5-mini' },
+            ],
+        );
+        assert.equal(resolveAiGenerationProfile('provider-1:model-2', config).model, 'gpt-5-mini');
+        assert.throws(
+            () => resolveAiGenerationProfile('provider-1:unconfigured', config),
+            /profile not found/,
+        );
     });
 
     it('preserves a stored key when an existing provider is saved with an empty key', () => {

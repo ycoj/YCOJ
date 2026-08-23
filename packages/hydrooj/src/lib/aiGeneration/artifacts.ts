@@ -1,5 +1,6 @@
 import * as yaml from 'js-yaml';
 import { parseConfig } from '../testdataConfig';
+import type { AiGenerationCheckerRequest } from './request';
 import { GoJudgeSessionClient, validateSessionPath } from './session';
 
 export class ArtifactValidationError extends Error {
@@ -15,6 +16,12 @@ export interface GeneratedArtifacts {
     caseCount: number;
 }
 
+export interface ArtifactValidationOptions {
+    timeLimitMs?: number;
+    memoryLimitMb?: number;
+    checker?: AiGenerationCheckerRequest;
+}
+
 function referencedCases(config: any) {
     const result: { input?: string, output?: string }[] = [];
     if (Array.isArray(config?.cases)) result.push(...config.cases);
@@ -26,7 +33,7 @@ function referencedCases(config: any) {
 
 export async function collectOutputArtifacts(
     client: GoJudgeSessionClient, sessionId: string,
-    limits: { maxFiles: number, maxBytes: number }, signal?: AbortSignal,
+    limits: { maxFiles: number, maxBytes: number }, options: ArtifactValidationOptions = {}, signal?: AbortSignal,
 ): Promise<GeneratedArtifacts> {
     const listed = (await client.listFiles(sessionId, signal)).filter((file) => file.name.startsWith('output/'));
     if (!listed.length) throw new ArtifactValidationError('output/ is empty.');
@@ -46,7 +53,8 @@ export async function collectOutputArtifacts(
             throw new ArtifactValidationError(`Invalid output path: ${file.name}`);
         }
         if (relative.includes('/')) throw new ArtifactValidationError(`Nested output files are not supported: ${relative}`);
-        if (!/\.(?:in|out)$/.test(relative) && relative !== 'config.yaml') {
+        if (!/\.(?:in|out)$/.test(relative) && relative !== 'config.yaml'
+            && (!options.checker || relative !== 'checker.cc')) {
             throw new ArtifactValidationError(`Unexpected output artifact: ${relative}`);
         }
         // eslint-disable-next-line no-await-in-loop
@@ -75,8 +83,46 @@ export async function collectOutputArtifacts(
         if (!rawConfig || typeof rawConfig !== 'object' || Array.isArray(rawConfig)) throw new Error('root must be an object');
         const parsed = await parseConfig(configText, [...files.keys()]);
         if (!parsed.count) throw new Error('configuration selects no test cases');
+        if (options.timeLimitMs !== undefined
+            && (parsed.timeMin !== options.timeLimitMs || parsed.timeMax !== options.timeLimitMs)) {
+            throw new Error(`time limit must be exactly ${options.timeLimitMs}ms`);
+        }
+        if (options.memoryLimitMb !== undefined
+            && (parsed.memoryMin !== options.memoryLimitMb || parsed.memoryMax !== options.memoryLimitMb)) {
+            throw new Error(`memory limit must be exactly ${options.memoryLimitMb}m`);
+        }
     } catch (err) {
         throw new ArtifactValidationError(`Invalid config.yaml: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    if (!Array.isArray(rawConfig.subtasks) || !rawConfig.subtasks.length) {
+        throw new ArtifactValidationError('config.yaml must define at least one subtask.');
+    }
+    for (const [index, subtask] of rawConfig.subtasks.entries()) {
+        const score = subtask?.score;
+        if (!Number.isSafeInteger(score) || score <= 0) {
+            const shown = score === undefined ? 'missing' : score;
+            throw new ArtifactValidationError(`Subtask scores must be positive integers (subtask ${index + 1}: ${shown}).`);
+        }
+    }
+    const totalScore = Math.sum(rawConfig.subtasks.map((subtask) => subtask.score));
+    if (totalScore !== 100) throw new ArtifactValidationError(`Subtask scores must total 100 (got ${totalScore}).`);
+    const checker = rawConfig.checker;
+    if (options.checker) {
+        if (!files.has('checker.cc')) throw new ArtifactValidationError('Special-judge output must include checker.cc.');
+        if (rawConfig.checker_type !== 'testlib'
+            || typeof checker !== 'object'
+            || checker?.file !== 'checker.cc'
+            || checker?.lang !== 'cc.cc17') {
+            throw new ArtifactValidationError('Special-judge config must reference checker.cc as a cc.cc17 testlib checker.');
+        }
+        if (options.checker.mode === 'provided'
+            && !files.get('checker.cc').equals(Buffer.from(options.checker.source))) {
+            throw new ArtifactValidationError('Provided checker.cc was modified.');
+        }
+    } else if (files.has('checker.cc')
+        || (rawConfig.checker_type && !['default', 'strict'].includes(rawConfig.checker_type))
+        || rawConfig.checker) {
+        throw new ArtifactValidationError('Unexpected custom checker artifacts or configuration.');
     }
     for (const testCase of referencedCases(rawConfig)) {
         for (const key of ['input', 'output'] as const) {
