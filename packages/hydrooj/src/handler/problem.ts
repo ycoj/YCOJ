@@ -1130,8 +1130,8 @@ export class ProblemGenerateHandler extends Handler {
             this.pdoc.additional_file?.length || 0,
             system.get('limit.problem_files_max') || 100,
         );
-        testcaseTarget ??= Math.min(DEFAULT_TESTCASE_TARGET, limits.maxWithoutChecker);
         const maxTarget = checker ? limits.maxWithChecker : limits.maxWithoutChecker;
+        testcaseTarget ??= Math.min(DEFAULT_TESTCASE_TARGET, maxTarget);
         if (!Number.isSafeInteger(testcaseTarget) || testcaseTarget < 1 || testcaseTarget > maxTarget) {
             throw new ValidationError('testcaseTarget');
         }
