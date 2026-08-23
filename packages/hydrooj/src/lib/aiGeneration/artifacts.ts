@@ -97,7 +97,14 @@ export async function collectOutputArtifacts(
     if (!Array.isArray(rawConfig.subtasks) || !rawConfig.subtasks.length) {
         throw new ArtifactValidationError('config.yaml must define at least one subtask.');
     }
-    const totalScore = rawConfig.subtasks.reduce((sum, subtask) => sum + Number(subtask?.score || 0), 0);
+    for (const [index, subtask] of rawConfig.subtasks.entries()) {
+        const score = subtask?.score;
+        if (!Number.isSafeInteger(score) || score <= 0) {
+            const shown = score === undefined ? 'missing' : score;
+            throw new ArtifactValidationError(`Subtask scores must be positive integers (subtask ${index + 1}: ${shown}).`);
+        }
+    }
+    const totalScore = Math.sum(rawConfig.subtasks.map((subtask) => subtask.score));
     if (totalScore !== 100) throw new ArtifactValidationError(`Subtask scores must total 100 (got ${totalScore}).`);
     const checker = rawConfig.checker;
     if (options.checker) {

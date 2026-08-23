@@ -14,6 +14,17 @@ subtasks:
         output: case1.out
 `;
 
+function configWithScores(scores: (number | string | null)[]) {
+    const subtasks = scores.map((score) => [
+        '  -',
+        ...(score === null ? [] : [`    score: ${score}`]),
+        '    cases:',
+        '      - input: case1.in',
+        '        output: case1.out',
+    ].join('\n')).join('\n');
+    return `time: 1s\nmemory: 256m\nsubtasks:\n${subtasks}\n`;
+}
+
 function fakeClient(source: Record<string, string>) {
     return {
         async listFiles() {
@@ -128,6 +139,32 @@ describe('AI output artifact validation', () => {
             'output/case1.in': '1\n',
             'output/case1.out': '2\n',
         }), 'sess', { maxFiles: 10, maxBytes: 1024 }), /must total 100/);
+    });
+
+    it('accepts multiple subtasks with valid positive integer scores', async () => {
+        const artifacts = await collectOutputArtifacts(fakeClient({
+            'output/config.yaml': configWithScores([20, 30, 50]),
+            'output/case1.in': '1\n',
+            'output/case1.out': '2\n',
+        }), 'sess', { maxFiles: 10, maxBytes: 1024 });
+        assert.equal(artifacts.caseCount, 1);
+    });
+
+    it('rejects invalid individual subtask scores even when they total 100', async () => {
+        const invalidConfigs = [
+            configWithScores([150, -50]),
+            configWithScores([50.5, 49.5]),
+            configWithScores(['"10"', 90]),
+            configWithScores([null, 100]),
+        ];
+        for (const config of invalidConfigs) {
+            // eslint-disable-next-line no-await-in-loop
+            await assert.rejects(collectOutputArtifacts(fakeClient({
+                'output/config.yaml': config,
+                'output/case1.in': '1\n',
+                'output/case1.out': '2\n',
+            }), 'sess', { maxFiles: 10, maxBytes: 1024 }), /must be positive integers/);
+        }
     });
 
     it('rejects custom checker artifacts in ordinary comparison mode', async () => {
