@@ -561,6 +561,29 @@ Lost Password: 忘記密碼
 Lucky: 試試手氣
 manage_config: 配置管理
 manage_ai_provider: AI 提供者
+Add Provider: 新增提供者
+Add model: 新增模型
+Remove provider: 移除提供者
+Remove model: 移除模型
+Provider: 提供者
+Model: 模型
+New model: 新模型
+New provider: 新提供者
+Provider name: 提供者名稱
+Base URL: 基礎 URL
+API type: API 類型
+API key: API 金鑰
+OpenAI Responses compatible: 相容 OpenAI Responses
+OpenAI Chat Completions compatible: 相容 OpenAI Chat Completions
+AI data generation model: AI 資料生成模型
+Display name: 顯示名稱
+API model ID: API 模型 ID
+Reasoning support: 推理支援
+Supported: 支援
+Not supported: 不支援
+Default thinking level: 預設思考層級
+Context window: 上下文視窗
+Maximum output tokens: 最大輸出 Token 數
 manage_dashboard: 概況
 manage_join_applications: 加域申請
 manage_module: 管理模組
