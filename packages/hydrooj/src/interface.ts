@@ -45,6 +45,8 @@ export interface SystemKeys {
     'aiGeneration.baseUrl': string;
     'aiGeneration.model': string;
     'aiGeneration.apiKey': string;
+    'aiGeneration.profiles': AiGenerationProfile[];
+    'aiGeneration.defaultProfileId': string;
     'aiGeneration.reasoning': boolean;
     'aiGeneration.thinkingLevel': 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
     'aiGeneration.contextTokens': number;
@@ -258,9 +260,29 @@ export interface AiGenerationMeta {
     active: boolean;
     stage: 'waiting' | 'preparing' | 'agent' | 'validating' | 'replacing' | 'completed' | 'failed' | 'cancelled';
     model: string;
+    profileId?: string;
+    testcaseTarget?: number;
+    testcaseCount?: number;
+    timeLimitMs?: number;
+    memoryLimitMb?: number;
+    standardSolutionProvided?: boolean;
+    checkerMode?: 'default' | 'provided' | 'generated';
     sessionId?: string;
     startedAt?: Date;
     finishedAt?: Date;
+}
+
+export interface AiGenerationProfile {
+    id: string;
+    label: string;
+    apiType: 'openai-completions' | 'openai-responses';
+    baseUrl: string;
+    model: string;
+    apiKey: string;
+    reasoning: boolean;
+    thinkingLevel: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+    contextTokens: number;
+    maxTokens: number;
 }
 
 export type RecordDoc = {

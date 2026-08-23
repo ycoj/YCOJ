@@ -55,6 +55,89 @@ describe('AI output artifact validation', () => {
             'output/case1.out': '2\n',
         }), 'sess', { maxFiles: 10, maxBytes: 20 }), /too large/);
     });
+
+    it('validates requested judge limits and accepts a nearby testcase count', async () => {
+        const artifacts = await collectOutputArtifacts(fakeClient({
+            'output/config.yaml': CONFIG,
+            'output/case1.in': '1\n',
+            'output/case1.out': '2\n',
+        }), 'sess', { maxFiles: 10, maxBytes: 1024 }, {
+            timeLimitMs: 1000,
+            memoryLimitMb: 256,
+        });
+        assert.equal(artifacts.caseCount, 1);
+        await assert.rejects(collectOutputArtifacts(fakeClient({
+            'output/config.yaml': CONFIG,
+            'output/case1.in': '1\n',
+            'output/case1.out': '2\n',
+        }), 'sess', { maxFiles: 10, maxBytes: 1024 }, {
+            timeLimitMs: 2000,
+            memoryLimitMb: 256,
+        }), /time limit must be exactly 2000ms/);
+    });
+
+    it('accepts an exact provided Testlib checker and rejects checker drift', async () => {
+        const checkerSource = '#include "testlib.h"\nint main() { return 0; }\n';
+        const config = `${CONFIG}checker_type: testlib\nchecker:\n  file: checker.cc\n  lang: cc.cc17\n`;
+        const source = {
+            'output/config.yaml': config,
+            'output/case1.in': '1\n',
+            'output/case1.out': '2\n',
+            'output/checker.cc': checkerSource,
+        };
+        const artifacts = await collectOutputArtifacts(
+            fakeClient(source), 'sess', { maxFiles: 10, maxBytes: 4096 }, {
+                checker: { mode: 'provided', source: checkerSource },
+            },
+        );
+        assert.equal(artifacts.files.get('checker.cc').toString(), checkerSource);
+        await assert.rejects(collectOutputArtifacts(
+            fakeClient({ ...source, 'output/checker.cc': `${checkerSource}// changed\n` }),
+            'sess', { maxFiles: 10, maxBytes: 4096 }, {
+                checker: { mode: 'provided', source: checkerSource },
+            },
+        ), /was modified/);
+    });
+
+    it('accepts a generated Testlib checker and rejects invalid checker configuration', async () => {
+        const source = {
+            'output/config.yaml': `${CONFIG}checker_type: testlib\nchecker:\n  file: checker.cc\n  lang: cc.cc17\n`,
+            'output/case1.in': '1\n',
+            'output/case1.out': '2\n',
+            'output/checker.cc': '#include "testlib.h"\nint main() { return 0; }\n',
+        };
+        await collectOutputArtifacts(
+            fakeClient(source), 'sess', { maxFiles: 10, maxBytes: 4096 }, {
+                checker: { mode: 'generated', requirements: 'Accept a valid witness.' },
+            },
+        );
+        await assert.rejects(collectOutputArtifacts(
+            fakeClient({
+                ...source,
+                'output/config.yaml': `${CONFIG}checker_type: testlib\nchecker: checker.cc\n`,
+            }),
+            'sess', { maxFiles: 10, maxBytes: 4096 }, {
+                checker: { mode: 'generated', requirements: 'Accept a valid witness.' },
+            },
+        ), /must reference checker.cc/);
+    });
+
+    it('requires subtask scores to total 100', async () => {
+        await assert.rejects(collectOutputArtifacts(fakeClient({
+            'output/config.yaml': CONFIG.replace('score: 100', 'score: 90'),
+            'output/case1.in': '1\n',
+            'output/case1.out': '2\n',
+        }), 'sess', { maxFiles: 10, maxBytes: 1024 }), /must total 100/);
+    });
+
+    it('rejects custom checker artifacts in ordinary comparison mode', async () => {
+        await assert.rejects(collectOutputArtifacts(fakeClient({
+            'output/config.yaml': CONFIG,
+            'output/case1.in': '1\n',
+            'output/case1.out': '2\n',
+            'output/checker.cc': 'int main() {}\n',
+        }), 'sess', { maxFiles: 10, maxBytes: 4096 }), /Unexpected output artifact/);
+    });
 });
 
 describe('AI testdata replacement', () => {

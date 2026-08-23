@@ -34,7 +34,9 @@ function summarizeTool(tool: string, args: any) {
     if (tool === 'Read') return String(args?.path || '');
     if (tool === 'Edit') return String(args?.path || '');
     if (tool === 'Shell') {
-        return String(args?.command || '');
+        const command = String(args?.command || '').trim();
+        const executable = command.match(/^[\w./-]+/)?.[0] || 'shell';
+        return `${executable} command (${command.length} characters)`;
     }
     return '';
 }
@@ -61,7 +63,7 @@ function toolResultDetails(tool: string, result: any): Record<string, any> {
     if (tool === 'Edit') return { path: details.path, bytes: details.bytes };
     if (tool === 'Shell') {
         return {
-            command: details.command,
+            commandLength: String(details.command || '').length,
             status: details.status,
             exitStatus: details.exitStatus,
             time: details.time,
@@ -271,7 +273,7 @@ export async function createAiAgent(
                 .catch(() => undefined)
                 .then(() => undefined);
         }
-        // Deliberately ignore thinking and text streaming events. Only the filtered final report is persisted.
+        // Deliberately ignore thinking and text streaming events. The final response is returned only to the caller.
     });
     return {
         async prompt(text: string) {
