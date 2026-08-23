@@ -4,6 +4,24 @@ import { createSessionTools } from '../../src/lib/aiGeneration/agent';
 import type { GoJudgeSessionClient } from '../../src/lib/aiGeneration/session';
 
 describe('Pi faux provider ReAct loop', () => {
+    it('keeps the Shell command as the tool summary after execution', async () => {
+        const session = {
+            async execShell() {
+                return {
+                    status: 'Accepted', exitStatus: 0, time: 1, memory: 1, runTime: 1,
+                    stdout: '', stderr: '', error: '',
+                };
+            },
+        } as unknown as GoJudgeSessionClient;
+        const ai = await import('@earendil-works/pi-ai');
+        const shell = createSessionTools(session, 'sess', ai.Type)[2];
+
+        const result = await shell.execute('call-1', { command: 'python3 generator.py', timeoutSeconds: 10 });
+
+        assert.equal(result.details.command, 'python3 generator.py');
+        assert.equal(result.details.status, 'Accepted');
+    });
+
     it('rejects overlapping edit matches', async () => {
         const files = new Map<string, Buffer>([['generator.py', Buffer.from('aaa')]]);
         const session = {

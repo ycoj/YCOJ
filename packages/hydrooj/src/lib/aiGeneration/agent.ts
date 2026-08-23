@@ -36,9 +36,7 @@ function summarizeTool(tool: string, args: any) {
     if (tool === 'Read') return String(args?.path || '');
     if (tool === 'Edit') return String(args?.path || '');
     if (tool === 'Shell') {
-        const command = String(args?.command || '').trim();
-        const executable = command.match(/^[\w./-]+/)?.[0] || 'shell';
-        return `${executable} command (${command.length} characters)`;
+        return String(args?.command || '').trim();
     }
     return '';
 }
@@ -47,7 +45,7 @@ function summarizeToolResult(tool: string, result: any) {
     const details = result?.details || {};
     if (tool === 'Read') return `${details.lines || 0}/${details.totalLines || 0} line(s)`;
     if (tool === 'Edit') return `${details.bytes || 0} byte(s)`;
-    if (tool === 'Shell') return `${details.status || 'unknown status'}, exit ${details.exitStatus ?? 'unknown'}`;
+    if (tool === 'Shell') return String(details.command || '').trim();
     return '';
 }
 
@@ -161,7 +159,7 @@ export function createSessionTools(
                 result.error ? `error:\n${result.error}` : '',
             ].filter(Boolean).join('\n');
             return textResult(output, {
-                command: summarizeTool('Shell', params),
+                command: String(params.command || '').trim(),
                 status: result.status,
                 exitStatus: result.exitStatus,
                 time: result.time,

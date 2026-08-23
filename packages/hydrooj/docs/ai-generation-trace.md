@@ -73,7 +73,7 @@ interface AiTraceMessage {
 同一个 testcase 完成后，`status` 更新为 `1`、`time` 更新为实际耗时，消息更新为：
 
 ```json
-{"schema":"hydro.ai-generation.trace","version":1,"seq":3,"type":"tool","state":"succeeded","startedAt":"2026-08-16T12:00:00.000Z","finishedAt":"2026-08-16T12:00:00.042Z","data":{"tool":"Shell","toolCallId":"call_123","summary":"Accepted, exit 0","details":{"command":"python3 generator.py","status":"Accepted","exitStatus":0,"time":12000000,"memory":8388608,"runTime":15000000}}}
+{"schema":"hydro.ai-generation.trace","version":1,"seq":3,"type":"tool","state":"succeeded","startedAt":"2026-08-16T12:00:00.000Z","finishedAt":"2026-08-16T12:00:00.042Z","data":{"tool":"Shell","toolCallId":"call_123","summary":"python3 generator.py","details":{"commandLength":21,"status":"Accepted","exitStatus":0,"time":12000000,"memory":8388608,"runTime":15000000}}}
 ```
 
 ## 兼容性
@@ -81,4 +81,3 @@ interface AiTraceMessage {
 - 只有新的 AI 生成记录使用此格式；历史记录中的纯文本 `judgeTexts` 不迁移。
 - 普通提交的 testcase 和 `judgeTexts` 契约不变。消费者只应对 AI 生成记录解析此 schema。
 - 同一主版本内允许增加可选字段。消费者必须容忍未知字段，并对无法解析的 `message` 回退为普通文本展示。
-
