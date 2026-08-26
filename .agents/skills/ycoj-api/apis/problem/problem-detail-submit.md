@@ -12,7 +12,7 @@ type DetailBody =
   | { operation: 'rejudge'; pid: number }
   | { operation: 'delete' }
   | { operation: 'star'; star: boolean }
-  | { operation: 'html_to_markdown'; html: string; profileId?: string };
+  | { operation: 'html_to_markdown'; profileId?: string };
 ```
 
 ```http
@@ -39,7 +39,7 @@ GET normally renders `problem_detail.html`; `pjax=true` returns a title/fragment
 
 ## `operation=html_to_markdown`
 
-Converts submitted HTML to Markdown with the configured administrator AI provider without saving or otherwise modifying the problem. The caller must own the problem with `PERM_EDIT_PROBLEM_SELF` or hold `PERM_EDIT_PROBLEM`. `profileId` selects a configured provider/model; when omitted, the configured HTML-to-Markdown conversion profile is used. AI generation must be enabled and the selected profile must be valid. `html` is limited to 200,000 characters.
+Converts the problem's own stored `content` (read server-side from the problem document addressed by the route) from HTML to Markdown with the configured administrator AI provider, without saving or otherwise modifying the problem. The request body carries no HTML; the conversion always uses the current content of the problem whose handler is invoked. The caller must own the problem with `PERM_EDIT_PROBLEM_SELF` or hold `PERM_EDIT_PROBLEM`. `profileId` selects a configured provider/model; when omitted, the configured HTML-to-Markdown conversion profile is used. AI generation must be enabled and the selected profile must be valid. The stored content is limited to 200,000 characters.
 
 ```http
 POST /p/P1000 HTTP/1.1
@@ -47,7 +47,7 @@ Accept: application/json
 Content-Type: application/json
 Cookie: sid=…
 
-{"operation":"html_to_markdown","html":"<h2>Input</h2><pre>1 2</pre>"}
+{"operation":"html_to_markdown"}
 ```
 
 ```ts
