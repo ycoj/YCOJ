@@ -481,6 +481,15 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         await problem.setStar(domainId, this.pdoc.docId, this.user._id, star);
         this.back({ star });
     }
+
+    @post('html', Schema.string().max(MAX_HTML_TO_MARKDOWN_LENGTH))
+    @post('profileId', Schema.string(), true)
+    async postHtmlToMarkdown(domainId: string, html: string, profileId = '') {
+        if (!this.user.own(this.pdoc, PERM.PERM_EDIT_PROBLEM_SELF)) this.checkPerm(PERM.PERM_EDIT_PROBLEM);
+        const config = getHtmlToMarkdownConfig(profileId);
+        validateHtmlToMarkdownConfig(config);
+        this.response.body = { markdown: await convertHtmlToMarkdown(config, html) };
+    }
 }
 
 export class ProblemSubmitHandler extends ProblemDetailHandler {
@@ -661,14 +670,6 @@ export class ProblemEditHandler extends ProblemManageHandler {
         };
         const pdoc = await problem.edit(domainId, this.pdoc.docId, $update);
         this.response.redirect = this.url('problem_detail', { pid: newPid || pdoc.docId });
-    }
-
-    @post('html', Schema.string().max(MAX_HTML_TO_MARKDOWN_LENGTH))
-    @post('profileId', Schema.string(), true)
-    async postHtmlToMarkdown(domainId: string, html: string, profileId = '') {
-        const config = getHtmlToMarkdownConfig(profileId);
-        validateHtmlToMarkdownConfig(config);
-        this.response.body = { markdown: await convertHtmlToMarkdown(config, html) };
     }
 }
 
