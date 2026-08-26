@@ -2,8 +2,8 @@ import assert from 'assert';
 import { describe, it } from 'node:test';
 import {
     ArtifactValidationError, collectOutputArtifacts, replaceTestdataWithRollback,
-} from '../../src/lib/aiGeneration/artifacts';
-import type { GoJudgeSessionClient } from '../../src/lib/aiGeneration/session';
+} from '../../src/lib/ai/testdata/artifacts';
+import type { GoJudgeSessionClient } from '../../src/lib/ai/testdata/session';
 
 const CONFIG = `time: 1s
 memory: 256m

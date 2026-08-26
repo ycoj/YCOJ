@@ -23,6 +23,7 @@ API key: API key
 OpenAI Responses compatible: OpenAI Responses compatible
 OpenAI Chat Completions compatible: OpenAI Chat Completions compatible
 AI data generation model: AI data generation model
+HTML to Markdown conversion model: HTML to Markdown conversion model
 Display name: Display name
 API model ID: API model ID
 Reasoning support: Reasoning support

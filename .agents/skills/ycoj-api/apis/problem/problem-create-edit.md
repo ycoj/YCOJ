@@ -71,7 +71,7 @@ GET edit renders `problem_edit.html` with sorted `additional_file` and statement
 
 ## `operation=html_to_markdown`
 
-Converts submitted HTML to Markdown with the configured administrator AI provider. It does not save the problem. The same edit permission applies: the caller must own the problem with `PERM_EDIT_PROBLEM_SELF` or hold `PERM_EDIT_PROBLEM`. `profileId` selects a configured provider/model; when omitted, the configured default data-generation profile is used. AI generation must be enabled and the selected profile must be valid. `html` is limited to 200,000 characters.
+Converts submitted HTML to Markdown with the configured administrator AI provider. It does not save the problem. The same edit permission applies: the caller must own the problem with `PERM_EDIT_PROBLEM_SELF` or hold `PERM_EDIT_PROBLEM`. `profileId` selects a configured provider/model; when omitted, the configured HTML-to-Markdown conversion profile is used. AI generation must be enabled and the selected profile must be valid. `html` is limited to 200,000 characters.
 
 ```http
 POST /p/P1000/edit HTTP/1.1

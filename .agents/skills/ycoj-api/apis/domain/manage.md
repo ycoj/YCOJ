@@ -15,7 +15,7 @@ Description: display/run a registered admin script. GET `type Query={}`, example
 Description: display/save registered settings. GET `type Query={}`, example `GET /manage/setting`, response `HTML`. POST `type Input=Record<string,string|boolean|number>`, example `{"server.name":"YCOJ"}`, response `Redirect`, example `{"url":"/manage/setting"}`; values are typed/validated by each setting and empty secret fields preserve existing secret.
 
 ## `GET|POST /manage/ai-provider`
-Description: display/save the global provider registry and the model selected for AI test-data generation. This route requires `PRIV_EDIT_SYSTEM` and sudo.
+Description: display/save the global provider registry and the models selected for AI test-data generation and HTML-to-Markdown conversion. This route requires `PRIV_EDIT_SYSTEM` and sudo.
 
 GET request type: `type Query = {}`. Example:
 ```http
@@ -45,12 +45,13 @@ GET response type: `type Response = HTML`, with the redacted configuration JSON 
       "maxTokens": 32000
     }]
   }],
-  "dataGeneration": {"providerId": "provider-1", "modelId": "model-1"}
+  "dataGeneration": {"providerId": "provider-1", "modelId": "model-1"},
+  "htmlToMarkdown": {"providerId": "provider-1", "modelId": "model-1"}
 }</textarea>
 </form>
 ```
 
-POST request type: `type Input = { value: string }`, where `value` is JSON with `version: 1`, a nonempty `providers` array, and `dataGeneration: {providerId, modelId}`. Example:
+POST request type: `type Input = { value: string }`, where `value` is JSON with `version: 1`, a nonempty `providers` array, `dataGeneration: {providerId, modelId}`, and `htmlToMarkdown: {providerId, modelId}`. Older configurations without `htmlToMarkdown` are accepted and use `dataGeneration` for conversion. Example:
 ```http
 POST /manage/ai-provider HTTP/1.1
 Accept: application/json
@@ -58,7 +59,7 @@ Content-Type: application/json
 Cookie: sid=<sid>
 
 {
-  "value": "{\"version\":1,\"providers\":[{\"id\":\"provider-1\",\"name\":\"OpenAI\",\"apiType\":\"openai-responses\",\"baseUrl\":\"https://api.openai.com/v1\",\"apiKey\":\"sk-example\",\"models\":[{\"id\":\"model-1\",\"name\":\"GPT-5\",\"model\":\"gpt-5\",\"reasoning\":true,\"thinkingLevel\":\"high\",\"contextTokens\":128000,\"maxTokens\":32000}]}],\"dataGeneration\":{\"providerId\":\"provider-1\",\"modelId\":\"model-1\"}}"
+  "value": "{\"version\":1,\"providers\":[{\"id\":\"provider-1\",\"name\":\"OpenAI\",\"apiType\":\"openai-responses\",\"baseUrl\":\"https://api.openai.com/v1\",\"apiKey\":\"sk-example\",\"models\":[{\"id\":\"model-1\",\"name\":\"GPT-5\",\"model\":\"gpt-5\",\"reasoning\":true,\"thinkingLevel\":\"high\",\"contextTokens\":128000,\"maxTokens\":32000}]}],\"dataGeneration\":{\"providerId\":\"provider-1\",\"modelId\":\"model-1\"},\"htmlToMarkdown\":{\"providerId\":\"provider-1\",\"modelId\":\"model-1\"}}"
 }
 ```
 
@@ -66,7 +67,7 @@ POST response type: `type Redirect = { url: string }` with `Accept: application/
 ```json
 {"url":"/manage/ai-provider"}
 ```
-Without JSON content negotiation, the same successful save responds `302 Location: /manage/ai-provider`. Each provider requires a stable 6-64 character ID, name, `apiType` (`openai-completions` or `openai-responses`), HTTP(S) `baseUrl`, API key, and a nonempty model list. Each model requires ID, name, API model ID, reasoning flag, thinking level, 8192-2000000 context tokens, and 1024-1000000 output tokens no larger than its context limit. An empty key preserves an existing provider key; a new provider requires one. The selected model must belong to the selected provider, duplicate IDs and invalid values fail validation, and providers/models used by active generations cannot be removed.
+Without JSON content negotiation, the same successful save responds `302 Location: /manage/ai-provider`. Each provider requires a stable 6-64 character ID, name, `apiType` (`openai-completions` or `openai-responses`), HTTP(S) `baseUrl`, API key, and a nonempty model list. Each model requires ID, name, API model ID, reasoning flag, thinking level, 8192-2000000 context tokens, and 1024-1000000 output tokens no larger than its context limit. An empty key preserves an existing provider key; a new provider requires one. Both selected models must belong to their selected providers, duplicate IDs and invalid values fail validation, and providers/models selected for either operation or used by active generations cannot be removed until another selection is saved.
 
 ## `GET|POST /manage/config`
 Description: display/save raw system config. GET `type Query={}`, example `GET /manage/config`, response `HTML`. POST `type Input={value:string}`, example `{"value":"server:\n  name: YCOJ\n"}`, response `Redirect`, example `{"url":"/manage/config"}`.

@@ -2,7 +2,7 @@ import assert from 'assert';
 import { describe, it } from 'node:test';
 import {
     convertHtmlToMarkdown, HTML_TO_MARKDOWN_SYSTEM_PROMPT, MAX_HTML_TO_MARKDOWN_LENGTH,
-} from '../../src/lib/aiGeneration/htmlToMarkdown';
+} from '../../src/lib/ai/html2md/converter';
 
 describe('HTML to Markdown conversion', () => {
     it('states the problem Markdown rules in the system prompt', () => {

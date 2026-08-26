@@ -8,7 +8,7 @@ import {
 } from '../error';
 import {
     AI_PROVIDER_CONFIG_KEY, createAiProviderConfigDraft, getAiProviderConfig, normalizeAiProviderConfig, redactAiProviderConfig,
-} from '../lib/aiGeneration/config';
+} from '../lib/ai/config';
 import { Logger } from '../logger';
 import { PRIV, STATUS } from '../model/builtin';
 import domain from '../model/domain';
@@ -200,12 +200,18 @@ class AiProviderHandler extends SystemHandler {
         } catch (err) {
             throw new ValidationError('value', '', err.message);
         }
-        const selectedProvider = current?.providers.find((item) => item.id === current.dataGeneration?.providerId);
-        const selectedModel = selectedProvider?.models.find((item) => item.id === current?.dataGeneration?.modelId);
-        if (selectedProvider && selectedModel) {
-            const provider = config.providers.find((item) => item.id === selectedProvider.id);
-            if (!provider?.models.some((item) => item.id === selectedModel.id)) {
-                throw new ValidationError('value', '', 'Select and save another data-generation model before removing the current one.');
+        const selections = [
+            [current?.dataGeneration, 'data-generation'],
+            [current?.htmlToMarkdown, 'HTML-to-Markdown conversion'],
+        ] as const;
+        for (const [selection, description] of selections) {
+            const selectedProvider = current?.providers.find((item) => item.id === selection?.providerId);
+            const selectedModel = selectedProvider?.models.find((item) => item.id === selection?.modelId);
+            if (selectedProvider && selectedModel) {
+                const provider = config.providers.find((item) => item.id === selectedProvider.id);
+                if (!provider?.models.some((item) => item.id === selectedModel.id)) {
+                    throw new ValidationError('value', '', `Select and save another ${description} model before removing the current one.`);
+                }
             }
         }
         const activeSelections = await record.coll.find({

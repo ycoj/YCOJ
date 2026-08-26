@@ -25,18 +25,21 @@ import {
 import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
 } from '../interface';
-import { convertHtmlToMarkdown, MAX_HTML_TO_MARKDOWN_LENGTH } from '../lib/aiGeneration/htmlToMarkdown';
-import { ACTIVE_AI_GENERATION_FILTER, canGenerateTestdata, isDuplicateKeyError } from '../lib/aiGeneration/policy';
-import type { AiGenerationCheckerRequest } from '../lib/aiGeneration/request';
+import { convertHtmlToMarkdown, MAX_HTML_TO_MARKDOWN_LENGTH } from '../lib/ai/html2md/converter';
+import { getHtmlToMarkdownConfig } from '../lib/ai/html2md/runtime';
+import { validateHtmlToMarkdownConfig } from '../lib/ai/html2md/validation';
+import { ACTIVE_AI_GENERATION_FILTER, canGenerateTestdata, isDuplicateKeyError } from '../lib/ai/testdata/policy';
+import type { AiGenerationCheckerRequest } from '../lib/ai/testdata/request';
 import {
     DEFAULT_TESTCASE_TARGET, getAiGenerationCaseLimits, getAiGenerationJudgeDefaults,
     MAX_GENERATION_SOURCE_LENGTH, MAX_GENERATION_TEXT_LENGTH,
-} from '../lib/aiGeneration/request';
+} from '../lib/ai/testdata/request';
 import {
-    getAiGenerationConfig, getDefaultAiGenerationProfileId, getPublicAiGenerationProfiles,
-    resolveAiGenerationProfile, validateAiGenerationConfig,
-} from '../lib/aiGeneration/runtime';
-import { createAiGenerationTrace } from '../lib/aiGeneration/trace';
+    getAiTestdataConfig, getDefaultAiTestdataProfileId, getPublicAiTestdataProfiles,
+    resolveAiTestdataProfile,
+} from '../lib/ai/testdata/runtime';
+import { createAiGenerationTrace } from '../lib/ai/testdata/trace';
+import { validateAiTestdataConfig } from '../lib/ai/testdata/validation';
 import { Logger } from '../logger';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
@@ -663,8 +666,8 @@ export class ProblemEditHandler extends ProblemManageHandler {
     @post('html', Schema.string().max(MAX_HTML_TO_MARKDOWN_LENGTH))
     @post('profileId', Schema.string(), true)
     async postHtmlToMarkdown(domainId: string, html: string, profileId = '') {
-        const config = getAiGenerationConfig(profileId);
-        validateAiGenerationConfig(config);
+        const config = getHtmlToMarkdownConfig(profileId);
+        validateHtmlToMarkdownConfig(config);
         this.response.body = { markdown: await convertHtmlToMarkdown(config, html) };
     }
 }
@@ -1087,8 +1090,8 @@ export class ProblemGenerateHandler extends Handler {
     }
 
     async get() {
-        const profiles = getPublicAiGenerationProfiles();
-        const configuredDefaultProfileId = getDefaultAiGenerationProfileId();
+        const profiles = getPublicAiTestdataProfiles();
+        const configuredDefaultProfileId = getDefaultAiTestdataProfileId();
         const limits = getAiGenerationCaseLimits(
             this.pdoc.additional_file?.length || 0,
             system.get('limit.problem_files_max') || 100,
@@ -1124,17 +1127,17 @@ export class ProblemGenerateHandler extends Handler {
         if (checker?.mode === 'provided' && !checker.source.trim()) throw new ValidationError('checker.source');
         if (checker?.mode === 'generated' && !checker.requirements.trim()) throw new ValidationError('checker.requirements');
 
-        const publicProfiles = getPublicAiGenerationProfiles();
+        const publicProfiles = getPublicAiTestdataProfiles();
         if (!profileId) {
-            const defaultProfileId = getDefaultAiGenerationProfileId();
+            const defaultProfileId = getDefaultAiTestdataProfileId();
             profileId = publicProfiles.some((profile) => profile.id === defaultProfileId)
                 ? defaultProfileId : publicProfiles[0]?.id;
         }
         if (!profileId || !publicProfiles.some((profile) => profile.id === profileId)) {
             throw new ValidationError('profileId');
         }
-        const profile = resolveAiGenerationProfile(profileId);
-        validateAiGenerationConfig(getAiGenerationConfig(profileId));
+        const profile = resolveAiTestdataProfile(profileId);
+        validateAiTestdataConfig(getAiTestdataConfig(profileId));
         const limits = getAiGenerationCaseLimits(
             this.pdoc.additional_file?.length || 0,
             system.get('limit.problem_files_max') || 100,

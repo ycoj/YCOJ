@@ -1,20 +1,5 @@
+import type { AiModelRuntimeConfig } from '../runtime';
 import { GoJudgeSessionClient } from './session';
-
-export type AiApiType = 'openai-completions' | 'openai-responses';
-export type AiThinkingLevel = 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
-
-export interface AiAgentConfig {
-    apiType: AiApiType;
-    baseUrl: string;
-    model: string;
-    apiKey: string;
-    reasoning: boolean;
-    thinkingLevel: AiThinkingLevel;
-    contextTokens: number;
-    maxTokens: number;
-    providerId?: string;
-    providerName?: string;
-}
 
 export interface AiAgentEvent {
     phase: 'tool-start' | 'tool-end';
@@ -187,7 +172,7 @@ export interface AiAgentRunner {
 }
 
 export async function createAiAgent(
-    config: AiAgentConfig, client: GoJudgeSessionClient, sandboxSessionId: string,
+    config: AiModelRuntimeConfig, client: GoJudgeSessionClient, sandboxSessionId: string,
     providerSessionId: string, systemPrompt: string,
     onEvent?: (event: AiAgentEvent) => Promise<void> | void,
 ): Promise<AiAgentRunner> {

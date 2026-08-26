@@ -1,7 +1,7 @@
 /* eslint-disable max-len */
 import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
-import type { AiGenerationRuntimeConfig } from './runtime';
+import type { AiModelRuntimeConfig } from '../runtime';
 
 export const MAX_HTML_TO_MARKDOWN_LENGTH = 200_000;
 
@@ -35,7 +35,7 @@ function stripMarkdownWrapper(markdown: string) {
     return trimmed.slice(prefix.length, -'\n```'.length).trim();
 }
 
-export async function convertHtmlToMarkdown(config: AiGenerationRuntimeConfig, html: string) {
+export async function convertHtmlToMarkdown(config: AiModelRuntimeConfig, html: string) {
     if (html.length > MAX_HTML_TO_MARKDOWN_LENGTH) {
         throw new Error(`HTML content exceeds ${MAX_HTML_TO_MARKDOWN_LENGTH} characters.`);
     }

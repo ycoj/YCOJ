@@ -25,6 +25,7 @@ interface Provider {
 interface Config {
   providers: Provider[];
   dataGeneration?: { providerId: string, modelId: string };
+  htmlToMarkdown?: { providerId: string, modelId: string };
 }
 
 const thinkingLevels: ThinkingLevel[] = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
@@ -127,21 +128,33 @@ export default new NamedPage('manage_ai_provider', () => {
   const config = JSON.parse(value.value) as Config;
   const state = { render: () => {} };
 
-  function selectDataGeneration() {
+  function selectModel(
+    key: 'dataGeneration' | 'htmlToMarkdown',
+    label: string,
+    fallback?: Config['dataGeneration'],
+  ) {
     const options = config.providers.flatMap((provider) => provider.models.map((model) => [
       `${provider.id}:${model.id}`,
       `${provider.name} / ${model.name}`,
     ] as [string, string]));
-    let selected = config.dataGeneration && `${config.dataGeneration.providerId}:${config.dataGeneration.modelId}`;
+    const selection = config[key] || fallback;
+    let selected = selection && `${selection.providerId}:${selection.modelId}`;
     if (!options.some(([id]) => id === selected)) {
       const [providerId, modelId] = options[0]?.[0].split(':') || [];
-      config.dataGeneration = providerId && modelId ? { providerId, modelId } : undefined;
+      config[key] = providerId && modelId ? { providerId, modelId } : undefined;
       selected = options[0]?.[0] || '';
+    } else if (!config[key] && selection) {
+      config[key] = { ...selection };
     }
-    return select(i18n('AI data generation model'), selected || '', options, (next) => {
+    return select(label, selected || '', options, (next) => {
       const [providerId, modelId] = next.split(':');
-      config.dataGeneration = { providerId, modelId };
+      config[key] = { providerId, modelId };
     });
+  }
+
+  function isSelected(provider: Provider, model?: Model) {
+    return [config.dataGeneration, config.htmlToMarkdown].some((selection) => selection?.providerId === provider.id
+      && (!model || selection.modelId === model.id));
   }
 
   function renderModel(provider: Provider, model: Model): HTMLElement {
@@ -156,7 +169,7 @@ export default new NamedPage('manage_ai_provider', () => {
     };
     updateTitle();
     header.append(title, button(i18n('Remove model'), () => {
-      if (config.dataGeneration?.providerId === provider.id && config.dataGeneration.modelId === model.id) return;
+      if (isSelected(provider, model)) return;
       if (provider.models.length === 1) return;
       provider.models = provider.models.filter((item) => item !== model);
       state.render();
@@ -199,7 +212,7 @@ export default new NamedPage('manage_ai_provider', () => {
     title.className = 'section__title';
     title.textContent = provider.name || i18n('Provider');
     header.append(title, button(i18n('Remove provider'), () => {
-      if (config.dataGeneration?.providerId === provider.id) return;
+      if (isSelected(provider)) return;
       config.providers = config.providers.filter((item) => item !== provider);
       state.render();
     }));
@@ -228,7 +241,12 @@ export default new NamedPage('manage_ai_provider', () => {
 
   state.render = () => {
     editor.replaceChildren();
-    if (config.providers.length) editor.append(selectDataGeneration());
+    if (config.providers.length) {
+      editor.append(
+        selectModel('dataGeneration', i18n('AI data generation model')),
+        selectModel('htmlToMarkdown', i18n('HTML to Markdown conversion model'), config.dataGeneration),
+      );
+    }
     config.providers.forEach((provider) => editor.append(renderProvider(provider)));
   };
 
@@ -236,6 +254,7 @@ export default new NamedPage('manage_ai_provider', () => {
     const provider = createProvider();
     config.providers.push(provider);
     config.dataGeneration ||= { providerId: provider.id, modelId: provider.models[0].id };
+    config.htmlToMarkdown ||= { providerId: provider.id, modelId: provider.models[0].id };
     state.render();
   });
   form.addEventListener('submit', () => { value.value = JSON.stringify(config); });

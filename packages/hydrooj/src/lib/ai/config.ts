@@ -31,13 +31,19 @@ export interface AiProvider {
     models: AiProviderModel[];
 }
 
+export interface AiModelSelection {
+    providerId: string;
+    modelId: string;
+}
+
 export interface AiProviderConfig {
     version: 1;
     providers: AiProvider[];
-    dataGeneration?: { providerId: string, modelId: string };
+    dataGeneration?: AiModelSelection;
+    htmlToMarkdown?: AiModelSelection;
 }
 
-export interface AiDataGenerationConfig {
+export interface AiModelConfig {
     providerId: string;
     providerName: string;
     modelId: string;
@@ -74,6 +80,7 @@ export function createAiProviderConfigDraft(): AiProviderConfig {
             }],
         }],
         dataGeneration: { providerId, modelId },
+        htmlToMarkdown: { providerId, modelId },
     };
 }
 
@@ -155,12 +162,20 @@ export function normalizeAiProviderConfig(value: any, existing?: AiProviderConfi
     if (new Set(providers.map((provider) => provider.id)).size !== providers.length) {
         throw new Error('Invalid AI provider configuration: duplicate provider ID.');
     }
-    const assignment = value.dataGeneration;
-    if (!isObject(assignment)) throw new Error('Invalid AI provider configuration: dataGeneration.');
-    const provider = providers.find((item) => item.id === assignment.providerId);
-    const model = provider?.models.find((item) => item.id === assignment.modelId);
-    if (!provider || !model) throw new Error('Invalid AI provider configuration: dataGeneration.');
-    return { version: 1, providers, dataGeneration: { providerId: provider.id, modelId: model.id } };
+    const normalizeAssignment = (assignment: any, key: string) => {
+        if (!isObject(assignment)) throw new Error(`Invalid AI provider configuration: ${key}.`);
+        const provider = providers.find((item) => item.id === assignment.providerId);
+        const model = provider?.models.find((item) => item.id === assignment.modelId);
+        if (!provider || !model) throw new Error(`Invalid AI provider configuration: ${key}.`);
+        return { providerId: provider.id, modelId: model.id };
+    };
+    const dataGeneration = normalizeAssignment(value.dataGeneration, 'dataGeneration');
+    // Configurations saved before the dedicated conversion model was introduced use the data-generation model.
+    const htmlToMarkdownValue = Object.hasOwn(value, 'htmlToMarkdown')
+        ? value.htmlToMarkdown
+        : existing?.htmlToMarkdown || dataGeneration;
+    const htmlToMarkdown = normalizeAssignment(htmlToMarkdownValue, 'htmlToMarkdown');
+    return { version: 1, providers, dataGeneration, htmlToMarkdown };
 }
 
 export function getAiProviderConfig(value: any): AiProviderConfig | undefined {
@@ -171,8 +186,9 @@ export function getAiProviderConfig(value: any): AiProviderConfig | undefined {
     }
 }
 
-export function getAiDataGenerationConfig(config?: AiProviderConfig): AiDataGenerationConfig | undefined {
-    const selection = config?.dataGeneration;
+export function getAiModelConfig(
+    selection: AiModelSelection | undefined, config?: AiProviderConfig,
+): AiModelConfig | undefined {
     const provider = config?.providers.find((item) => item.id === selection?.providerId);
     const model = provider?.models.find((item) => item.id === selection?.modelId);
     if (!provider || !model) return undefined;
@@ -184,17 +200,10 @@ export function getAiDataGenerationConfig(config?: AiProviderConfig): AiDataGene
     };
 }
 
-export function getAiDataGenerationConfigBySelection(
-    selection: AiProviderConfig['dataGeneration'], config?: AiProviderConfig,
-): AiDataGenerationConfig | undefined {
-    if (!selection || !config) return undefined;
-    return getAiDataGenerationConfig({ ...config, dataGeneration: selection });
-}
-
-export function getAiDataGenerationConfigByIds(
+export function getAiModelConfigByIds(
     providerId: string, modelId: string, config?: AiProviderConfig,
 ) {
-    return getAiDataGenerationConfigBySelection({ providerId, modelId }, config);
+    return getAiModelConfig({ providerId, modelId }, config);
 }
 
 export function redactAiProviderConfig(config?: AiProviderConfig) {
@@ -228,40 +237,41 @@ export function legacyAiProviderConfig(values: Record<string, any>): AiProviderC
     return normalizeAiProviderConfig(config, config);
 }
 
-export interface PublicAiGenerationProfile {
+export interface PublicAiModelProfile {
     id: string;
     label: string;
     model: string;
 }
 
-export interface AiGenerationModelProfile extends AiDataGenerationConfig {
+export interface AiModelProfile extends AiModelConfig {
     id: string;
     label: string;
 }
 
-export function getAiGenerationProfileId(providerId: string, modelId: string) {
+export function getAiModelProfileId(providerId: string, modelId: string) {
     return `${providerId}:${modelId}`;
 }
 
-export function getAiGenerationProfiles(config?: AiProviderConfig): AiGenerationModelProfile[] {
+export function getAiModelProfiles(config?: AiProviderConfig): AiModelProfile[] {
     return (config?.providers || []).flatMap((provider) => provider.models.map((model) => ({
-        ...getAiDataGenerationConfigByIds(provider.id, model.id, config)!,
-        id: getAiGenerationProfileId(provider.id, model.id),
+        ...getAiModelConfigByIds(provider.id, model.id, config)!,
+        id: getAiModelProfileId(provider.id, model.id),
         label: `${provider.name} / ${model.name}`,
     })));
 }
 
-export function getDefaultAiGenerationProfileId(config?: AiProviderConfig) {
-    const selection = config?.dataGeneration;
+export function getSelectedAiModelProfileId(
+    selection: AiModelSelection | undefined, config?: AiProviderConfig,
+) {
     if (!selection) return '';
-    const profileId = getAiGenerationProfileId(selection.providerId, selection.modelId);
-    return getAiGenerationProfiles(config).some((profile) => profile.id === profileId) ? profileId : '';
+    const profileId = getAiModelProfileId(selection.providerId, selection.modelId);
+    return getAiModelProfiles(config).some((profile) => profile.id === profileId) ? profileId : '';
 }
 
-export function resolveAiGenerationProfile(
+export function resolveAiModelProfile(
     profileId: string, config?: AiProviderConfig,
-): AiGenerationModelProfile {
-    const profile = getAiGenerationProfiles(config).find((item) => item.id === profileId);
-    if (!profile) throw new Error(`AI generation profile not found: ${profileId}`);
+): AiModelProfile {
+    const profile = getAiModelProfiles(config).find((item) => item.id === profileId);
+    if (!profile) throw new Error(`AI model profile not found: ${profileId}`);
     return profile;
 }

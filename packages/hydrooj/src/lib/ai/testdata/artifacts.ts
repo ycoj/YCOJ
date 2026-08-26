@@ -1,5 +1,5 @@
 import * as yaml from 'js-yaml';
-import { parseConfig } from '../testdataConfig';
+import { parseConfig } from '../../testdataConfig';
 import type { AiGenerationCheckerRequest } from './request';
 import { GoJudgeSessionClient, validateSessionPath } from './session';
 
