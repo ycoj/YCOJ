@@ -44,6 +44,7 @@ Edit a problem statement/metadata or render its configuration page. The caller m
 ```ts
 type EditPath = { pid: string | number };
 type EditBody = { title: string; content: string; pid?: string | number; hidden: boolean; tag?: string; difficulty?: 0|1|2|3|4|5|6|7 };
+type HtmlToMarkdownBody = { operation: "html_to_markdown"; html: string; profileId?: string };
 ```
 
 ```http
@@ -67,3 +68,26 @@ type ConfigPage = { testdata: FileMeta[]; config: string; pdoc: ProblemDoc; /* i
 ```
 
 GET edit renders `problem_edit.html` with sorted `additional_file` and statement languages; a representative body is `{ "pdoc":{"pid":"P1000"},"additional_file":[],"statementLangs":["en"] }`. GET config renders `problem_config.html`; representative body: `{ "pdoc":{"pid":"P1000"},"testdata":[{"name":"config.yaml","size":42}],"config":"time: 1s\n" }`. Its `config` is empty if that file cannot be read.
+
+## `operation=html_to_markdown`
+
+Converts submitted HTML to Markdown with the configured administrator AI provider. It does not save the problem. The same edit permission applies: the caller must own the problem with `PERM_EDIT_PROBLEM_SELF` or hold `PERM_EDIT_PROBLEM`. `profileId` selects a configured provider/model; when omitted, the configured default data-generation profile is used. AI generation must be enabled and the selected profile must be valid. `html` is limited to 200,000 characters.
+
+```http
+POST /p/P1000/edit HTTP/1.1
+Accept: application/json
+Content-Type: application/json
+Cookie: sid=…
+
+{"operation":"html_to_markdown","html":"<h2>Input</h2><pre>1 2</pre>"}
+```
+
+```ts
+type HtmlToMarkdownResponse = { markdown: string };
+```
+
+````json
+{"markdown":"## Input\n\n```input{1}\n1 2\n```"}
+````
+
+The prompt requires Markdown structure, LaTeX math (`$...$` and `$$...$$`), and paired sample fences named ````input{x}```` and ````output{x}````; the model must return Markdown only. Provider or configuration errors are returned as the corresponding API error.

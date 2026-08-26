@@ -25,6 +25,7 @@ import {
 import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
 } from '../interface';
+import { convertHtmlToMarkdown, MAX_HTML_TO_MARKDOWN_LENGTH } from '../lib/aiGeneration/htmlToMarkdown';
 import { ACTIVE_AI_GENERATION_FILTER, canGenerateTestdata, isDuplicateKeyError } from '../lib/aiGeneration/policy';
 import type { AiGenerationCheckerRequest } from '../lib/aiGeneration/request';
 import {
@@ -657,6 +658,14 @@ export class ProblemEditHandler extends ProblemManageHandler {
         };
         const pdoc = await problem.edit(domainId, this.pdoc.docId, $update);
         this.response.redirect = this.url('problem_detail', { pid: newPid || pdoc.docId });
+    }
+
+    @post('html', Schema.string().max(MAX_HTML_TO_MARKDOWN_LENGTH))
+    @post('profileId', Schema.string(), true)
+    async postHtmlToMarkdown(domainId: string, html: string, profileId = '') {
+        const config = getAiGenerationConfig(profileId);
+        validateAiGenerationConfig(config);
+        this.response.body = { markdown: await convertHtmlToMarkdown(config, html) };
     }
 }
 
