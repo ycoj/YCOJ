@@ -2,13 +2,17 @@
 
 ## Description
 
-Retrieves a visible problem (or a contest-context problem with `tid`) and performs rejudge, delete, or star actions. During a contest, every contest-context request requires an attended status with `startAt`, including requests from contest owners and administrators; otherwise it fails with `ContestNotAttendedError`. After the contest is done this attendance check no longer applies. Hidden normal-mode problems require `PERM_VIEW_PROBLEM_HIDDEN`; delete is owner-self-edit or `PERM_EDIT_PROBLEM`; rejudge requires `PERM_REJUDGE_PROBLEM` and a structured config.
+Retrieves a visible problem (or a contest-context problem with `tid`) and performs rejudge, delete, star, or HTML-to-Markdown conversion actions. During a contest, every contest-context request requires an attended status with `startAt`, including requests from contest owners and administrators; otherwise it fails with `ContestNotAttendedError`. After the contest is done this attendance check no longer applies. Hidden normal-mode problems require `PERM_VIEW_PROBLEM_HIDDEN`; delete and HTML-to-Markdown conversion require owner-self-edit or `PERM_EDIT_PROBLEM`; rejudge requires `PERM_REJUDGE_PROBLEM` and a structured config.
 
 ## Request format
 
 ```ts
 type DetailQuery = { tid?: string; pjax?: boolean };
-type DetailBody = { operation: 'rejudge'; pid: number } | { operation: 'delete' } | { operation: 'star'; star: boolean };
+type DetailBody =
+  | { operation: 'rejudge'; pid: number }
+  | { operation: 'delete' }
+  | { operation: 'star'; star: boolean }
+  | { operation: 'html_to_markdown'; html: string; profileId?: string };
 ```
 
 ```http
@@ -32,6 +36,29 @@ type StarResponse = unknown; // framework back payload includes { star }
 ```
 
 GET normally renders `problem_detail.html`; `pjax=true` returns a title/fragments/raw object, e.g. `{ "title":"…","fragments":[{"html":"…"}],"raw":{"pdoc":{"pid":"P1000"}} }`. Rejudge returns back; delete returns `{ "url":"/p" }` under JSON accept.
+
+## `operation=html_to_markdown`
+
+Converts submitted HTML to Markdown with the configured administrator AI provider without saving or otherwise modifying the problem. The caller must own the problem with `PERM_EDIT_PROBLEM_SELF` or hold `PERM_EDIT_PROBLEM`. `profileId` selects a configured provider/model; when omitted, the configured HTML-to-Markdown conversion profile is used. AI generation must be enabled and the selected profile must be valid. `html` is limited to 200,000 characters.
+
+```http
+POST /p/P1000 HTTP/1.1
+Accept: application/json
+Content-Type: application/json
+Cookie: sid=…
+
+{"operation":"html_to_markdown","html":"<h2>Input</h2><pre>1 2</pre>"}
+```
+
+```ts
+type HtmlToMarkdownResponse = { markdown: string };
+```
+
+````json
+{"markdown":"## Input\n\n```input{1}\n1 2\n```"}
+````
+
+The prompt requires Markdown structure, LaTeX math (`$...$` and `$$...$$`), and paired sample fences named ````input{x}```` and ````output{x}````; the model must return Markdown only. Provider or configuration errors are returned as the corresponding API error.
 
 # GET/POST `/p/:pid/submit` and `/p/:pid/hack/:rid`
 

@@ -5,31 +5,32 @@ import { findFileSync } from '@hydrooj/utils/lib/utils';
 import { Context } from '../context';
 import { RecordDoc, Task } from '../interface';
 import {
+    AI_PROVIDER_CONFIG_KEY, LEGACY_AI_PROVIDER_KEYS, legacyAiProviderConfig,
+} from '../lib/ai/config';
+import {
     AiAgentRunner, createAiAgent,
-} from '../lib/aiGeneration/agent';
+} from '../lib/ai/testdata/agent';
 import {
     ArtifactValidationError, collectOutputArtifacts, replaceTestdataWithRollback,
-} from '../lib/aiGeneration/artifacts';
-import {
-    AI_PROVIDER_CONFIG_KEY, LEGACY_AI_PROVIDER_KEYS, legacyAiProviderConfig,
-} from '../lib/aiGeneration/config';
-import { checkCyaronDocsAvailable, copyCyaronDocsToSession } from '../lib/aiGeneration/documentation';
+} from '../lib/ai/testdata/artifacts';
+import { checkCyaronDocsAvailable, copyCyaronDocsToSession } from '../lib/ai/testdata/documentation';
 import {
     ACTIVE_AI_GENERATION_FILTER, classifyAiGenerationFailure, shouldCleanupAiGeneration,
-} from '../lib/aiGeneration/policy';
+} from '../lib/ai/testdata/policy';
 import {
     AI_TESTDATA_SYSTEM_PROMPT, buildInitialPrompt, buildRepairPrompt,
-} from '../lib/aiGeneration/prompt';
+} from '../lib/ai/testdata/prompt';
 import {
     AiGenerationRequest, DEFAULT_TESTCASE_TARGET, getAiGenerationJudgeDefaults,
-} from '../lib/aiGeneration/request';
+} from '../lib/ai/testdata/request';
 import {
-    AiGenerationRuntimeConfig, getAiGenerationConfig, validateAiGenerationConfig,
-} from '../lib/aiGeneration/runtime';
-import { GoJudgeSessionClient, SessionError } from '../lib/aiGeneration/session';
+    AiTestdataRuntimeConfig, getAiTestdataConfig,
+} from '../lib/ai/testdata/runtime';
+import { GoJudgeSessionClient, SessionError } from '../lib/ai/testdata/session';
 import {
     AiGenerationTrace, AiTraceHandle, AiTraceState, createAiGenerationTrace,
-} from '../lib/aiGeneration/trace';
+} from '../lib/ai/testdata/trace';
+import { validateAiTestdataConfig } from '../lib/ai/testdata/validation';
 import { Logger } from '../logger';
 import { STATUS } from '../model/builtin';
 import problem from '../model/problem';
@@ -179,10 +180,10 @@ export async function runAiGenerationTask(ctx: Context, t: Task) {
         profileId: t.profileId || rdoc.aiGeneration?.profileId,
     });
 
-    let config: AiGenerationRuntimeConfig;
+    let config: AiTestdataRuntimeConfig;
     try {
-        config = getAiGenerationConfig(t.profileId || rdoc.aiGeneration?.profileId);
-        validateAiGenerationConfig(config);
+        config = getAiTestdataConfig(t.profileId || rdoc.aiGeneration?.profileId);
+        validateAiTestdataConfig(config);
         checkCyaronDocsAvailable();
     } catch (err) {
         await finishRecord(
@@ -514,7 +515,7 @@ export async function apply(ctx: Context) {
     } catch (err) {
         logger.error('Failed to create AI generation active-record index: %O', err);
     }
-    const initialConfig = getAiGenerationConfig();
+    const initialConfig = getAiTestdataConfig();
     let cleanupClient: GoJudgeSessionClient;
     try {
         cleanupClient = new GoJudgeSessionClient({
@@ -527,7 +528,7 @@ export async function apply(ctx: Context) {
     await cleanupStaleAiGeneration(ctx, cleanupClient);
     const consumer = task.consume({ type: 'ai-generate' }, (t) => runAiGenerationTask(ctx, t), false, initialConfig.concurrency);
     const disposeSetting = ctx.on('system/setting', () => {
-        consumer.setConcurrency(getAiGenerationConfig().concurrency);
+        consumer.setConcurrency(getAiTestdataConfig().concurrency);
     });
     const disposeRecord = ctx.on('record/change', (rdoc: RecordDoc) => {
         if (rdoc?.status !== STATUS.STATUS_CANCELED || !rdoc.aiGeneration?.active) return;

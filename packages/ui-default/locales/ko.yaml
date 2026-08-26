@@ -425,6 +425,7 @@ API key: API 키
 OpenAI Responses compatible: OpenAI Responses 호환
 OpenAI Chat Completions compatible: OpenAI Chat Completions 호환
 AI data generation model: AI 데이터 생성 모델
+HTML to Markdown conversion model: HTML-Markdown 변환 모델
 Display name: 표시 이름
 API model ID: API 모델 ID
 Reasoning support: 추론 지원

@@ -1,4 +1,4 @@
-import type { ProblemDoc, User } from '../../interface';
+import type { ProblemDoc, User } from '../../../interface';
 
 type Permission = Parameters<User['hasPerm']>[0];
 

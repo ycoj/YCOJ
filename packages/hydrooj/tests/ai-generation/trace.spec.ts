@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import { STATUS } from '@hydrooj/common';
 import {
     AiGenerationTrace, aiTraceStatus, serializeAiTraceMessage,
-} from '../../src/lib/aiGeneration/trace';
+} from '../../src/lib/ai/testdata/trace';
 
 describe('AI generation trace schema', () => {
     it('serializes one event as one JSON line', () => {

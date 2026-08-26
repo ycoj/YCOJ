@@ -1,9 +1,9 @@
 import assert from 'assert';
 import { describe, it } from 'node:test';
-import { buildInitialPrompt } from '../../src/lib/aiGeneration/prompt';
+import { buildInitialPrompt } from '../../src/lib/ai/testdata/prompt';
 import {
     getAiGenerationCaseLimits, getAiGenerationJudgeDefaults,
-} from '../../src/lib/aiGeneration/request';
+} from '../../src/lib/ai/testdata/request';
 
 describe('AI generation request settings', () => {
     it('derives conservative testcase limits from available file slots', () => {

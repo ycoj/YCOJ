@@ -2,7 +2,7 @@ import assert from 'assert';
 import { describe, it } from 'node:test';
 import {
     GoJudgeSessionClient, SessionError, validateSessionPath,
-} from '../../src/lib/aiGeneration/session';
+} from '../../src/lib/ai/testdata/session';
 
 describe('go-judge Session client', () => {
     it('sends bearer authentication and fixed session limits', async () => {

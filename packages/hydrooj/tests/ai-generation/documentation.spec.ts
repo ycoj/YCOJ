@@ -3,8 +3,8 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { after, describe, it } from 'node:test';
-import { copyCyaronDocsToSession } from '../../src/lib/aiGeneration/documentation';
-import type { GoJudgeSessionClient } from '../../src/lib/aiGeneration/session';
+import { copyCyaronDocsToSession } from '../../src/lib/ai/testdata/documentation';
+import type { GoJudgeSessionClient } from '../../src/lib/ai/testdata/session';
 
 describe('CYaRon documentation copy', () => {
     const sourceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hydro-cyaron-docs-'));

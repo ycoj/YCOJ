@@ -4,7 +4,7 @@ All paths are domain-relative: on a non-system domain prefix them with `/d/{doma
 
 - [Problem set and random selection](problem-set.md)
 - [Legacy category compatibility redirect](problem-category-compat.md)
-- [Problem detail, submission, hacking, and statistics](problem-detail-submit.md): submission and hack contest context validates `tid` from query or body parameters
+- [Problem detail, actions, submission, hacking, and statistics](problem-detail-submit.md): includes HTML-to-Markdown conversion; submission and hack contest context validates `tid` from query or body parameters
 - [Problem creation and editing](problem-create-edit.md)
 - [Problem files and downloads](problem-files.md)
 - [Problem solutions](problem-solutions.md)

@@ -576,6 +576,7 @@ API key: API 金鑰
 OpenAI Responses compatible: 相容 OpenAI Responses
 OpenAI Chat Completions compatible: 相容 OpenAI Chat Completions
 AI data generation model: AI 資料生成模型
+HTML to Markdown conversion model: HTML 轉 Markdown 模型
 Display name: 顯示名稱
 API model ID: API 模型 ID
 Reasoning support: 推理支援

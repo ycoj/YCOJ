@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import {
     ACTIVE_AI_GENERATION_FILTER, canGenerateTestdata, classifyAiGenerationFailure,
     isDuplicateKeyError, shouldCleanupAiGeneration,
-} from '../../src/lib/aiGeneration/policy';
+} from '../../src/lib/ai/testdata/policy';
 
 describe('AI generation policy', () => {
     it('allows self-edit or global problem-edit permission', () => {

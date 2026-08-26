@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { describe, it } from 'node:test';
-import { createSessionTools } from '../../src/lib/aiGeneration/agent';
-import type { GoJudgeSessionClient } from '../../src/lib/aiGeneration/session';
+import { createSessionTools } from '../../src/lib/ai/testdata/agent';
+import type { GoJudgeSessionClient } from '../../src/lib/ai/testdata/session';
 
 describe('Pi faux provider ReAct loop', () => {
     it('trims and keeps the Shell command as the tool summary after execution', async () => {
