@@ -11,20 +11,22 @@ import {
 } from '@hydrooj/utils/lib/utils';
 import { Context, Service } from '../context';
 import {
-    BadRequestError, ContestAlreadyAttendedError, ContestAlreadyStartedError, ContestNotAttendedError, ContestNotEndedError,
+    BadRequestError, ContestAlreadyStartedError, ContestNotAttendedError, ContestNotEndedError,
     ContestNotFoundError, ContestNotLiveError, ContestScoreboardHiddenError, FileLimitExceededError, FileUploadError,
     InvalidTokenError, MethodNotAllowedError, NotAssignedError, NotFoundError, PermissionError, ValidationError,
 } from '../error';
 import { ContestStatusDoc, FileInfo, ScoreboardConfig, Tdoc } from '../interface';
 import {
-    applyProblemMapping, BulkSubmitMappingError, groupByContestant, isCppLang,
-    normalizeZipPath, parseContestBulkSubmitPaths, parseProblemMapping, pickDefaultCppLang, SKIP_LAYOUT,
-} from '../lib/contestBulkSubmit';
+    applyProblemMapping, BULK_SUBMIT_ZIP_MODES, BulkSubmitExistingUserPolicy,
+    BulkSubmitMappingError, BulkSubmitZipMode,
+    dryrunSubmittedFromInspect, groupByContestant, inspectContestBulkSubmit, isCppLang,
+    normalizeZipPath, parseContestBulkSubmitPaths, parseProblemMapping, pickDefaultCppLang,
+} from '../lib/bulkSubmit/inspect';
+import { commitContestBulkSubmit } from '../lib/bulkSubmit/commit';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
 import * as document from '../model/document';
-import domain from '../model/domain';
 import message from '../model/message';
 import * as oplog from '../model/oplog';
 import problem from '../model/problem';
@@ -693,7 +695,12 @@ export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
     @post('mapping', Types.Any)
     @post('lang', Types.Name, true)
     @post('dryrun', Types.Boolean)
-    async post(domainId: string, tid: ObjectId, mappingRaw: unknown, lang = '', dryrun = false) {
+    @post('existingUser', Types.Range(['vuser', 'existing']), true)
+    @post('zipMode', Types.Range([...BULK_SUBMIT_ZIP_MODES]), true)
+    async post(
+        domainId: string, tid: ObjectId, mappingRaw: unknown, lang = '', dryrun = false,
+        existingUser: BulkSubmitExistingUserPolicy = 'vuser', zipMode: BulkSubmitZipMode = 'auto',
+    ) {
         if (contest.isNotStarted(this.tdoc)) throw new ContestNotLiveError(domainId, tid);
         await this.limitRate('contest_bulk_submit', 60, 5);
         const cppLangs = listAllowedCppLangs(this.tdoc, this.domain.langs);
@@ -715,7 +722,6 @@ export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
         if (!filename.toLowerCase().endsWith('.zip')) throw new ValidationError('file', null, 'Only zip files are allowed');
         const zip = new ZipReader(Readable.toWeb(createReadStream(file.filepath)));
         try {
-            /* eslint-disable no-await-in-loop */
             let fileEntries: FileEntry[];
             try {
                 fileEntries = (await zip.getEntries()).filter((entry): entry is FileEntry => !!entry.filename && entry.directory !== true);
@@ -735,95 +741,51 @@ export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
                 }
             }
             const entryByPath = new Map(fileEntries.map((entry) => [normalizeZipPath(entry.filename), entry]));
-            const layout = parseContestBulkSubmitPaths(fileEntries.map((entry) => entry.filename));
+            const layout = parseContestBulkSubmitPaths(fileEntries.map((entry) => entry.filename), zipMode);
             const mapped = applyProblemMapping(layout.files, mapping);
-            const skipped = [...layout.skipped, ...mapped.skipped];
             const pdict = await problem.getList(domainId, this.tdoc.pids, true, true, problem.PROJECTION_CONTEST_LIST);
-            const lengthLimit = system.get('limit.codelength') || 128 * 1024;
-            const users: { uname: string, uid: number, created: boolean }[] = [];
-            const submitted: { uname: string, uid: number, pid: number, rid?: ObjectId }[] = [];
-            const groups = groupByContestant(mapped.files);
-            for (const group of groups) {
-                const existing = await user.getByUname(domainId, group.uname);
-                const existedVuser = !!(existing && existing._id < -999);
-                let uid = existedVuser ? existing._id : 0;
-                const created = !existedVuser;
-                if (!dryrun) {
-                    uid = await user.ensureVuser(group.uname);
-                    try {
-                        await contest.attend(domainId, tid, uid, { startAt: this.tdoc.beginAt });
-                    } catch (e) {
-                        if (!(e instanceof ContestAlreadyAttendedError)) throw e;
-                        const tsdoc = await contest.getStatus(domainId, tid, uid);
-                        if (tsdoc && !tsdoc.startAt) await contest.setStatus(domainId, tid, uid, { startAt: this.tdoc.beginAt });
-                    }
-                }
-                users.push({ uname: group.uname, uid, created });
-                for (const item of group.files) {
-                    const pdoc = pdict[item.pid];
-                    if (!pdoc) {
-                        skipped.push({ uname: group.uname, problem: item.problemName, reason: 'Problem not found' });
-                        continue;
-                    }
-                    if (!problemAllowsLang(pdoc, submitLang)) {
-                        skipped.push({ uname: group.uname, problem: item.problemName, reason: 'This language is not allowed to submit.' });
-                        continue;
-                    }
-                    const entry = entryByPath.get(normalizeZipPath(item.path));
-                    if (!entry) {
-                        skipped.push({ uname: group.uname, problem: item.problemName, reason: SKIP_LAYOUT });
-                        continue;
-                    }
-                    let code = '';
-                    try {
-                        code = String(await entry.getData(new TextWriter())).replace(/\r\n/g, '\n');
-                    } catch (e) {
-                        skipped.push({ uname: group.uname, problem: item.problemName, reason: e.message || 'Failed to read file' });
-                        continue;
-                    }
-                    if (!code.trim()) {
-                        skipped.push({ uname: group.uname, problem: item.problemName, reason: 'Empty source file' });
-                        continue;
-                    }
-                    if (code.length > lengthLimit) {
-                        skipped.push({ uname: group.uname, problem: item.problemName, reason: 'Source file too long' });
-                        continue;
-                    }
-                    if (dryrun) {
-                        submitted.push({ uname: group.uname, uid, pid: item.pid });
-                        continue;
-                    }
-                    let rid: ObjectId;
-                    try {
-                        rid = await record.add(
-                            domainId, item.pid, uid, submitLang, code, true,
-                            { contest: tid, type: 'judge' },
-                        );
-                    } catch (e) {
-                        skipped.push({ uname: group.uname, problem: item.problemName, reason: e.message || 'Submit failed' });
-                        continue;
-                    }
-                    const sideEffects = [
-                        () => problem.inc(domainId, item.pid, 'nSubmit', 1),
-                        () => domain.incUserInDomain(domainId, uid, 'nSubmit'),
-                        () => contest.updateStatus(domainId, tid, uid, rid, item.pid),
-                    ];
-                    await Promise.all(sideEffects.map(async (fn) => {
-                        try {
-                            await fn();
-                        } catch {
-                            await fn();
-                        }
-                    })).catch(() => { });
-                    submitted.push({ uname: group.uname, uid, pid: item.pid, rid });
-                }
+            const inspect = await inspectContestBulkSubmit({
+                groups: groupByContestant(mapped.files),
+                skipped: [...layout.skipped, ...mapped.skipped],
+                policy: existingUser,
+                pdict,
+                submitLang,
+                lengthLimit: system.get('limit.codelength') || 128 * 1024,
+                lookupAccounts: async (uname) => ({
+                    real: await user.getRealByUname(domainId, uname),
+                    vuser: await user.getVuserByUname(uname),
+                }),
+                hasSource: (path) => entryByPath.has(normalizeZipPath(path)),
+                readSource: async (path) => {
+                    const entry = entryByPath.get(normalizeZipPath(path));
+                    if (!entry) throw new Error('Unexpected path layout');
+                    return String(await entry.getData(new TextWriter())).replace(/\r\n/g, '\n');
+                },
+                allowsLang: problemAllowsLang,
+            });
+            if (dryrun) {
+                this.response.body = {
+                    dryrun: true,
+                    lang: submitLang,
+                    users: inspect.usersPreview,
+                    submitted: dryrunSubmittedFromInspect(inspect),
+                    skipped: inspect.skipped,
+                };
+                return;
             }
-            this.response.body = {
-                dryrun,
+            const committed = await commitContestBulkSubmit({
+                domainId,
+                tid,
+                beginAt: this.tdoc.beginAt,
                 lang: submitLang,
-                users,
-                submitted,
-                skipped,
+                ready: inspect.ready,
+                usersPreview: inspect.usersPreview,
+                skipped: inspect.skipped,
+            });
+            this.response.body = {
+                dryrun: false,
+                lang: submitLang,
+                ...committed,
             };
         } finally {
             await zip.close().catch(() => { });

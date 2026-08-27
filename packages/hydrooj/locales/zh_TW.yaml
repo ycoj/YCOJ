@@ -107,7 +107,9 @@ Browser: 瀏覽器
 Built-in: 內建
 Bulk Submit: 批量提交
 Bulk submit finished.: 批量提交完成。
-Bulk submit zip format hint: 壓縮包應為每位選手一個資料夾。每位選手資料夾內按題目名分子資料夾，其中包含同名 .cpp 檔案，例如 alice/apple/apple.cpp。
+'Each contestant is a folder. Nested problem folders contain a matching .cpp file:': 每位選手一個資料夾。題目子資料夾名與下方對應一致，其中放入同名 .cpp 檔案：
+'Each contestant is a folder. Place matching .cpp files directly in it:': 每位選手一個資料夾，直接放入與題目名對應的 .cpp 檔案，無需題目子資料夾：
+'Accept both layouts. When both exist for the same contestant and problem, the subfolder file is used:': 同時接受兩種目錄結構。同一選手同一題兩種路徑都存在時，優先使用子資料夾中的檔案：
 Bulletin: 公告
 By clicking the button, you will become a member of the domain {0}.: 點選按鈕，您將成為域 {0} 的成員。
 By Contest: 由比賽
@@ -208,8 +210,10 @@ Create Role: 建立角色
 Create Training Plan: 建立訓練計劃
 Create training plans: 建立訓練計劃
 Create: 建立
+Create or reuse a virtual user: 建立或重用虛擬使用者
 Created By: 建立人
 Created virtual user: 已建立虛擬使用者
+Created virtual user (a registered user also exists): 已建立虛擬使用者（同時存在同名正式使用者）
 Current dataset comes from: 當前資料集來自
 current domain: 當前域
 Current Email: 當前電子郵件
@@ -973,7 +977,11 @@ You've already voted.: 您已經投過票。
 Your permission: 您的許可權
 Your role: 您的角色
 Empty source file: 原始碼為空
+Existing registered user: 已有正式使用者
 Existing virtual user: 已有虛擬使用者
+Existing virtual user (a registered user also exists): 已有虛擬使用者（同時存在同名正式使用者）
+If a registered user already has this name: 若已有同名正式使用者
+Submit as the existing registered user: 以該正式使用者身分提交
 Ignored junk file: 已忽略無效檔案
 Not a C++ file: 不是 C++ 檔案
 Only zip files are allowed: 僅允許 zip 檔案
@@ -991,4 +999,8 @@ Submitted {0}, skipped {1}, virtual users {2} ({3} new).: 已提交 {0} 份，�
 This language is not allowed to submit.: 不允許使用該語言提交。
 Unexpected path layout: 壓縮包目錄結構不符合要求
 Zip file: Zip 檔案
+Zip layout: 壓縮包格式
+Auto: 自動
+Subfolder mode: 子資料夾模式
+Non-subfolder mode: 非子資料夾模式
 Detail: 詳情

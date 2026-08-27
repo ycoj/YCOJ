@@ -112,7 +112,9 @@ Browser: 浏览器
 Built-in: 内置
 Bulk Submit: 批量提交
 Bulk submit finished.: 批量提交完成。
-Bulk submit zip format hint: 压缩包应为每位选手一个文件夹。每位选手文件夹内按题目名分子文件夹，其中包含同名 .cpp 文件，例如 alice/apple/apple.cpp。
+'Each contestant is a folder. Nested problem folders contain a matching .cpp file:': 每位选手一个文件夹。题目子文件夹名与下方映射一致，其中放入同名 .cpp 文件：
+'Each contestant is a folder. Place matching .cpp files directly in it:': 每位选手一个文件夹，直接放入与题目名对应的 .cpp 文件，无需题目子文件夹：
+'Accept both layouts. When both exist for the same contestant and problem, the subfolder file is used:': 同时接受两种目录结构。同一选手同一题两种路径都存在时，优先使用子文件夹中的文件：
 Bulletin: 公告
 By clicking the button, you will become a member of the domain {0}.: 点击按钮，您将成为域 {0} 的成员。
 By Contest: 由比赛
@@ -213,8 +215,10 @@ Create Role: 创建角色
 Create Training Plan: 创建训练计划
 Create training plans: 创建训练计划
 Create: 创建
+Create or reuse a virtual user: 创建或复用虚拟用户
 Created By: 创建人
 Created virtual user: 已创建虚拟用户
+Created virtual user (a registered user also exists): 已创建虚拟用户（同时存在同名正式用户）
 Current dataset comes from: 当前数据集来自
 current domain: 当前域
 Current Email: 当前电子邮件
@@ -975,7 +979,11 @@ You've already voted.: 您已经投过票。
 Your permission: 您的权限
 Your role: 您的角色
 Empty source file: 源代码为空
+Existing registered user: 已有正式用户
 Existing virtual user: 已有虚拟用户
+Existing virtual user (a registered user also exists): 已有虚拟用户（同时存在同名正式用户）
+If a registered user already has this name: 若已有同名正式用户
+Submit as the existing registered user: 以该正式用户身份提交
 Ignored junk file: 已忽略无效文件
 Not a C++ file: 不是 C++ 文件
 Only zip files are allowed: 仅允许 zip 文件
@@ -993,4 +1001,8 @@ Submitted {0}, skipped {1}, virtual users {2} ({3} new).: 已提交 {0} 份，�
 This language is not allowed to submit.: 不允许使用该语言提交。
 Unexpected path layout: 压缩包目录结构不符合要求
 Zip file: Zip 文件
+Zip layout: 压缩包格式
+Auto: 自动
+Subfolder mode: 子文件夹模式
+Non-subfolder mode: 非子文件夹模式
 Detail: 详情

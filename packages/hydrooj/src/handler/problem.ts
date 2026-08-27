@@ -25,6 +25,7 @@ import {
 import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
 } from '../interface';
+import { addJudgeRecord } from '../lib/bulkSubmit/addJudgeRecord';
 import { convertHtmlToMarkdown } from '../lib/ai/html2md/converter';
 import { getHtmlToMarkdownConfig } from '../lib/ai/html2md/runtime';
 import { validateHtmlToMarkdownConfig } from '../lib/ai/html2md/validation';
@@ -557,17 +558,15 @@ export class ProblemSubmitHandler extends ProblemDetailHandler {
             code = code.replace(/\r\n/g, '\n');
             if (code.length > lengthLimit) throw new ValidationError('code');
         }
-        const rid = await record.add(
-            domainId, this.pdoc.docId, this.user._id, lang, code, true,
-            pretest ? { input, type: 'pretest' } : { contest: tid, files, type: 'judge' },
-        );
-        if (!pretest) {
-            await Promise.all([
-                problem.inc(domainId, this.pdoc.docId, 'nSubmit', 1),
-                domain.incUserInDomain(domainId, this.user._id, 'nSubmit'),
-                tid && contest.updateStatus(domainId, tid, this.user._id, rid, this.pdoc.docId),
-            ]);
-        }
+        const rid = pretest
+            ? await record.add(
+                domainId, this.pdoc.docId, this.user._id, lang, code, true,
+                { input, type: 'pretest' },
+            )
+            : await addJudgeRecord(
+                domainId, this.pdoc.docId, this.user._id, lang, code,
+                { contest: tid, files },
+            );
         if (tid && !pretest && !contest.canShowSelfRecord.call(this, this.tdoc)) {
             this.response.body = { tid };
             this.response.redirect = this.url(this.tdoc.rule === 'homework' ? 'homework_detail' : 'contest_problemlist', { tid });

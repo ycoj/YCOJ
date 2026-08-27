@@ -257,6 +257,19 @@ class UserModel {
     }
 
     @ArgMethod
+    static async getRealByUname(domainId: string, uname: string): Promise<User | null> {
+        const unameLower = uname.trim().toLowerCase();
+        const udoc = await coll.findOne({ unameLower });
+        if (!udoc) return null;
+        const dudoc = await domain.getDomainUser(domainId, udoc);
+        return initAndCache(udoc, dudoc);
+    }
+
+    static async getVuserByUname(uname: string): Promise<VUdoc | null> {
+        return collV.findOne({ unameLower: uname.trim().toLowerCase() });
+    }
+
+    @ArgMethod
     static async getByEmail(domainId: string, mail: string): Promise<User> {
         const mailLower = handleMailLower(mail);
         if (cache.has(`mail/${mailLower}/${domainId}`)) return cache.get(`mail/${mailLower}/${domainId}`);
