@@ -82,11 +82,13 @@ describe('contest bulk submit zip layout', () => {
 
 describe('contest bulk submit mapping', () => {
     it('parses pid to zip folder names and rejects unknown pids', () => {
-        const mapping = parseProblemMapping('{"1001":"apple","1002":" gcd "}', [1001, 1002, 1003]);
+        const mapping = parseProblemMapping('{"1001":"apple","1002":" gcd ","1003":"  "}', [1001, 1002, 1003]);
         assert.deepStrictEqual(mapping, { 1001: 'apple', 1002: 'gcd' });
         assert.throws(() => parseProblemMapping({ 9999: 'apple' }, [1001]), BulkSubmitMappingError);
         assert.throws(() => parseProblemMapping('{}', [1001]), BulkSubmitMappingError);
         assert.throws(() => parseProblemMapping('not-json', [1001]), BulkSubmitMappingError);
+        assert.throws(() => parseProblemMapping({ 1001: 'apple', 1002: 'APPLE' }, [1001, 1002]), BulkSubmitMappingError);
+        assert.throws(() => parseProblemMapping({ 1001: 'apple', 1002: ' apple ' }, [1001, 1002]), BulkSubmitMappingError);
     });
 
     it('maps files case-insensitively and reports unmapped or duplicate entries', () => {

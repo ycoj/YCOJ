@@ -125,6 +125,7 @@ export function parseProblemMapping(raw: unknown, contestPids: number[]): Record
         throw new BulkSubmitMappingError('Invalid mapping');
     }
     const mapping: Record<number, string> = {};
+    const nameToPid = new Map<string, number>();
     for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
         const pid = Number(key);
         if (!Number.isSafeInteger(pid) || pid <= 0) {
@@ -139,6 +140,12 @@ export function parseProblemMapping(raw: unknown, contestPids: number[]): Record
         }
         const name = String(value).trim();
         if (!name) continue;
+        const normalized = name.toLowerCase();
+        const existing = nameToPid.get(normalized);
+        if (existing != null && existing !== pid) {
+            throw new BulkSubmitMappingError(`Duplicate folder name ${name}`);
+        }
+        nameToPid.set(normalized, pid);
         mapping[pid] = name;
     }
     if (!Object.keys(mapping).length) {

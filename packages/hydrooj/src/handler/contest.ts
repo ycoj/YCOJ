@@ -722,6 +722,18 @@ export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
             } catch (e) {
                 throw new ValidationError('file', null, e.message);
             }
+            const maxZipEntries = 10000;
+            const maxZipUncompressed = system.get('limit.contest_files_size') || 128 * 1024 * 1024;
+            if (fileEntries.length > maxZipEntries) {
+                throw new ValidationError('file', null, 'Too many files in zip');
+            }
+            let totalUncompressed = 0;
+            for (const entry of fileEntries) {
+                totalUncompressed += entry.uncompressedSize || 0;
+                if (totalUncompressed > maxZipUncompressed) {
+                    throw new ValidationError('file', null, 'Zip uncompressed size too large');
+                }
+            }
             const entryByPath = new Map(fileEntries.map((entry) => [normalizeZipPath(entry.filename), entry]));
             const layout = parseContestBulkSubmitPaths(fileEntries.map((entry) => entry.filename));
             const mapped = applyProblemMapping(layout.files, mapping);
@@ -781,20 +793,29 @@ export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
                         submitted.push({ uname: group.uname, uid, pid: item.pid });
                         continue;
                     }
+                    let rid: ObjectId;
                     try {
-                        const rid = await record.add(
+                        rid = await record.add(
                             domainId, item.pid, uid, submitLang, code, true,
                             { contest: tid, type: 'judge' },
                         );
-                        await Promise.all([
-                            problem.inc(domainId, item.pid, 'nSubmit', 1),
-                            domain.incUserInDomain(domainId, uid, 'nSubmit'),
-                            contest.updateStatus(domainId, tid, uid, rid, item.pid),
-                        ]);
-                        submitted.push({ uname: group.uname, uid, pid: item.pid, rid });
                     } catch (e) {
                         skipped.push({ uname: group.uname, problem: item.problemName, reason: e.message || 'Submit failed' });
+                        continue;
                     }
+                    const sideEffects = [
+                        () => problem.inc(domainId, item.pid, 'nSubmit', 1),
+                        () => domain.incUserInDomain(domainId, uid, 'nSubmit'),
+                        () => contest.updateStatus(domainId, tid, uid, rid, item.pid),
+                    ];
+                    await Promise.all(sideEffects.map(async (fn) => {
+                        try {
+                            await fn();
+                        } catch {
+                            await fn();
+                        }
+                    })).catch(() => { });
+                    submitted.push({ uname: group.uname, uid, pid: item.pid, rid });
                 }
             }
             this.response.body = {

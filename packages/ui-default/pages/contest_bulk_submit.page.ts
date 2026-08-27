@@ -54,8 +54,10 @@ function renderResults(res: {
 }
 
 const page = new NamedPage('contest_bulk_submit', () => {
+  let submitting = false;
   $(document).on('submit', '[name="bulk_submit_form"]', async (ev) => {
     ev.preventDefault();
+    if (submitting) return;
     const input = $('[name="file"]').get(0) as HTMLInputElement;
     const file = input?.files?.[0];
     if (!file) {
@@ -73,6 +75,7 @@ const page = new NamedPage('contest_bulk_submit', () => {
     data.append('mapping', JSON.stringify(mapping));
     data.append('lang', String($('[name="lang"]').val() || ''));
     if ($('[name="dryrun"]').prop('checked')) data.append('dryrun', 'on');
+    submitting = true;
     try {
       Notification.info(i18n('Uploading files...'));
       const res = await request.postFile('', data);
@@ -80,6 +83,8 @@ const page = new NamedPage('contest_bulk_submit', () => {
       Notification.success(res.dryrun ? i18n('Dry run finished.') : i18n('Bulk submit finished.'));
     } catch (e) {
       Notification.error(e.message);
+    } finally {
+      submitting = false;
     }
   });
 });
