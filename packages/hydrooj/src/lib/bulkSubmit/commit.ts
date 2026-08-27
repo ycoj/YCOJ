@@ -3,6 +3,7 @@ import { ContestAlreadyAttendedError } from '../../error';
 import * as contest from '../../model/contest';
 import user from '../../model/user';
 import { addJudgeRecord } from './addJudgeRecord';
+import { bulkSubmitClaimKey, bulkSubmitItemIdentity } from './claim';
 import {
     BulkSubmitUser, PreparedBulkSubmit, SKIP_SUBMIT, ZipLayoutSkip,
 } from './inspect';
@@ -36,6 +37,8 @@ export async function commitContestBulkSubmit(opts: {
         else filesByUname.set(item.uname, [item]);
     }
     for (const preview of opts.usersPreview) {
+        const items = filesByUname.get(preview.uname);
+        if (!items?.length) continue;
         let uid: number;
         switch (preview.kind) {
             case 'user':
@@ -53,11 +56,20 @@ export async function commitContestBulkSubmit(opts: {
         }
         await ensureAttended(opts.domainId, opts.tid, uid, opts.beginAt);
         users.push({ ...preview, uid });
-        for (const item of filesByUname.get(preview.uname) || []) {
+        for (const item of items) {
             try {
                 const rid = await addJudgeRecord(
                     opts.domainId, item.pid, uid, opts.lang, item.code,
-                    { contest: opts.tid },
+                    {
+                        contest: opts.tid,
+                        claimKey: bulkSubmitClaimKey(
+                            opts.domainId,
+                            opts.tid.toHexString(),
+                            item.pid,
+                            uid,
+                            bulkSubmitItemIdentity(item.code),
+                        ),
+                    },
                 );
                 submitted.push({
                     uname: item.uname, uid, pid: item.pid, rid,

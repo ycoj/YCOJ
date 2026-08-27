@@ -1,8 +1,11 @@
 import assert from 'assert';
 import { describe, it } from 'node:test';
 import {
-    applyProblemMapping, BulkSubmitMappingError, decideBulkSubmitIdentity,
-    dryrunSubmittedFromInspect, inspectContestBulkSubmit, parseContestBulkSubmitPaths, parseProblemMapping,
+    bulkSubmitClaimKey, bulkSubmitItemIdentity, completeJudgeRecordInsert, isDuplicateKeyError,
+} from '../src/lib/bulkSubmit/claim';
+import {
+    applyProblemMapping, BulkSubmitDuplicateZipPathError, BulkSubmitMappingError, decideBulkSubmitIdentity,
+    dryrunSubmittedFromInspect, indexZipEntriesByNormalizedPath, inspectContestBulkSubmit, parseContestBulkSubmitPaths, parseProblemMapping,
     SKIP_DUPLICATE, SKIP_EMPTY, SKIP_JUNK, SKIP_LANG, SKIP_LAYOUT, SKIP_NAME_MISMATCH, SKIP_NOT_CPP,
     SKIP_PROBLEM_NOT_FOUND, SKIP_TOO_LONG, SKIP_UNMAPPED,
 } from '../src/lib/bulkSubmit/inspect';
@@ -294,5 +297,107 @@ describe('contest bulk submit inspect', () => {
         assert.deepStrictEqual(dryrunSubmittedFromInspect(inspect), [
             { uname: 'alice', uid: 0, pid: 1001 },
         ]);
+    });
+});
+
+describe('contest bulk submit zip path uniqueness', () => {
+    it('indexes unique normalized paths', () => {
+        const map = indexZipEntriesByNormalizedPath([
+            { filename: 'alice/apple.cpp', id: 1 },
+            { filename: 'bob/gcd.cpp', id: 2 },
+        ]);
+        assert.equal(map.get('alice/apple.cpp')?.id, 1);
+        assert.equal(map.get('bob/gcd.cpp')?.id, 2);
+    });
+
+    it('rejects archives whose entries collide after normalizeZipPath', () => {
+        const collisions = [
+            ['alice/apple.cpp', 'alice\\apple.cpp'],
+            ['alice/apple.cpp', '/alice/apple.cpp'],
+            ['alice/apple.cpp', 'alice//apple.cpp'],
+        ];
+        for (const filenames of collisions) {
+            assert.throws(
+                () => indexZipEntriesByNormalizedPath(filenames.map((filename) => ({ filename }))),
+                (e: unknown) => e instanceof BulkSubmitDuplicateZipPathError && e.path === 'alice/apple.cpp',
+            );
+        }
+    });
+});
+
+describe('contest bulk submit claim', () => {
+    it('derives a stable key from domain, contest, problem, user, and source', () => {
+        const item = bulkSubmitItemIdentity('int main(){}\n');
+        const key = bulkSubmitClaimKey('system', '665f00000000000000000001', 1001, -1000, item);
+        assert.equal(key, bulkSubmitClaimKey('system', '665f00000000000000000001', 1001, -1000, item));
+        assert.notEqual(key, bulkSubmitClaimKey('system', '665f00000000000000000001', 1001, -1000, bulkSubmitItemIdentity('int main(){}')));
+        assert.notEqual(key, bulkSubmitClaimKey('system', '665f00000000000000000001', 1002, -1000, item));
+        assert.notEqual(key, bulkSubmitClaimKey('system', '665f00000000000000000001', 1001, -1001, item));
+    });
+
+    it('detects Mongo duplicate-key errors', () => {
+        assert.equal(isDuplicateKeyError({ code: 11000 }), true);
+        assert.equal(isDuplicateKeyError({ code: 11001 }), false);
+        assert.equal(isDuplicateKeyError('duplicate'), false);
+    });
+
+    it('returns a persisted id when post-insert updates fail', async () => {
+        const rid = { toHexString: () => '1' };
+        let afterInsertError: unknown;
+        const result = await completeJudgeRecordInsert({
+            insert: async () => rid,
+            findClaimed: async () => {
+                throw new Error('should not look up a claim');
+            },
+            afterInsert: async () => {
+                throw new Error('nSubmit failed');
+            },
+            onAfterInsertError: (error) => {
+                afterInsertError = error;
+            },
+        });
+        assert.equal(result, rid);
+        assert.equal((afterInsertError as Error).message, 'nSubmit failed');
+    });
+
+    it('returns the claimed id without inserting or incrementing again', async () => {
+        const claimed = { toHexString: () => 'existing' };
+        let afterInsertCalls = 0;
+        const result = await completeJudgeRecordInsert({
+            claimKey: 'k',
+            insert: async () => {
+                throw Object.assign(new Error('duplicate key'), { code: 11000 });
+            },
+            findClaimed: async () => claimed,
+            afterInsert: async () => {
+                afterInsertCalls++;
+            },
+        });
+        assert.equal(result, claimed);
+        assert.equal(afterInsertCalls, 0);
+    });
+
+    it('rethrows insert failures that are not an existing claim', async () => {
+        await assert.rejects(
+            () => completeJudgeRecordInsert({
+                insert: async () => {
+                    throw new Error('disk full');
+                },
+                findClaimed: async () => null,
+                afterInsert: async () => { },
+            }),
+            /disk full/,
+        );
+        await assert.rejects(
+            () => completeJudgeRecordInsert({
+                claimKey: 'k',
+                insert: async () => {
+                    throw Object.assign(new Error('duplicate key'), { code: 11000 });
+                },
+                findClaimed: async () => null,
+                afterInsert: async () => { },
+            }),
+            /duplicate key/,
+        );
     });
 });

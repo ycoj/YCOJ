@@ -26,6 +26,13 @@ export class BulkSubmitMappingError extends Error {
     }
 }
 
+export class BulkSubmitDuplicateZipPathError extends Error {
+    constructor(public path: string) {
+        super(`Duplicate zip path: ${path}`);
+        this.name = 'BulkSubmitDuplicateZipPathError';
+    }
+}
+
 export const SKIP_JUNK = 'Ignored junk file';
 export const SKIP_NOT_CPP = 'Not a C++ file';
 export const SKIP_LAYOUT = 'Unexpected path layout';
@@ -103,6 +110,16 @@ export function pickDefaultCppLang(langs: string[]) {
 
 export function normalizeZipPath(filename: string) {
     return filename.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+/g, '/');
+}
+
+export function indexZipEntriesByNormalizedPath<T extends { filename: string }>(entries: T[]): Map<string, T> {
+    const map = new Map<string, T>();
+    for (const entry of entries) {
+        const path = normalizeZipPath(entry.filename);
+        if (map.has(path)) throw new BulkSubmitDuplicateZipPathError(path);
+        map.set(path, entry);
+    }
+    return map;
 }
 
 function basename(path: string) {

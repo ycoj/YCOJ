@@ -16,7 +16,7 @@ bob/gcd.cpp
 
 A shared wrapper directory is stripped. Only `.cpp` files are accepted.
 
-POST always **inspects first** (parse zip, map pids, read sources, apply problem/language/empty/length checks, look up real-user and vuser identity). Inspect does not create users, attend the contest, insert records, or update nSubmit/status. If `dryrun=true`, the inspect result is returned as-is (planned new vusers use `uid: 0`). If `dryrun=false`, the server then **commits**: once per contestant, create/reuse the chosen account and attend, then write each ready file through the same path as ordinary problem submit (`record.add` plus `problem.nSubmit`, domain-user `nSubmit`, and `contest.updateStatus`). Side-effect failures after `record.add` are not swallowed and are not reported as submitted. Allowed once the contest has started, including after it ends. Not-started contests are rejected with `ContestNotLiveError`.
+POST always **inspects first** (parse zip, map pids, read sources, apply problem/language/empty/length checks, look up real-user and vuser identity). Inspect does not create users, attend the contest, insert records, or update nSubmit/status. If `dryrun=true`, the inspect result is returned as-is (planned new vusers use `uid: 0`). If `dryrun=false`, the server then **commits**: for each contestant with at least one ready file, create/reuse the chosen account and attend, then write each ready file through `addJudgeRecord` (the same `record.add` plus `problem.nSubmit`, domain-user `nSubmit`, and `contest.updateStatus` path as ordinary problem submit). If `addJudgeRecord` fails, that entry is skipped and processing continues. An already-claimed item (same domain, contest, problem, user, and source) returns the existing record without inserting a duplicate. Allowed once the contest has started, including after it ends. Not-started contests are rejected with `ContestNotLiveError`.
 
 ## GET `/contest/:tid/bulk-submit`
 
@@ -56,7 +56,7 @@ HTML `contest_bulk_submit.html`。JSON 示例：`{ "tdoc":{"docId":"665f00000000
 
 Multipart 示例：`POST /contest/665f00000000000000000001/bulk-submit` with `file=@weekly.zip&mapping={"1001":"apple"}&lang=cc.cc14&dryrun=on&existingUser=vuser&zipMode=auto`。
 
-管理端频率限制为 60 秒内 5 次（`contest_bulk_submit`），不套用选手个人递交频率。单份源码仍受 `limit.codelength` 限制。zip 文件条目数超过 10000 或未压缩总大小超过 `limit.contest_files_size`（缺省 128MiB）时，在解压源码前返回 `ValidationError('file')`。zip 内非 `.cpp`、目录结构不符、空文件、超长源码、题目不允许该语言、`record.add` 或随后的 nSubmit/`updateStatus` 失败等按条跳过，不中止其余条目。
+管理端频率限制为 60 秒内 5 次（`contest_bulk_submit`），不套用选手个人递交频率。单份源码仍受 `limit.codelength` 限制。zip 文件条目数超过 10000、未压缩总大小超过 `limit.contest_files_size`（缺省 128MiB）、或多条文件 `normalizeZipPath` 后路径相同，在解压源码前返回 `ValidationError('file')`。zip 内非 `.cpp`、目录结构不符、空文件、超长源码、题目不允许该语言、`addJudgeRecord` 失败等按条跳过，不中止其余条目。
 
 ### Result
 
@@ -67,7 +67,8 @@ Multipart 示例：`POST /contest/665f00000000000000000001/bulk-submit` with `fi
   - `kind: "vuser"`：复用或计划创建虚拟用户；`created: true` 表示将调用 / 已调用 `ensureVuser`
   - `realUid`：策略走虚拟用户、但同名正式用户也存在时附带该正式 uid，供 UI 提示
   - dryrun 且将新建 vuser 时 `uid` 为 0；commit 后 `uid` 从不为 0
-- submitted: `{ uname: string; uid: number; pid: number; rid?: ObjectId }[]`  （dryrun 无 `rid`；仅包含 inspect 通过且整次 judge 写入成功的条目）
+  - commit 的 `users` 只包含至少有一份 ready 文件、因而实际创建/复用账号并报名的选手
+- submitted: `{ uname: string; uid: number; pid: number; rid?: ObjectId }[]`  （dryrun 无 `rid`；仅包含 inspect 通过且 `record.add` 成功的条目，含幂等命中已有 rid；`record.add` 之后的 nSubmit/`updateStatus` 失败仍记为 submitted）
 - skipped: `{ uname: string; problem: string; reason: string }[]`
 
 成功示例：

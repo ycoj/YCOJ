@@ -17,9 +17,9 @@ import {
 } from '../error';
 import { ContestStatusDoc, FileInfo, ScoreboardConfig, Tdoc } from '../interface';
 import {
-    applyProblemMapping, BULK_SUBMIT_ZIP_MODES, BulkSubmitExistingUserPolicy,
+    applyProblemMapping, BULK_SUBMIT_ZIP_MODES, BulkSubmitDuplicateZipPathError, BulkSubmitExistingUserPolicy,
     BulkSubmitMappingError, BulkSubmitZipMode,
-    dryrunSubmittedFromInspect, groupByContestant, inspectContestBulkSubmit, isCppLang,
+    dryrunSubmittedFromInspect, groupByContestant, indexZipEntriesByNormalizedPath, inspectContestBulkSubmit, isCppLang,
     normalizeZipPath, parseContestBulkSubmitPaths, parseProblemMapping, pickDefaultCppLang,
 } from '../lib/bulkSubmit/inspect';
 import { commitContestBulkSubmit } from '../lib/bulkSubmit/commit';
@@ -740,7 +740,13 @@ export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
                     throw new ValidationError('file', null, 'Zip uncompressed size too large');
                 }
             }
-            const entryByPath = new Map(fileEntries.map((entry) => [normalizeZipPath(entry.filename), entry]));
+            let entryByPath: Map<string, FileEntry>;
+            try {
+                entryByPath = indexZipEntriesByNormalizedPath(fileEntries);
+            } catch (e) {
+                if (e instanceof BulkSubmitDuplicateZipPathError) throw new ValidationError('file', null, e.message);
+                throw e;
+            }
             const layout = parseContestBulkSubmitPaths(fileEntries.map((entry) => entry.filename), zipMode);
             const mapped = applyProblemMapping(layout.files, mapping);
             const pdict = await problem.getList(domainId, this.tdoc.pids, true, true, problem.PROJECTION_CONTEST_LIST);
