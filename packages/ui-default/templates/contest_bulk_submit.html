@@ -1,0 +1,103 @@
+{% extends "layout/basic.html" %}
+{% import "components/contest.html" as contest with context %}
+{% import "components/problem.html" as problem with context %}
+{% block content %}
+{{ set(UiContext, 'tdoc', tdoc) }}
+<div class="row">
+  <div class="medium-9 columns">
+    <div class="section">
+      <div class="section__header">
+        <h1 class="section__title">{{ _('Bulk Submit') }}</h1>
+      </div>
+      <div class="section__body typo">
+        <p>{{ _('Bulk submit zip format hint') }}</p>
+        {{ noscript_note.render() }}
+        <form name="bulk_submit_form">
+          <div class="row">
+            <div class="medium-8 columns">
+              <label>
+                {{ _('Zip file') }}
+                <input type="file" name="file" accept=".zip,application/zip">
+              </label>
+            </div>
+            {{ form.form_select({
+              columns: 4,
+              label: 'Language',
+              name: 'lang',
+              options: langRange,
+              value: defaultLang,
+              row: false
+            }) }}
+          </div>
+          <div class="row">
+            {{ form.form_checkbox({
+              columns: 12,
+              label: 'Dry run',
+              name: 'dryrun',
+              placeholder: 'Preview only, do not submit',
+              row: false
+            }) }}
+          </div>
+          <div class="section__header">
+            <h2 class="section__title">{{ _('Problem mapping') }}</h2>
+          </div>
+          <div class="section__body no-padding">
+            <table class="data-table">
+              <colgroup>
+                <col class="col--id">
+                <col class="col--problem">
+                <col class="col--mapping">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th class="col--id">{{ _('ID') }}</th>
+                  <th class="col--problem">{{ _('Problem') }}</th>
+                  <th class="col--mapping">{{ _('Problem name in zip') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+              {%- for pid in tdoc.pids -%}
+                <tr>
+                  <td class="col--id">{{ pdict[pid].docId }}</td>
+                  <td class="col--problem col--problem-name">
+                    {{ problem.render_problem_title(pdict[pid], tdoc=tdoc, invalid=true, alphabetic=true) }}
+                  </td>
+                  <td class="col--mapping">
+                    <input class="textbox" type="text" name="mapping_{{ pid }}" data-pid="{{ pid }}" value="{{ mappingDefaults[pid] }}">
+                  </td>
+                </tr>
+              {%- endfor -%}
+              </tbody>
+            </table>
+          </div>
+          <div class="row"><div class="columns">
+            <button type="submit" class="rounded primary button" name="bulk_submit">{{ _('Submit') }}</button>
+          </div></div>
+        </form>
+      </div>
+    </div>
+    <div class="section" name="bulk_submit_result" hidden>
+      <div class="section__header">
+        <h1 class="section__title">{{ _('Result') }}</h1>
+      </div>
+      <div class="section__body typo" name="bulk_submit_summary"></div>
+      <div class="section__body no-padding">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{{ _('Type') }}</th>
+              <th>{{ _('User') }}</th>
+              <th>{{ _('Problem') }}</th>
+              <th>{{ _('Detail') }}</th>
+            </tr>
+          </thead>
+          <tbody name="bulk_submit_rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="medium-3 columns">
+    {% include 'partials/contest_sidebar_management.html' %}
+  </div>
+</div>
+{% endblock %}

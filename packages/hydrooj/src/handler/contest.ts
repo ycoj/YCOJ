@@ -1,5 +1,6 @@
+import { createReadStream } from 'fs';
 import { Readable } from 'stream';
-import { BlobWriter, TextReader, ZipWriter } from '@zip.js/zip.js';
+import { BlobWriter, FileEntry, TextReader, TextWriter, ZipReader, ZipWriter } from '@zip.js/zip.js';
 import { stringify as toCSV } from 'csv-stringify/sync';
 import { readFile } from 'fs-extra';
 import { escapeRegExp, pick } from 'lodash';
@@ -10,21 +11,28 @@ import {
 } from '@hydrooj/utils/lib/utils';
 import { Context, Service } from '../context';
 import {
-    BadRequestError, ContestAlreadyStartedError, ContestNotAttendedError, ContestNotEndedError, ContestNotFoundError,
-    ContestNotLiveError, ContestScoreboardHiddenError, FileLimitExceededError, FileUploadError,
+    BadRequestError, ContestAlreadyAttendedError, ContestAlreadyStartedError, ContestNotAttendedError, ContestNotEndedError,
+    ContestNotFoundError, ContestNotLiveError, ContestScoreboardHiddenError, FileLimitExceededError, FileUploadError,
     InvalidTokenError, MethodNotAllowedError, NotAssignedError, NotFoundError, PermissionError, ValidationError,
 } from '../error';
 import { ContestStatusDoc, FileInfo, ScoreboardConfig, Tdoc } from '../interface';
+import {
+    applyProblemMapping, BulkSubmitMappingError, groupByContestant, isCppLang,
+    normalizeZipPath, parseContestBulkSubmitPaths, parseProblemMapping, pickDefaultCppLang, SKIP_LAYOUT,
+} from '../lib/contestBulkSubmit';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
 import * as document from '../model/document';
+import domain from '../model/domain';
 import message from '../model/message';
 import * as oplog from '../model/oplog';
 import problem from '../model/problem';
 import record from '../model/record';
 import ScheduleModel from '../model/schedule';
+import * as setting from '../model/setting';
 import storage from '../model/storage';
+import system from '../model/system';
 import user from '../model/user';
 import {
     Handler, param, post, Type, Types,
@@ -634,6 +642,174 @@ export class ContestManagementHandler extends ContestManagementBaseHandler {
     }
 }
 
+function listAllowedCppLangs(tdoc: Tdoc, domainLangs?: string) {
+    const filters: string[][] = [];
+    if (tdoc.langs?.length) filters.push(tdoc.langs);
+    if (domainLangs) {
+        const dl = domainLangs.split(',').map((i) => i.trim()).filter((i) => i);
+        if (dl.length) filters.push(dl);
+    }
+    const all = Object.keys(setting.langs).filter((i) => {
+        const cfg = setting.langs[i];
+        if (!cfg || cfg.disabled || cfg.remote) return false;
+        if (!filters.length && cfg.hidden) return false;
+        return isCppLang(i);
+    });
+    return filters.reduce((acc, f) => acc.filter((l) => f.includes(l)), all);
+}
+
+function problemAllowsLang(pdoc: { config?: any }, lang: string) {
+    const config = pdoc?.config;
+    if (typeof config !== 'object' || !config) return false;
+    if (['submit_answer', 'objective'].includes(config.type)) return false;
+    if (config.langs?.length && !config.langs.includes(lang)) return false;
+    return true;
+}
+
+export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
+    @param('tid', Types.ObjectId)
+    async get(domainId: string, tid: ObjectId) {
+        const pdict = await problem.getList(domainId, this.tdoc.pids, true, true, problem.PROJECTION_CONTEST_LIST);
+        const cppLangs = listAllowedCppLangs(this.tdoc, this.domain.langs);
+        const langRange = Object.fromEntries(cppLangs.map((l) => [l, setting.langs[l]?.display || l]));
+        const mappingDefaults: Record<number, string> = {};
+        for (let i = 0; i < this.tdoc.pids.length; i++) {
+            const pid = this.tdoc.pids[i];
+            mappingDefaults[pid] = pdict[pid]?.pid ? String(pdict[pid].pid) : getAlphabeticId(i);
+        }
+        this.response.body = {
+            tdoc: this.tdoc,
+            tsdoc: this.tsdoc,
+            owner_udoc: await user.getById(domainId, this.tdoc.owner),
+            pdict,
+            langRange,
+            defaultLang: pickDefaultCppLang(cppLangs) || '',
+            mappingDefaults,
+        };
+        this.response.template = 'contest_bulk_submit.html';
+    }
+
+    @param('tid', Types.ObjectId)
+    @post('mapping', Types.Any)
+    @post('lang', Types.Name, true)
+    @post('dryrun', Types.Boolean)
+    async post(domainId: string, tid: ObjectId, mappingRaw: unknown, lang = '', dryrun = false) {
+        if (contest.isNotStarted(this.tdoc)) throw new ContestNotLiveError(domainId, tid);
+        await this.limitRate('contest_bulk_submit', 60, 5);
+        const cppLangs = listAllowedCppLangs(this.tdoc, this.domain.langs);
+        const submitLang = lang || pickDefaultCppLang(cppLangs);
+        if (!submitLang || !isCppLang(submitLang) || !cppLangs.includes(submitLang)
+            || !setting.langs[submitLang] || setting.langs[submitLang].disabled) {
+            throw new ValidationError('lang');
+        }
+        let mapping: Record<number, string>;
+        try {
+            mapping = parseProblemMapping(mappingRaw, this.tdoc.pids);
+        } catch (e) {
+            if (e instanceof BulkSubmitMappingError) throw new ValidationError('mapping', null, e.message);
+            throw e;
+        }
+        const file = this.request.files?.file;
+        if (!file) throw new ValidationError('file');
+        const filename = file.originalFilename || '';
+        if (!filename.toLowerCase().endsWith('.zip')) throw new ValidationError('file', null, 'Only zip files are allowed');
+        const zip = new ZipReader(Readable.toWeb(createReadStream(file.filepath)));
+        try {
+            /* eslint-disable no-await-in-loop */
+            let fileEntries: FileEntry[];
+            try {
+                fileEntries = (await zip.getEntries()).filter((entry): entry is FileEntry => !!entry.filename && entry.directory !== true);
+            } catch (e) {
+                throw new ValidationError('file', null, e.message);
+            }
+            const entryByPath = new Map(fileEntries.map((entry) => [normalizeZipPath(entry.filename), entry]));
+            const layout = parseContestBulkSubmitPaths(fileEntries.map((entry) => entry.filename));
+            const mapped = applyProblemMapping(layout.files, mapping);
+            const skipped = [...layout.skipped, ...mapped.skipped];
+            const pdict = await problem.getList(domainId, this.tdoc.pids, true, true, problem.PROJECTION_CONTEST_LIST);
+            const lengthLimit = system.get('limit.codelength') || 128 * 1024;
+            const users: { uname: string, uid: number, created: boolean }[] = [];
+            const submitted: { uname: string, uid: number, pid: number, rid?: ObjectId }[] = [];
+            const groups = groupByContestant(mapped.files);
+            for (const group of groups) {
+                const existing = await user.getByUname(domainId, group.uname);
+                const existedVuser = !!(existing && existing._id < -999);
+                let uid = existedVuser ? existing._id : 0;
+                const created = !existedVuser;
+                if (!dryrun) {
+                    uid = await user.ensureVuser(group.uname);
+                    try {
+                        await contest.attend(domainId, tid, uid, { startAt: this.tdoc.beginAt });
+                    } catch (e) {
+                        if (!(e instanceof ContestAlreadyAttendedError)) throw e;
+                        const tsdoc = await contest.getStatus(domainId, tid, uid);
+                        if (tsdoc && !tsdoc.startAt) await contest.setStatus(domainId, tid, uid, { startAt: this.tdoc.beginAt });
+                    }
+                }
+                users.push({ uname: group.uname, uid, created });
+                for (const item of group.files) {
+                    const pdoc = pdict[item.pid];
+                    if (!pdoc) {
+                        skipped.push({ uname: group.uname, problem: item.problemName, reason: 'Problem not found' });
+                        continue;
+                    }
+                    if (!problemAllowsLang(pdoc, submitLang)) {
+                        skipped.push({ uname: group.uname, problem: item.problemName, reason: 'This language is not allowed to submit.' });
+                        continue;
+                    }
+                    const entry = entryByPath.get(normalizeZipPath(item.path));
+                    if (!entry) {
+                        skipped.push({ uname: group.uname, problem: item.problemName, reason: SKIP_LAYOUT });
+                        continue;
+                    }
+                    let code = '';
+                    try {
+                        code = String(await entry.getData(new TextWriter())).replace(/\r\n/g, '\n');
+                    } catch (e) {
+                        skipped.push({ uname: group.uname, problem: item.problemName, reason: e.message || 'Failed to read file' });
+                        continue;
+                    }
+                    if (!code.trim()) {
+                        skipped.push({ uname: group.uname, problem: item.problemName, reason: 'Empty source file' });
+                        continue;
+                    }
+                    if (code.length > lengthLimit) {
+                        skipped.push({ uname: group.uname, problem: item.problemName, reason: 'Source file too long' });
+                        continue;
+                    }
+                    if (dryrun) {
+                        submitted.push({ uname: group.uname, uid, pid: item.pid });
+                        continue;
+                    }
+                    try {
+                        const rid = await record.add(
+                            domainId, item.pid, uid, submitLang, code, true,
+                            { contest: tid, type: 'judge' },
+                        );
+                        await Promise.all([
+                            problem.inc(domainId, item.pid, 'nSubmit', 1),
+                            domain.incUserInDomain(domainId, uid, 'nSubmit'),
+                            contest.updateStatus(domainId, tid, uid, rid, item.pid),
+                        ]);
+                        submitted.push({ uname: group.uname, uid, pid: item.pid, rid });
+                    } catch (e) {
+                        skipped.push({ uname: group.uname, problem: item.problemName, reason: e.message || 'Submit failed' });
+                    }
+                }
+            }
+            this.response.body = {
+                dryrun,
+                lang: submitLang,
+                users,
+                submitted,
+                skipped,
+            };
+        } finally {
+            await zip.close().catch(() => { });
+        }
+    }
+}
+
 class ContestClarificationHandler extends ContestManagementBaseHandler {
     @param('tid', Types.ObjectId)
     async get(domainId: string, tid: ObjectId) {
@@ -946,6 +1122,7 @@ export async function apply(ctx: Context) {
     // Support for DOMJudge printfile
     ctx.Route('contest_print_alt', '/contest/:tid/api/printing/team', ContestPrintHandler, PERM.PERM_VIEW_CONTEST);
     ctx.Route('contest_manage', '/contest/:tid/management', ContestManagementHandler);
+    ctx.Route('contest_bulk_submit', '/contest/:tid/bulk-submit', ContestBulkSubmitHandler);
     ctx.Route('contest_clarification', '/contest/:tid/clarification', ContestClarificationHandler);
     ctx.Route('contest_code', '/contest/:tid/code', ContestCodeHandler, PERM.PERM_VIEW_CONTEST);
     ctx.Route('contest_file_download', '/contest/:tid/file/:type/:filename', ContestFileDownloadHandler, PERM.PERM_VIEW_CONTEST);

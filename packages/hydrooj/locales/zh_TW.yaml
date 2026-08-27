@@ -105,6 +105,9 @@ Bold: 加粗
 Boom!: 炸了！
 Browser: 瀏覽器
 Built-in: 內建
+Bulk Submit: 批量提交
+Bulk submit finished.: 批量提交完成。
+Bulk submit zip format hint: 壓縮包應為每位選手一個資料夾。每位選手資料夾內按題目名分子資料夾，其中包含同名 .cpp 檔案，例如 alice/apple/apple.cpp。
 Bulletin: 公告
 By clicking the button, you will become a member of the domain {0}.: 點選按鈕，您將成為域 {0} 的成員。
 By Contest: 由比賽
@@ -167,6 +170,7 @@ contest_detail: 比賽詳情
 contest_edit: 編輯比賽
 contest_main: 比賽
 contest_manage: 比賽管理
+contest_bulk_submit: 批量提交
 contest_print: 列印
 contest_problemlist: 題目列表
 contest_scoreboard: 比賽成績表
@@ -205,6 +209,7 @@ Create Training Plan: 建立訓練計劃
 Create training plans: 建立訓練計劃
 Create: 建立
 Created By: 建立人
+Created virtual user: 已建立虛擬使用者
 Current dataset comes from: 當前資料集來自
 current domain: 當前域
 Current Email: 當前電子郵件
@@ -291,6 +296,9 @@ Download Dataset: 下載資料集
 Download Hack Input: 下載 Hack 輸入
 Download link copied to clipboard!: 下載連結已複製到剪貼簿。
 Download: 下載
+Dry run finished.: 試執行完成。
+Dry run: 試執行
+Duplicate submission for this contestant and problem: 該選手此題有重複檔案
 Downvote: 差評
 Duration (hours): 持續時間 (小時)
 Duration: 持續時間
@@ -343,6 +351,8 @@ Export Groups: 批量匯出小組
 Extension (days): 最長延期（日）
 Extension Score Penalty: 延期遞交扣分規則
 Failed to join the domain. You are already a member.: 加入域失敗，您已是該域的成員。
+Failed to read file: 讀取檔案失敗
+Filename does not match problem folder: 檔名與題目資料夾不一致
 Feedback: 反饋
 Field {0} or {1} validation failed. ({2}): 欄位 {0} 或 {1} 驗證失敗。 ({2})
 Field {0} or {1} validation failed.: 欄位 {0} 或 {1} 驗證失敗。
@@ -962,3 +972,23 @@ You've already claimed this homework.: 您已認領該功課。
 You've already voted.: 您已經投過票。
 Your permission: 您的許可權
 Your role: 您的角色
+Empty source file: 原始碼為空
+Existing virtual user: 已有虛擬使用者
+Ignored junk file: 已忽略無效檔案
+Not a C++ file: 不是 C++ 檔案
+Only zip files are allowed: 僅允許 zip 檔案
+Please select a zip file.: 請選擇 zip 檔案。
+Preview only, do not submit: 僅預覽，不實際提交
+Problem folder is not in mapping: 題目資料夾未在對應中
+Problem mapping: 題目對應
+Problem name in zip: Zip 中的題目名
+Problem not found: 題目不存在
+Result: 結果
+Skipped: 已跳過
+Source file too long: 原始碼過長
+Submit failed: 提交失敗
+Submitted {0}, skipped {1}, virtual users {2} ({3} new).: 已提交 {0} 份，跳過 {1} 份，虛擬使用者 {2} 個（新建 {3} 個）。
+This language is not allowed to submit.: 不允許使用該語言提交。
+Unexpected path layout: 壓縮包目錄結構不符合要求
+Zip file: Zip 檔案
+Detail: 詳情
