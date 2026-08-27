@@ -1,8 +1,9 @@
+/* eslint-disable no-await-in-loop */
 import { ObjectId } from 'mongodb';
 import { ContestAlreadyAttendedError } from '../../error';
 import * as contest from '../../model/contest';
+import record from '../../model/record';
 import user from '../../model/user';
-import { addJudgeRecord } from './addJudgeRecord';
 import { bulkSubmitClaimKey, bulkSubmitItemIdentity } from './claim';
 import {
     BulkSubmitUser, PreparedBulkSubmit, SKIP_SUBMIT, ZipLayoutSkip,
@@ -58,7 +59,7 @@ export async function commitContestBulkSubmit(opts: {
         users.push({ ...preview, uid });
         for (const item of items) {
             try {
-                const rid = await addJudgeRecord(
+                const rid = await record.addJudge(
                     opts.domainId, item.pid, uid, opts.lang, item.code,
                     {
                         contest: opts.tid,

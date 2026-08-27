@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { describe, it } from 'node:test';
 import {
-    bulkSubmitClaimKey, bulkSubmitItemIdentity, completeJudgeRecordInsert, isDuplicateKeyError,
+    bulkSubmitClaimKey, bulkSubmitItemIdentity, isDuplicateKeyError,
 } from '../src/lib/bulkSubmit/claim';
 import {
     applyProblemMapping, BulkSubmitDuplicateZipPathError, BulkSubmitMappingError, decideBulkSubmitIdentity,
@@ -9,6 +9,47 @@ import {
     SKIP_DUPLICATE, SKIP_EMPTY, SKIP_JUNK, SKIP_LANG, SKIP_LAYOUT, SKIP_NAME_MISMATCH, SKIP_NOT_CPP,
     SKIP_PROBLEM_NOT_FOUND, SKIP_TOO_LONG, SKIP_UNMAPPED,
 } from '../src/lib/bulkSubmit/inspect';
+
+const judgeDependencyCalls = {
+    contest: 0,
+    domain: 0,
+    problem: 0,
+};
+
+function mockRecordDependency(request: string, exports: unknown) {
+    const filename = require.resolve(request);
+    require.cache[filename] = { exports } as NodeJS.Module;
+}
+
+mockRecordDependency('@hydrooj/utils/lib/utils', {
+    Logger: class { warn() { } },
+});
+mockRecordDependency('../src/error', { ProblemNotFoundError: Error });
+mockRecordDependency('../src/service/db', {
+    collection: () => ({}),
+});
+mockRecordDependency('../src/utils', {
+    ArgMethod: (_target: unknown, _name: string, descriptor: PropertyDescriptor) => descriptor,
+    buildProjection: () => ({}),
+    Time: {},
+});
+mockRecordDependency('../src/model/builtin', { STATUS: { STATUS_WAITING: 0 } });
+mockRecordDependency('../src/model/contest', {
+    updateStatus: async () => { judgeDependencyCalls.contest++; },
+});
+class MockDomainModel {
+    static async incUserInDomain() { judgeDependencyCalls.domain++; }
+}
+mockRecordDependency('../src/model/domain', MockDomainModel);
+mockRecordDependency('../src/model/message', {});
+mockRecordDependency('../src/model/problem', {
+    inc: async () => { judgeDependencyCalls.problem++; },
+});
+mockRecordDependency('../src/model/system', {});
+mockRecordDependency('../src/model/task', {});
+
+Object.assign(global, { Hydro: { model: {} } });
+const RecordModel = require('../src/model/record').default;
 
 describe('contest bulk submit zip layout', () => {
     it('parses contestant/problem/problem.cpp entries', () => {
@@ -340,63 +381,88 @@ describe('contest bulk submit claim', () => {
         assert.equal(isDuplicateKeyError({ code: 11001 }), false);
         assert.equal(isDuplicateKeyError('duplicate'), false);
     });
+});
 
-    it('returns a persisted id when post-insert updates fail', async () => {
-        const rid = { toHexString: () => '1' };
-        let afterInsertError: unknown;
-        const result = await completeJudgeRecordInsert({
-            insert: async () => rid,
-            findClaimed: async () => {
-                throw new Error('should not look up a claim');
+describe('judge record addition', () => {
+    const rid = { toHexString: () => 'new' };
+    const claimed = { toHexString: () => 'existing' };
+
+    it('updates submission state after inserting a record', async (t) => {
+        judgeDependencyCalls.contest = 0;
+        judgeDependencyCalls.domain = 0;
+        judgeDependencyCalls.problem = 0;
+        const add = t.mock.method(RecordModel, 'add', async () => rid);
+        const contestId = { toHexString: () => 'contest' };
+        const files = { code: 'stored.cpp' };
+        const result = await RecordModel.addJudge(
+            'system', 1001, -1000, 'cc.cc14', 'int main(){}',
+            {
+                contest: contestId, files, claimKey: 'claim',
             },
-            afterInsert: async () => {
-                throw new Error('nSubmit failed');
-            },
-            onAfterInsertError: (error) => {
-                afterInsertError = error;
-            },
-        });
+        );
         assert.equal(result, rid);
-        assert.equal((afterInsertError as Error).message, 'nSubmit failed');
-    });
-
-    it('returns the claimed id without inserting or incrementing again', async () => {
-        const claimed = { toHexString: () => 'existing' };
-        let afterInsertCalls = 0;
-        const result = await completeJudgeRecordInsert({
-            claimKey: 'k',
-            insert: async () => {
-                throw Object.assign(new Error('duplicate key'), { code: 11000 });
+        assert.deepStrictEqual(add.mock.calls[0].arguments, [
+            'system', 1001, -1000, 'cc.cc14', 'int main(){}', true,
+            {
+                contest: contestId, files, type: 'judge', claimKey: 'claim',
             },
-            findClaimed: async () => claimed,
-            afterInsert: async () => {
-                afterInsertCalls++;
-            },
+        ]);
+        assert.deepStrictEqual(judgeDependencyCalls, {
+            contest: 1,
+            domain: 1,
+            problem: 1,
         });
-        assert.equal(result, claimed);
-        assert.equal(afterInsertCalls, 0);
     });
 
-    it('rethrows insert failures that are not an existing claim', async () => {
+    it('returns the claimed record without updating submission state again', async (t) => {
+        judgeDependencyCalls.contest = 0;
+        judgeDependencyCalls.domain = 0;
+        judgeDependencyCalls.problem = 0;
+        t.mock.method(RecordModel, 'add', async () => {
+            throw Object.assign(new Error('duplicate key'), { code: 11000 });
+        });
+        t.mock.method(RecordModel, 'getByClaimKey', async () => ({ _id: claimed }));
+        const result = await RecordModel.addJudge(
+            'system', 1001, -1000, 'cc.cc14', 'int main(){}', { claimKey: 'claim' },
+        );
+        assert.equal(result, claimed);
+        assert.deepStrictEqual(judgeDependencyCalls, {
+            contest: 0,
+            domain: 0,
+            problem: 0,
+        });
+    });
+
+    it('returns a persisted record when post-insert updates fail', async (t) => {
+        t.mock.method(RecordModel, 'add', async () => rid);
+        t.mock.method(MockDomainModel, 'incUserInDomain', async () => {
+            throw new Error('nSubmit failed');
+        });
+        assert.equal(
+            await RecordModel.addJudge('system', 1001, -1000, 'cc.cc14', 'int main(){}'),
+            rid,
+        );
+    });
+
+    it('rethrows insert errors that cannot resolve to an existing claim', async (t) => {
+        t.mock.method(RecordModel, 'add', async () => {
+            throw new Error('disk full');
+        });
         await assert.rejects(
-            () => completeJudgeRecordInsert({
-                insert: async () => {
-                    throw new Error('disk full');
-                },
-                findClaimed: async () => null,
-                afterInsert: async () => { },
-            }),
+            () => RecordModel.addJudge('system', 1001, -1000, 'cc.cc14', 'int main(){}'),
             /disk full/,
         );
+    });
+
+    it('rethrows a duplicate-key error when its claim cannot be found', async (t) => {
+        t.mock.method(RecordModel, 'add', async () => {
+            throw Object.assign(new Error('duplicate key'), { code: 11000 });
+        });
+        t.mock.method(RecordModel, 'getByClaimKey', async () => null);
         await assert.rejects(
-            () => completeJudgeRecordInsert({
-                claimKey: 'k',
-                insert: async () => {
-                    throw Object.assign(new Error('duplicate key'), { code: 11000 });
-                },
-                findClaimed: async () => null,
-                afterInsert: async () => { },
-            }),
+            () => RecordModel.addJudge(
+                'system', 1001, -1000, 'cc.cc14', 'int main(){}', { claimKey: 'claim' },
+            ),
             /duplicate key/,
         );
     });

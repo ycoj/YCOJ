@@ -25,7 +25,6 @@ import {
 import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
 } from '../interface';
-import { addJudgeRecord } from '../lib/bulkSubmit/addJudgeRecord';
 import { convertHtmlToMarkdown } from '../lib/ai/html2md/converter';
 import { getHtmlToMarkdownConfig } from '../lib/ai/html2md/runtime';
 import { validateHtmlToMarkdownConfig } from '../lib/ai/html2md/validation';
@@ -563,7 +562,7 @@ export class ProblemSubmitHandler extends ProblemDetailHandler {
                 domainId, this.pdoc.docId, this.user._id, lang, code, true,
                 { input, type: 'pretest' },
             )
-            : await addJudgeRecord(
+            : await record.addJudge(
                 domainId, this.pdoc.docId, this.user._id, lang, code,
                 { contest: tid, files },
             );
