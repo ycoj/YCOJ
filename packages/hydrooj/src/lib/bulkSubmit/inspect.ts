@@ -277,13 +277,16 @@ function parseWithStrip(
 }
 
 function shouldStripWrapper(partsList: string[][], mode: Exclude<BulkSubmitZipMode, 'auto'>) {
-    if (!sharedFirstDir(partsList)) return false;
+    // Non-source files are skipped per entry and must not affect wrapper detection.
+    const sourcePartsList = partsList.filter((parts) => isCppFilename(parts[parts.length - 1] || ''));
+    if (!sharedFirstDir(sourcePartsList)) return false;
     switch (mode) {
         case 'subfolder':
-            return partsList.every((parts) => parts.length >= 4);
+            return sourcePartsList.length > 0 && sourcePartsList.every((parts) => parts.length >= 4);
         case 'nosubfolder':
-            return partsList.every((parts) => parts.length >= 3)
-                && !partsList.every((parts) => isSubfolderSignature(parts));
+            return sourcePartsList.length > 0
+                && sourcePartsList.every((parts) => parts.length >= 3)
+                && !sourcePartsList.every((parts) => isSubfolderSignature(parts));
         default: {
             const _exhaustive: never = mode;
             throw new Error(`Unknown zip mode: ${_exhaustive}`);
