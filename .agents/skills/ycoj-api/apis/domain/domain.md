@@ -3,7 +3,7 @@
 Every authenticated call uses `Cookie: sid=<token>` or `Authorization: Bearer <token>`. HTML is server-rendered; mutations return `type Redirect={url:string}` under `Accept: application/json` (example `{"url":"/domain/dashboard"}`) and 302 otherwise.
 
 ## `GET /ranking`
-Description: paginated domain rank list. Request `type Query={page?:number}`, example `GET /ranking?page=2`. Response `type Response=HTML`, example `<!doctype html>…ranking…`. Permission: `PERM_VIEW_RANKING`.
+Description: paginated domain rank list. Request `type Query={page?:number}`, example `GET /ranking?page=2`. Browser requests receive `type Response=HTML`, example `<!doctype html>…ranking…`. With `Accept: application/json`, the response is `type RankingResponse={udocs:Array<PublicUser & {rp:number;rpInfo?:Record<string,number>;nAccept:number}>;upcount:number;ucount:number;page:number;pageSize:number}`, example `{"udocs":[{"_id":12,"uname":"alice","rp":123,"rpInfo":{"problem":100,"contest":23},"nAccept":7}],"upcount":1,"ucount":1,"page":1,"pageSize":20}`. Permission: `PERM_VIEW_RANKING`.
 
 ## `GET /domain/dashboard`
 Description: domain admin overview. Request `type Query={}`, example `GET /domain/dashboard`. Response `HTML`, example `…domain_dashboard…`. Permission: domain management handler.

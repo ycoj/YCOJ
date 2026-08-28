@@ -77,6 +77,25 @@ describe('App', () => {
         Root.creditionals = cookie;
     });
 
+    it('Ranking JSON includes public user metrics', async () => {
+        await global.Hydro.model.domain.setUserInDomain('system', 2, {
+            join: true,
+            nAccept: 7,
+            rp: 123,
+            rpInfo: { contest: 23, problem: 100 },
+        });
+
+        const ranking = await agent.get('/ranking')
+            .set('Accept', 'application/json')
+            .expect(200);
+        const rankedUser = ranking.body.udocs.find((udoc: { _id: number }) => udoc._id === 2);
+
+        assert.ok(rankedUser);
+        assert.equal(rankedUser.rp, 123);
+        assert.deepEqual(rankedUser.rpInfo, { contest: 23, problem: 100 });
+        assert.equal(rankedUser.nAccept, 7);
+    });
+
     it('Authenticated check-in API state', async () => {
         const home = await agent.get('/')
             .set('Accept', 'application/json')

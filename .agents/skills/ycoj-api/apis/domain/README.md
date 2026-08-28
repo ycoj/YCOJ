@@ -7,7 +7,7 @@ These are HTML/PJAX management pages, not REST resources. `GET` renders the name
 
 | Route / methods | Description / request | Response / authorization |
 | --- | --- | --- |
-| `/ranking` GET | Domain ranking; `?page=positive-int` (example `?page=2`). | Rendered ranking page. `PERM_VIEW_RANKING`. |
+| `/ranking` GET | Domain ranking; `?page=positive-int` (example `?page=2`). | HTML, or JSON `{udocs,upcount,ucount,page,pageSize}` with public `rp`, `rpInfo`, and `nAccept` user metrics under `Accept: application/json`. `PERM_VIEW_RANKING`. |
 | `/domain/dashboard` GET | Domain moderation dashboard. | HTML. Handler requires domain-management permission. |
 | `/domain/edit` GET, POST | Read/edit domain properties. POST accepts the domain setting fields selected by the UI. | HTML or redirect. `PERM_EDIT_DOMAIN`. |
 | `/domain/user` GET, POST | List members (`?format=default\|raw`) and mutate selected users. E.g. `{operation:"setRole",uids:[12],role:"member",join:true}`. | HTML, or raw user export for `format=raw`; management permission. |
