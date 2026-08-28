@@ -48,7 +48,7 @@ There is no `operation` field; the route's default POST is the bulk submission.
 | --- | --- | --- | --- |
 | tid | string (ObjectId) | Contest ID | Contest owner/maintainer, or `PERM_EDIT_CONTEST` |
 | file | Blob (zip) | Zip archive of contestant source code | Same as above |
-| mapping | string (JSON) or object | Maps site problem IDs to problem names in the zip (a subfolder name or the `.cpp` basename), for example `{"1001":"apple","1002":"gcd"}`. Unmapped pids are skipped. A pid outside this contest, or a duplicate folder name after trimming and case-insensitive comparison, returns `ValidationError('mapping')`. | Same as above |
+| mapping | string (JSON) or object | Maps site problem IDs to problem names in the zip (a subfolder name in `subfolder` layout or the `.cpp` basename in `nosubfolder` layout), for example `{"1001":"apple","1002":"gcd"}`. Unmapped pids are skipped. A pid outside this contest, or duplicate mapped problem names after trimming and case-insensitive comparison, returns `ValidationError('mapping')`. | Same as above |
 | lang | string (Name), optional | C++ language ID (`cc` or `cc.*`). Defaults to a C++ language allowed by the contest/domain, preferring `cc.cc14`. | Same as above |
 | dryrun | boolean, optional | When true, return only the inspect result; do not create/reuse accounts, attend the contest, insert records, or update counters or contest status. | Same as above |
 | existingUser | `"vuser"` \| `"existing"`, optional, default `"vuser"` | When a **real user** (in the `user` collection) already has the contestant folder name, `vuser` creates or reuses a virtual user; `existing` attends and submits as that real user's uid. When no real user exists, both strategies reuse or create a virtual user. | Same as above |
@@ -87,4 +87,4 @@ Dry-run example: `{ "dryrun":true,"lang":"cc.cc14","users":[{ "uname":"alice","u
 
 For a real user with the same name and `existingUser=existing`, `users` is shaped like `{ "uname":"alice","uid":42,"created":false,"kind":"user" }`. For a real user with the same name and `existingUser=vuser` (the default), the request still uses a vuser and can include `realUid`.
 
-Validation errors identify `file`, `mapping`, `lang`, or `zipMode`. A contest that has not started returns `ContestNotLiveError`.
+Validation errors identify `file`, `mapping`, `lang`, `existingUser`, or `zipMode`. A contest that has not started returns `ContestNotLiveError`.
