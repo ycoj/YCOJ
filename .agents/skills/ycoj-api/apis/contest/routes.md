@@ -11,6 +11,7 @@ This is the implementation-backed route index; operation names are request-body 
 | `GET/POST /contest/:tid/edit` | Edit/delete; same validated fields as create. |
 | `GET/POST /contest/:tid/print`, `/api/printing/team` | Print HTML or `{success,output}`; print-task operations. |
 | `GET/POST /contest/:tid/management` | Management HTML; file and score operations. |
+| `GET/POST /contest/:tid/bulk-submit` | Bulk-submit HTML; POST zip of contestant C++ sources (see [bulk-submit.md](bulk-submit.md)). |
 | `GET/POST /contest/:tid/clarification` | Clarification HTML; clarification operation. |
 | `GET /contest/:tid/code` | Code view HTML (`all` filter). |
 | `GET /contest/:tid/file/:type/:filename` | Signed-download redirect; `type` public/private. |

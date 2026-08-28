@@ -1,0 +1,41 @@
+.page--contest_bulk_submit
+  .col--id
+    width: rem(80px)
+
+  .col--mapping
+    width: rem(240px)
+
+  .col--type
+    width: rem(260px)
+
+  .col--user
+    width: rem(160px)
+
+  .col--problem
+    width: rem(120px)
+
+  .col--mapping input.textbox
+    width: 100%
+
+  td.col--mapping
+    overflow: visible
+
+  td.col--type,
+  td.col--detail
+    white-space: normal
+
+  [name="file"]
+    margin: $input-margin
+
+  .section__body.typo pre
+    margin-bottom: 0
+
+    code
+      white-space: pre
+
+  [name="zip_mode_example"]
+    margin-top: rem(12px)
+
+  +mobile()
+    .col--id
+      display: none

@@ -1,13 +1,13 @@
 # YCOJ API documents
 
-This is the routing index for the backend contracts present at source revision `604a5d0b07ea` (2026-08-19). It covers all 133 literal HTTP route registrations, five literal connection registrations, and the indirectly registered `/api/:op` HTTP/connection transport. Routes from optional packages or conditional configuration are documented but exist at runtime only when their package or feature is enabled.
+This is the routing index for the backend contracts present at source revision `9ee423517944` (2026-08-28). It covers all 132 literal HTTP route registrations, five literal connection registrations, and the indirectly registered `/api/:op` HTTP/connection transport. Routes from optional packages or conditional configuration are documented but exist at runtime only when their package or feature is enabled.
 
 The default base URL is `https://ycoj.cc/`. Every documented route is relative to that base. Prefix a path with `/d/{domainId}` when selecting a domain by URL rather than host; for example, `/p` in domain `school` becomes `https://ycoj.cc/d/school/p`.
 
 | URL or operation | Documents | Includes |
 | --- | --- | --- |
 | `/p`, `/p/*`, `/problem/*`; problem `/api` ops | [Problem](problem/README.md) | Search, detail, create/edit, submit/hack, files, solutions, statistics, compatibility/import routes, problem queries/mutation |
-| `/contest`, `/contest/*` | [Contest](contest/README.md) | Lists, details, creation/editing, problem list, management, files, users, print, balloons, scoreboard, onsite-toolkit routes |
+| `/contest`, `/contest/*` | [Contest](contest/README.md) | Lists, details, creation/editing, problem list, management, bulk submit, files, users, print, balloons, scoreboard, onsite-toolkit routes |
 | `/homework`, `/homework/*` | [Homework](homework/README.md) | Creation/editing, attendance, files, code, scoreboard |
 | `/training`, `/training/*` | [Training](training/README.md) | Lists, plans, editing, files and downloads |
 | `/record`, `/record/*`, `/record-conn`, `/record-detail-conn` | [Record](record/README.md) | Submission search/detail, rejudge/cancel, live record streams |

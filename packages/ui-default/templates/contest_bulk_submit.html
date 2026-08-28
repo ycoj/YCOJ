@@ -1,0 +1,190 @@
+{% extends "layout/basic.html" %}
+{% import "components/contest.html" as contest with context %}
+{% import "components/problem.html" as problem with context %}
+{% block content %}
+{{ set(UiContext, 'tdoc', tdoc) }}
+<div class="row">
+  <div class="medium-9 columns">
+    <div class="section">
+      <form name="bulk_submit_form">
+        <div class="section__header">
+          <h1 class="section__title">{{ _('Bulk Submit') }}</h1>
+        </div>
+        {{ noscript_note.render() }}
+        <div class="section__body typo">
+          {{ form.form_radio({
+            columns: 12,
+            label: 'Zip layout',
+            name: 'zipMode',
+            options: {
+              auto: 'Auto',
+              subfolder: 'Subfolder mode',
+              nosubfolder: 'Non-subfolder mode'
+            },
+            value: 'auto',
+            row: false
+          }) }}
+          {% macro bulk_submit_subfolder_branch(last_contestant) %}
+{%- set b = '    ' if last_contestant else '│   ' -%}
+{%- if tdoc.pids.length -%}
+{%- for pid in tdoc.pids -%}
+{%- if loop.index0 < 2 %}
+{{ b }}{{ '└' if (loop.index0 == 0 and tdoc.pids.length == 1) or (loop.index0 == 1 and tdoc.pids.length == 2) else '├' }}── {{ mappingDefaults[pid] }}/
+{{ b }}{{ ' ' if (loop.index0 == 0 and tdoc.pids.length == 1) or (loop.index0 == 1 and tdoc.pids.length == 2) else '│' }}   └── {{ mappingDefaults[pid] }}.cpp
+{% endif -%}
+{%- endfor -%}
+{%- if tdoc.pids.length > 2 %}
+{{ b }}└── ...
+{% endif -%}
+{%- else %}
+{{ b }}└── A/
+{{ b }}    └── A.cpp
+{% endif -%}
+          {% endmacro %}
+          {% macro bulk_submit_flat_branch(last_contestant) %}
+{%- set b = '    ' if last_contestant else '│   ' -%}
+{%- if tdoc.pids.length -%}
+{%- for pid in tdoc.pids -%}
+{%- if loop.index0 < 2 %}
+{{ b }}{{ '└' if (loop.index0 == 0 and tdoc.pids.length == 1) or (loop.index0 == 1 and tdoc.pids.length == 2) else '├' }}── {{ mappingDefaults[pid] }}.cpp
+{% endif -%}
+{%- endfor -%}
+{%- if tdoc.pids.length > 2 %}
+{{ b }}└── ...
+{% endif -%}
+{%- else %}
+{{ b }}└── A.cpp
+{% endif -%}
+          {% endmacro %}
+          <div name="zip_mode_example" data-zip-mode="auto">
+            <p>{{ _('Accept both layouts. When both exist for the same contestant and problem, the subfolder file is used:') }}</p>
+            <pre><code class="language-data">*.zip
+├── alice/
+{{ bulk_submit_subfolder_branch(false) }}└── bob/
+{{ bulk_submit_flat_branch(true) }}</code></pre>
+          </div>
+          <div name="zip_mode_example" data-zip-mode="subfolder" hidden>
+            <p>{{ _('Each contestant is a folder. Nested problem folders contain a matching .cpp file:') }}</p>
+            <pre><code class="language-data">*.zip
+├── alice/
+{{ bulk_submit_subfolder_branch(false) }}└── bob/
+{{ bulk_submit_subfolder_branch(true) }}</code></pre>
+          </div>
+          <div name="zip_mode_example" data-zip-mode="nosubfolder" hidden>
+            <p>{{ _('Each contestant is a folder. Place matching .cpp files directly in it:') }}</p>
+            <pre><code class="language-data">*.zip
+├── alice/
+{{ bulk_submit_flat_branch(false) }}└── bob/
+{{ bulk_submit_flat_branch(true) }}</code></pre>
+          </div>
+        </div>
+        <div class="section__body">
+          <div class="row">
+            <div class="medium-8 columns form__item" name="zip_dropzone">
+              <label>
+                {{ _('Zip file') }}
+                <input type="file" name="file" accept=".zip,application/zip">
+              </label>
+            </div>
+            {{ form.form_select({
+              columns: 4,
+              label: 'Language',
+              name: 'lang',
+              options: langRange,
+              value: defaultLang,
+              row: false
+            }) }}
+          </div>
+          {{ form.form_checkbox({
+            columns: 12,
+            label: 'Dry run',
+            name: 'dryrun',
+            placeholder: 'Preview only, do not submit'
+          }) }}
+          {{ form.form_radio({
+            columns: 12,
+            label: 'If a registered user already has this name',
+            name: 'existingUser',
+            options: {
+              vuser: 'Create or reuse a virtual user',
+              existing: 'Submit as the existing registered user'
+            },
+            value: 'vuser'
+          }) }}
+        </div>
+        <div style="padding-top: 0" class="section__header">
+          <h2 class="section__title">{{ _('Problem mapping') }}</h2>
+        </div>
+        <div class="section__body no-padding">
+          {% if not tdoc.pids.length %}
+            {{ nothing.render('No problem.', compact=true) }}
+          {% else %}
+          <table class="data-table">
+            <colgroup>
+              <col class="col--id">
+              <col class="col--problem">
+              <col class="col--mapping">
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="col--id">{{ _('ID') }}</th>
+                <th class="col--problem">{{ _('Problem') }}</th>
+                <th class="col--mapping">{{ _('Problem name in zip') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+            {%- for pid in tdoc.pids -%}
+              <tr>
+                <td class="col--id">{{ pdict[pid].docId }}</td>
+                <td class="col--problem col--problem-name">
+                  <a href="{{ url('problem_detail', pid=pid) }}">
+                    {{ problem.render_problem_title(pdict[pid], tdoc=tdoc, invalid=true, alphabetic=true) }}
+                  </a>
+                </td>
+                <td class="col--mapping">
+                  <input class="textbox" type="text" name="mapping_{{ pid }}" data-pid="{{ pid }}" value="{{ mappingDefaults[pid] }}" autocomplete="off">
+                </td>
+              </tr>
+            {%- endfor -%}
+            </tbody>
+          </table>
+          {% endif %}
+        </div>
+        <div class="section__body">
+          <div class="row"><div class="columns">
+            <button type="submit" class="rounded primary button" name="bulk_submit">{{ _('Submit') }}</button>
+          </div></div>
+        </div>
+      </form>
+    </div>
+    <div class="section" name="bulk_submit_result" hidden>
+      <div class="section__header">
+        <h1 class="section__title">{{ _('Result') }}</h1>
+      </div>
+      <div class="section__body" name="bulk_submit_summary"></div>
+      <div class="section__body no-padding">
+        <table class="data-table">
+          <colgroup>
+            <col class="col--type">
+            <col class="col--user">
+            <col class="col--problem">
+            <col class="col--detail">
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="col--type">{{ _('Type') }}</th>
+              <th class="col--user">{{ _('User') }}</th>
+              <th class="col--problem">{{ _('Problem') }}</th>
+              <th class="col--detail">{{ _('Detail') }}</th>
+            </tr>
+          </thead>
+          <tbody name="bulk_submit_rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="medium-3 columns">
+    {% include 'partials/contest_sidebar_management.html' %}
+  </div>
+</div>
+{% endblock %}

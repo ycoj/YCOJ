@@ -162,6 +162,8 @@ export async function streakForNewCheckin(
     let streak = 1;
     let day = shiftDate(localDate, -1);
     while (true) {
+        // Each lookup determines whether the backward walk should continue.
+        // eslint-disable-next-line no-await-in-loop
         const previous = await get(checkinDocId(uid, day));
         if (!previous) return streak;
         if (typeof previous.streak === 'number' && Number.isSafeInteger(previous.streak) && previous.streak >= 1) {
