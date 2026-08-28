@@ -658,6 +658,7 @@ Submission Statistics: 제출 결과
 Submission: 제출
 Submissions: 제출
 Submit At: '제출 시각'
+Submit all as virtual users: 모두 가상 사용자로 제출
 Submit By: '아아디'
 Submit problem: 문제 등록
 Submit Solution: 해설 등록
@@ -666,6 +667,7 @@ Submit to Judge: 제출
 Submit Your Code: 제출
 Submit: 제출
 Submitted: 제출함
+Merge submissions for system users; submit non-system users as virtual users: 시스템 사용자는 병합하여 제출하고, 비시스템 사용자는 가상 사용자로 제출
 Support: 지원
 Tags: 태그
 Technical Information: 기술 정보
