@@ -31,7 +31,11 @@ class DomainRankHandler extends Handler {
             'ranking',
         );
         const udict = await user.getList(domainId, dudocs.map((dudoc) => dudoc.uid));
-        const udocs = dudocs.map((i) => udict[i.uid]);
+        const udocs = dudocs.map((i) => {
+            const udoc = udict[i.uid];
+            udoc.nAccept ??= 0;
+            return udoc;
+        });
         const pageSize = this.ctx.setting.get('pagination.ranking') || 20;
         this.response.template = 'ranking.html';
         this.response.body = {
