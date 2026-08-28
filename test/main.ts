@@ -78,21 +78,32 @@ describe('App', () => {
     });
 
     it('Ranking JSON includes public user metrics', async () => {
-        await global.Hydro.model.domain.setUserInDomain('system', 2, {
-            join: true,
-            nAccept: 7,
-            rp: 123,
-            rpInfo: { contest: 23, problem: 100 },
+        await global.Hydro.model.domain.updateUserInDomain('system', 2, {
+            $set: {
+                join: true,
+                rp: 123,
+                rpInfo: { contest: 23, problem: 100 },
+            },
+            $unset: { nAccept: '' },
         });
 
-        const ranking = await agent.get('/ranking')
+        let ranking = await agent.get('/ranking')
             .set('Accept', 'application/json')
             .expect(200);
-        const rankedUser = ranking.body.udocs.find((udoc: { _id: number }) => udoc._id === 2);
+        let rankedUser = ranking.body.udocs.find((udoc: { _id: number }) => udoc._id === 2);
 
         assert.ok(rankedUser);
         assert.equal(rankedUser.rp, 123);
         assert.deepEqual(rankedUser.rpInfo, { contest: 23, problem: 100 });
+        assert.equal(rankedUser.nAccept, 0);
+
+        await global.Hydro.model.domain.setUserInDomain('system', 2, { nAccept: 7 });
+        ranking = await agent.get('/ranking')
+            .set('Accept', 'application/json')
+            .expect(200);
+        rankedUser = ranking.body.udocs.find((udoc: { _id: number }) => udoc._id === 2);
+
+        assert.ok(rankedUser);
         assert.equal(rankedUser.nAccept, 7);
     });
 
