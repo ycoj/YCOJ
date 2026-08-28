@@ -48,12 +48,13 @@ function renderResults(res: {
   const $result = $('[name="bulk_submit_result"]');
   const $rows = $('[name="bulk_submit_rows"]');
   $rows.empty();
-  const created = (res.users || []).filter((u) => u.created).length;
+  const virtualUsers = (res.users || []).filter((u) => u.kind !== 'user');
+  const created = virtualUsers.filter((u) => u.created).length;
   $('[name="bulk_submit_summary"]').text(i18n(
     'Submitted {0}, skipped {1}, virtual users {2} ({3} new).',
     res.submitted?.length || 0,
     res.skipped?.length || 0,
-    res.users?.length || 0,
+    virtualUsers.length,
     created,
   ));
   for (const item of res.users || []) {

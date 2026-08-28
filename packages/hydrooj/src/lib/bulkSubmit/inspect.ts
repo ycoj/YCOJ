@@ -130,13 +130,14 @@ export function buildBulkSubmitMappingDefaults(
         const fileIoName = config?.type === 'default' && typeof config.subType === 'string'
             ? config.subType.trim()
             : '';
-        if (!fileIoName) {
-            result[pid] = fallbacks[i] || '';
+        const candidate = fileIoName || String(fallbacks[i] || '').trim();
+        if (!candidate) {
+            result[pid] = '';
             continue;
         }
-        const normalized = fileIoName.toLowerCase();
-        result[pid] = usedFileIoNames.has(normalized) ? '' : fileIoName;
-        usedFileIoNames.add(normalized);
+        const normalized = candidate.trim().toLowerCase();
+        result[pid] = usedFileIoNames.has(normalized) ? '' : candidate;
+        if (result[pid]) usedFileIoNames.add(normalized);
     }
     return result;
 }

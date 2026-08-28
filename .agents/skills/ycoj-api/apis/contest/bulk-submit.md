@@ -34,7 +34,7 @@ POST always **inspects first** (parse zip, map pids, read sources, apply problem
 - pdict: ProblemDict
 - langRange: Record\<string, string\>  (allowed C++ language ID -> display name)
 - defaultLang: string  (prefers `cc.cc14o2` when available; otherwise uses the first allowed C++ language)
-- mappingDefaults: Record\<number, string\>  (pid -> prefilled zip problem name. A default-type file-IO problem uses `config.subType`, the parsed base filename for `.in/.out`; if multiple such problems have the same trimmed, case-insensitive filename, only the first is prefilled and later values are empty. Other problems keep the problem pid or letter index such as A/B/C.)
+- mappingDefaults: Record\<number, string\>  (pid -> prefilled zip problem name. Defaults use a default-type file-IO problem's `config.subType` or the ordinary pid/letter fallback; all non-empty defaults are compared using trimmed, case-insensitive names, so only the first occurrence is prefilled and colliding later values are empty.)
 
 HTML: `contest_bulk_submit.html`. JSON example for two file-IO problems that both use `rag.in/rag.out`: `{ "tdoc":{"docId":"665f00000000000000000001"},"langRange":{"cc.cc14o2":"C++14(O2)"},"defaultLang":"cc.cc14o2","mappingDefaults":{"1001":"rag","1002":""} }`.
 
