@@ -50,6 +50,7 @@ mockRecordDependency('../src/model/task', {});
 
 Object.assign(global, { Hydro: { model: {} } });
 const RecordModel = require('../src/model/record').default;
+const { addJudgeRecord } = require('../src/lib/bulkSubmit/addJudgeRecord');
 
 describe('contest bulk submit zip layout', () => {
     it('parses contestant/problem/problem.cpp entries', () => {
@@ -435,7 +436,7 @@ describe('judge record addition', () => {
         const add = t.mock.method(RecordModel, 'add', async () => rid);
         const contestId = { toHexString: () => 'contest' };
         const files = { code: 'stored.cpp' };
-        const result = await RecordModel.addJudge(
+        const result = await addJudgeRecord(
             'system', 1001, -1000, 'cc.cc14', 'int main(){}',
             {
                 contest: contestId, files, claimKey: 'claim',
@@ -463,24 +464,33 @@ describe('judge record addition', () => {
             throw Object.assign(new Error('duplicate key'), { code: 11000 });
         });
         t.mock.method(RecordModel, 'getByClaimKey', async () => ({ _id: claimed }));
-        const result = await RecordModel.addJudge(
+        const result = await addJudgeRecord(
             'system', 1001, -1000, 'cc.cc14', 'int main(){}', { claimKey: 'claim' },
         );
         assert.equal(result, claimed);
         assert.deepStrictEqual(judgeDependencyCalls, {
             contest: 0,
-            domain: 0,
-            problem: 0,
+            domain: 1,
+            problem: 1,
         });
     });
 
-    it('rethrows post-insert update failures after persisting the record', async (t) => {
+    it('returns the durable record for claimed post-insert update failures', async (t) => {
+        t.mock.method(RecordModel, 'add', async () => rid);
+        t.mock.method(MockDomainModel, 'incUserInDomain', async () => {
+            throw new Error('nSubmit failed');
+        });
+        const result = await addJudgeRecord('system', 1001, -1000, 'cc.cc14', 'int main(){}', { claimKey: 'claim' });
+        assert.equal(result, rid);
+    });
+
+    it('rethrows post-insert update failures for ordinary submissions', async (t) => {
         t.mock.method(RecordModel, 'add', async () => rid);
         t.mock.method(MockDomainModel, 'incUserInDomain', async () => {
             throw new Error('nSubmit failed');
         });
         await assert.rejects(
-            () => RecordModel.addJudge('system', 1001, -1000, 'cc.cc14', 'int main(){}'),
+            () => addJudgeRecord('system', 1001, -1000, 'cc.cc14', 'int main(){}'),
             /nSubmit failed/,
         );
     });
@@ -490,7 +500,7 @@ describe('judge record addition', () => {
             throw new Error('disk full');
         });
         await assert.rejects(
-            () => RecordModel.addJudge('system', 1001, -1000, 'cc.cc14', 'int main(){}'),
+            () => addJudgeRecord('system', 1001, -1000, 'cc.cc14', 'int main(){}'),
             /disk full/,
         );
     });
@@ -501,7 +511,7 @@ describe('judge record addition', () => {
         });
         t.mock.method(RecordModel, 'getByClaimKey', async () => null);
         await assert.rejects(
-            () => RecordModel.addJudge(
+            () => addJudgeRecord(
                 'system', 1001, -1000, 'cc.cc14', 'int main(){}', { claimKey: 'claim' },
             ),
             /duplicate key/,

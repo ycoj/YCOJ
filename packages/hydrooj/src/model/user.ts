@@ -392,28 +392,39 @@ class UserModel {
 
     @ArgMethod
     static async ensureVuser(uname: string) {
-        const [[min], current] = await Promise.all([
-            collV.find({}).sort({ _id: 1 }).limit(1).toArray(),
-            collV.findOne({ unameLower: uname.toLowerCase() }),
-        ]);
-        if (current) return current._id;
-        const uid = min?._id ? min._id - 1 : -1000;
-        await collV.insertOne({
-            _id: uid,
-            mail: `${-uid}@vuser.local`,
-            mailLower: `${-uid}@vuser.local`,
-            uname,
-            unameLower: uname.trim().toLowerCase(),
-            hash: '',
-            salt: '',
-            hashType: 'hydro',
-            regat: new Date(),
-            ip: ['127.0.0.1'],
-            loginat: new Date(),
-            loginip: '127.0.0.1',
-            priv: 0,
-        });
-        return uid;
+        const unameLower = uname.trim().toLowerCase();
+        for (let attempt = 0; attempt < 10; attempt++) {
+            // A duplicate-key retry must re-read both indexes after the competing insert.
+            // eslint-disable-next-line no-await-in-loop
+            const [[min], current] = await Promise.all([
+                collV.find({}).sort({ _id: 1 }).limit(1).toArray(),
+                collV.findOne({ unameLower }),
+            ]);
+            if (current) return current._id;
+            const uid = min?._id ? min._id - 1 : -1000;
+            try {
+                // eslint-disable-next-line no-await-in-loop
+                await collV.insertOne({
+                    _id: uid,
+                    mail: `${-uid}@vuser.local`,
+                    mailLower: `${-uid}@vuser.local`,
+                    uname,
+                    unameLower,
+                    hash: '',
+                    salt: '',
+                    hashType: 'hydro',
+                    regat: new Date(),
+                    ip: ['127.0.0.1'],
+                    loginat: new Date(),
+                    loginip: '127.0.0.1',
+                    priv: 0,
+                });
+                return uid;
+            } catch (e) {
+                if (e?.code !== 11000) throw e;
+            }
+        }
+        throw new Error(`Unable to allocate virtual user for ${uname}`);
     }
 
     static getMulti(params: Filter<Udoc> = {}, projection?: (keyof Udoc)[]) {

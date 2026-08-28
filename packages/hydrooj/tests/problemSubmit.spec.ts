@@ -16,7 +16,7 @@ mockModule('../src/error', new Proxy({
     FileTooLargeError: TestError,
 }, { get: (target, property: string) => target[property] || TestError }));
 mockModule('../src/context', {});
-mockModule('../src/logger', { Logger: class { } });
+mockModule('../src/logger', { Logger: class { warn() { } } });
 mockModule('../src/handler/contest', {
     ContestDetailBaseHandler: class { },
 });
@@ -34,7 +34,7 @@ mockModule('../src/model/contest', { });
 mockModule('../src/model/discussion', { });
 mockModule('../src/model/domain', { });
 mockModule('../src/model/oplog', { });
-const recordMock = { STAT_QUERY: {}, addJudge: async () => { } };
+const recordMock = { STAT_QUERY: {}, add: async () => ({}) };
 mockModule('../src/model/problem', {});
 mockModule('../src/model/record', recordMock);
 mockModule('../src/model/setting', {
@@ -63,7 +63,7 @@ const record = recordMock;
 describe('problem submit endpoint', () => {
     it('propagates post-insert counter failures', async () => {
         const failure = new Error('nSubmit failed');
-        record.addJudge = async () => { throw failure; };
+        record.add = async () => { throw failure; };
         const handler = Object.create(ProblemSubmitHandler.prototype) as any;
         handler.pdoc = {
             docId: 1001,

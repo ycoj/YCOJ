@@ -40,6 +40,7 @@ import {
 } from '../lib/ai/testdata/runtime';
 import { createAiGenerationTrace } from '../lib/ai/testdata/trace';
 import { validateAiTestdataConfig } from '../lib/ai/testdata/validation';
+import { addJudgeRecord } from '../lib/bulkSubmit/addJudgeRecord';
 import { Logger } from '../logger';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
@@ -562,7 +563,7 @@ export class ProblemSubmitHandler extends ProblemDetailHandler {
                 domainId, this.pdoc.docId, this.user._id, lang, code, true,
                 { input, type: 'pretest' },
             )
-            : await record.addJudge(
+            : await addJudgeRecord(
                 domainId, this.pdoc.docId, this.user._id, lang, code,
                 { contest: tid, files },
             );

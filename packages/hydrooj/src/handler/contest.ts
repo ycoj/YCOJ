@@ -1,6 +1,5 @@
-import { createReadStream } from 'fs';
 import { Readable } from 'stream';
-import { BlobWriter, FileEntry, TextReader, TextWriter, ZipReader, ZipWriter } from '@zip.js/zip.js';
+import { BlobWriter, TextReader, ZipWriter } from '@zip.js/zip.js';
 import { stringify as toCSV } from 'csv-stringify/sync';
 import { readFile } from 'fs-extra';
 import { escapeRegExp, pick } from 'lodash';
@@ -16,13 +15,12 @@ import {
     InvalidTokenError, MethodNotAllowedError, NotAssignedError, NotFoundError, PermissionError, ValidationError,
 } from '../error';
 import { ContestStatusDoc, FileInfo, ScoreboardConfig, Tdoc } from '../interface';
-import { commitContestBulkSubmit } from '../lib/bulkSubmit/commit';
+import { listAllowedCppLangs } from '../lib/bulkSubmit/config';
 import {
-    applyProblemMapping, BULK_SUBMIT_ZIP_MODES, BulkSubmitDuplicateZipPathError, BulkSubmitExistingUserPolicy,
-    BulkSubmitMappingError, BulkSubmitZipMode,
-    dryrunSubmittedFromInspect, groupByContestant, indexZipEntriesByNormalizedPath, inspectContestBulkSubmit, isCppLang,
-    normalizeZipPath, parseContestBulkSubmitPaths, parseProblemMapping, pickDefaultCppLang, problemAllowsLang,
+    BULK_SUBMIT_ZIP_MODES, BulkSubmitExistingUserPolicy, BulkSubmitMappingError, BulkSubmitZipMode,
+    isCppLang, parseProblemMapping, pickDefaultCppLang,
 } from '../lib/bulkSubmit/inspect';
+import { processContestBulkSubmit } from '../lib/bulkSubmit/process';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
@@ -34,7 +32,6 @@ import record from '../model/record';
 import ScheduleModel from '../model/schedule';
 import * as setting from '../model/setting';
 import storage from '../model/storage';
-import system from '../model/system';
 import user from '../model/user';
 import {
     Handler, param, post, Type, Types,
@@ -644,22 +641,6 @@ export class ContestManagementHandler extends ContestManagementBaseHandler {
     }
 }
 
-function listAllowedCppLangs(tdoc: Tdoc, domainLangs?: string) {
-    const filters: string[][] = [];
-    if (tdoc.langs?.length) filters.push(tdoc.langs);
-    if (domainLangs) {
-        const dl = domainLangs.split(',').map((i) => i.trim()).filter((i) => i);
-        if (dl.length) filters.push(dl);
-    }
-    const all = Object.keys(setting.langs).filter((i) => {
-        const cfg = setting.langs[i];
-        if (!cfg || cfg.disabled || cfg.remote) return false;
-        if (!filters.length && cfg.hidden) return false;
-        return isCppLang(i);
-    });
-    return filters.reduce((acc, f) => acc.filter((l) => f.includes(l)), all);
-}
-
 export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
     @param('tid', Types.ObjectId)
     async get(domainId: string, _tid: ObjectId) {
@@ -694,7 +675,6 @@ export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
         existingUser: BulkSubmitExistingUserPolicy = 'vuser', zipMode: BulkSubmitZipMode = 'auto',
     ) {
         if (contest.isNotStarted(this.tdoc)) throw new ContestNotLiveError(domainId, tid);
-        await this.limitRate('contest_bulk_submit', 60, 5);
         const cppLangs = listAllowedCppLangs(this.tdoc, this.domain.langs);
         const submitLang = lang || pickDefaultCppLang(cppLangs);
         if (!submitLang || !isCppLang(submitLang) || !cppLangs.includes(submitLang)
@@ -712,82 +692,18 @@ export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
         if (!file) throw new ValidationError('file');
         const filename = file.originalFilename || '';
         if (!filename.toLowerCase().endsWith('.zip')) throw new ValidationError('file', null, 'Only zip files are allowed');
-        const zip = new ZipReader(Readable.toWeb(createReadStream(file.filepath)));
-        try {
-            let fileEntries: FileEntry[];
-            try {
-                fileEntries = (await zip.getEntries()).filter((entry): entry is FileEntry => !!entry.filename && entry.directory !== true);
-            } catch (e) {
-                throw new ValidationError('file', null, e.message);
-            }
-            const maxZipEntries = 10000;
-            const maxZipUncompressed = system.get('limit.contest_files_size') || 128 * 1024 * 1024;
-            if (fileEntries.length > maxZipEntries) {
-                throw new ValidationError('file', null, 'Too many files in zip');
-            }
-            let totalUncompressed = 0;
-            for (const entry of fileEntries) {
-                totalUncompressed += entry.uncompressedSize || 0;
-                if (totalUncompressed > maxZipUncompressed) {
-                    throw new ValidationError('file', null, 'Zip uncompressed size too large');
-                }
-            }
-            let entryByPath: Map<string, FileEntry>;
-            try {
-                entryByPath = indexZipEntriesByNormalizedPath(fileEntries);
-            } catch (e) {
-                if (e instanceof BulkSubmitDuplicateZipPathError) throw new ValidationError('file', null, e.message);
-                throw e;
-            }
-            const layout = parseContestBulkSubmitPaths(fileEntries.map((entry) => entry.filename), zipMode);
-            const mapped = applyProblemMapping(layout.files, mapping);
-            const pdict = await problem.getList(domainId, this.tdoc.pids, true, true, problem.PROJECTION_CONTEST_LIST);
-            const inspect = await inspectContestBulkSubmit({
-                groups: groupByContestant(mapped.files),
-                skipped: [...layout.skipped, ...mapped.skipped],
-                policy: existingUser,
-                pdict,
-                submitLang,
-                lengthLimit: system.get('limit.codelength') || 128 * 1024,
-                lookupAccounts: async (uname) => ({
-                    real: await user.getRealByUname(domainId, uname),
-                    vuser: await user.getVuserByUname(uname),
-                }),
-                hasSource: (path) => entryByPath.has(normalizeZipPath(path)),
-                readSource: async (path) => {
-                    const entry = entryByPath.get(normalizeZipPath(path));
-                    if (!entry) throw new Error('Unexpected path layout');
-                    return String(await entry.getData(new TextWriter())).replace(/\r\n/g, '\n');
-                },
-                allowsLang: problemAllowsLang,
-            });
-            if (dryrun) {
-                this.response.body = {
-                    dryrun: true,
-                    lang: submitLang,
-                    users: inspect.usersPreview,
-                    submitted: dryrunSubmittedFromInspect(inspect),
-                    skipped: inspect.skipped,
-                };
-                return;
-            }
-            const committed = await commitContestBulkSubmit({
-                domainId,
-                tid,
-                beginAt: this.tdoc.beginAt,
-                lang: submitLang,
-                ready: inspect.ready,
-                usersPreview: inspect.usersPreview,
-                skipped: inspect.skipped,
-            });
-            this.response.body = {
-                dryrun: false,
-                lang: submitLang,
-                ...committed,
-            };
-        } finally {
-            await zip.close().catch(() => { });
-        }
+        this.response.body = await processContestBulkSubmit({
+            domainId,
+            tid,
+            pids: this.tdoc.pids,
+            beginAt: this.tdoc.beginAt,
+            filePath: file.filepath,
+            mapping,
+            submitLang,
+            dryrun,
+            existingUser,
+            zipMode,
+        });
     }
 }
 

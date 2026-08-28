@@ -8,12 +8,10 @@ import { ProblemConfigFile, STATUS_TEXTS } from '@hydrooj/common';
 import { Context } from '../context';
 import { ProblemNotFoundError } from '../error';
 import { JudgeMeta, RecordDoc } from '../interface';
-import { isDuplicateKeyError } from '../lib/mongodb';
 import db from '../service/db';
 import { MaybeArray, NumberKeys } from '../typeutils';
 import { ArgMethod, buildProjection, Time } from '../utils';
 import { STATUS } from './builtin';
-import * as contest from './contest';
 import DomainModel from './domain';
 import MessageModel from './message';
 import problem from './problem';
@@ -187,38 +185,6 @@ export default class RecordModel {
             });
         }
         return res.insertedId;
-    }
-
-    static async addJudge(
-        domainId: string, pid: number, uid: number,
-        lang: string, code: string,
-        args: {
-            contest?: ObjectId;
-            files?: Record<string, string>;
-            claimKey?: string;
-        } = {},
-    ) {
-        let rid: ObjectId;
-        try {
-            rid = await RecordModel.add(domainId, pid, uid, lang, code, true, {
-                contest: args.contest,
-                files: args.files,
-                type: 'judge',
-                claimKey: args.claimKey,
-            });
-        } catch (error) {
-            if (args.claimKey && isDuplicateKeyError(error)) {
-                const existing = await RecordModel.getByClaimKey(args.claimKey);
-                if (existing) return existing._id;
-            }
-            throw error;
-        }
-        await Promise.all([
-            problem.inc(domainId, pid, 'nSubmit', 1),
-            DomainModel.incUserInDomain(domainId, uid, 'nSubmit'),
-            args.contest && contest.updateStatus(domainId, args.contest, uid, rid, pid),
-        ]);
-        return rid;
     }
 
     static async getByClaimKey(claimKey: string): Promise<Pick<RecordDoc, '_id'> | null> {
