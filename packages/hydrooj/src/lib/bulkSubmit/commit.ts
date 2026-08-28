@@ -2,9 +2,10 @@
 import { ObjectId } from 'mongodb';
 import { ContestAlreadyAttendedError } from '../../error';
 import * as contest from '../../model/contest';
+import domain from '../../model/domain';
+import problem from '../../model/problem';
+import record from '../../model/record';
 import user from '../../model/user';
-import { addJudgeRecord } from './addJudgeRecord';
-import { bulkSubmitClaimKey, bulkSubmitItemIdentity } from './claim';
 import {
     BulkSubmitUser, PreparedBulkSubmit, SKIP_SUBMIT, ZipLayoutSkip,
 } from './inspect';
@@ -59,19 +60,15 @@ export async function commitContestBulkSubmit(opts: {
         users.push({ ...preview, uid });
         for (const item of items) {
             try {
-                const rid = await addJudgeRecord(
-                    opts.domainId, item.pid, uid, opts.lang, item.code,
-                    {
-                        contest: opts.tid,
-                        claimKey: bulkSubmitClaimKey(
-                            opts.domainId,
-                            opts.tid.toHexString(),
-                            item.pid,
-                            uid,
-                            bulkSubmitItemIdentity(item.code),
-                        ),
-                    },
+                const rid = await record.add(
+                    opts.domainId, item.pid, uid, opts.lang, item.code, true,
+                    { contest: opts.tid, type: 'judge' },
                 );
+                await Promise.all([
+                    problem.inc(opts.domainId, item.pid, 'nSubmit', 1),
+                    domain.incUserInDomain(opts.domainId, uid, 'nSubmit'),
+                    contest.updateStatus(opts.domainId, opts.tid, uid, rid, item.pid),
+                ]);
                 submitted.push({
                     uname: item.uname, uid, pid: item.pid, rid,
                 });

@@ -40,7 +40,6 @@ import {
 } from '../lib/ai/testdata/runtime';
 import { createAiGenerationTrace } from '../lib/ai/testdata/trace';
 import { validateAiTestdataConfig } from '../lib/ai/testdata/validation';
-import { addJudgeRecord } from '../lib/bulkSubmit/addJudgeRecord';
 import { Logger } from '../logger';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
@@ -558,15 +557,17 @@ export class ProblemSubmitHandler extends ProblemDetailHandler {
             code = code.replace(/\r\n/g, '\n');
             if (code.length > lengthLimit) throw new ValidationError('code');
         }
-        const rid = pretest
-            ? await record.add(
-                domainId, this.pdoc.docId, this.user._id, lang, code, true,
-                { input, type: 'pretest' },
-            )
-            : await addJudgeRecord(
-                domainId, this.pdoc.docId, this.user._id, lang, code,
-                { contest: tid, files },
-            );
+        const rid = await record.add(
+            domainId, this.pdoc.docId, this.user._id, lang, code, true,
+            pretest ? { input, type: 'pretest' } : { contest: tid, files, type: 'judge' },
+        );
+        if (!pretest) {
+            await Promise.all([
+                problem.inc(domainId, this.pdoc.docId, 'nSubmit', 1),
+                domain.incUserInDomain(domainId, this.user._id, 'nSubmit'),
+                tid && contest.updateStatus(domainId, tid, this.user._id, rid, this.pdoc.docId),
+            ]);
+        }
         if (tid && !pretest && !contest.canShowSelfRecord.call(this, this.tdoc)) {
             this.response.body = { tid };
             this.response.redirect = this.url(this.tdoc.rule === 'homework' ? 'homework_detail' : 'contest_problemlist', { tid });

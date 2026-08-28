@@ -270,7 +270,6 @@ export type RecordDoc = {
     _id: ObjectId;
     notify?: boolean;
     aiGeneration?: AiGenerationMeta;
-    _claimKey?: string;
 };
 
 export interface RecordHistoryDoc extends RecordJudgeInfo {

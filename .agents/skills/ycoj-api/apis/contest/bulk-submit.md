@@ -16,7 +16,7 @@ bob/gcd.cpp
 
 A shared wrapper directory is stripped. Only `.cpp` files are accepted.
 
-POST always **inspects first** (parse zip, map pids, read sources, apply problem/language/empty/length checks, look up real-user and vuser identity). Inspect does not create users, attend the contest, insert records, or update nSubmit/status. If `dryrun=true`, the inspect result is returned as-is (planned new vusers use `uid: 0`) without mutating contest state. If `dryrun=false`, the server then **commits**: for each contestant with at least one ready file, create/reuse the chosen account and attend, then write each ready file through `record.add` plus the normal counter/status updates. Record insertion or judge-queue failures are recovered through the claim on retry; post-insert counter/status failures leave the record durable, are logged, and are repaired by a later retry. Processing continues for other entries. An already-claimed item (same domain, contest, problem, user, and source) returns the existing record without inserting a duplicate. Allowed once the contest has started, including after it ends. Not-started contests are rejected with `ContestNotLiveError`.
+POST always **inspects first** (parse zip, map pids, read sources, apply problem/language/empty/length checks, look up real-user and vuser identity). Inspect does not create users, attend the contest, insert records, or update nSubmit/status. If `dryrun=true`, the inspect result is returned as-is (planned new vusers use `uid: 0`) without mutating contest state. If `dryrun=false`, the server then **commits**: for each contestant with at least one ready file, create/reuse the chosen account and attend, then write each ready file through `record.add` plus the normal counter/status updates. `record.add` creates and queues the judge task. Submission, queue, counter, or status failures are reported as per-entry skips, and processing continues for other entries. The commit is not idempotent; retrying after a partial failure may create another record. Allowed once the contest has started, including after it ends. Not-started contests are rejected with `ContestNotLiveError`.
 
 ## GET `/contest/:tid/bulk-submit`
 
@@ -68,8 +68,8 @@ Each source file remains subject to `limit.codelength`. Before extracting source
   - `realUid`: Included for UI notification when the virtual-user strategy is used but a real user with the same name also exists.
   - `uid` is 0 for a dry run that will create a vuser; it is never 0 after commit.
   - Commit `users` includes only contestants with at least one ready file, for whom an account was actually created/reused and the contest was attended.
-- submitted: `{ uname: string; uid: number; pid: number; rid?: ObjectId }[]`  (dry runs have no `rid`; committed submissions include only entries for which `record.addJudge()` succeeds, including idempotent matches with an existing rid)
-- skipped: `{ uname: string; problem: string; reason: string }[]`  (includes entries whose `record.add` was persisted but whose later nSubmit/`updateStatus` update caused `record.addJudge()` to reject; a retry returns the existing rid without rerunning those updates)
+- submitted: `{ uname: string; uid: number; pid: number; rid?: ObjectId }[]`  (dry runs have no `rid`; committed submissions include only entries for which `record.add` and the follow-up counter/status updates succeed)
+- skipped: `{ uname: string; problem: string; reason: string }[]`  (includes entries whose record, queue, counter, or status operation failed; a persisted record is not rolled back)
 
 Successful commit example:
 

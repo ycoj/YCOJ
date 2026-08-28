@@ -137,7 +137,6 @@ export default class RecordModel {
             type: 'judge' | 'rejudge' | 'pretest' | 'hack' | 'generate';
             notify?: boolean;
             aiGeneration?: RecordDoc['aiGeneration'];
-            claimKey?: string;
         } = { type: 'judge' },
     ) {
         const data: RecordDoc = {
@@ -164,7 +163,6 @@ export default class RecordModel {
         if (args.hackTarget) data.hackTarget = args.hackTarget;
         if (args.notify) data.notify = true;
         if (args.aiGeneration) data.aiGeneration = args.aiGeneration;
-        if (args.claimKey) data._claimKey = args.claimKey;
         if (args.type === 'rejudge') {
             args.type = 'judge';
             data.rejudged = true;
@@ -185,10 +183,6 @@ export default class RecordModel {
             });
         }
         return res.insertedId;
-    }
-
-    static async getByClaimKey(claimKey: string): Promise<Pick<RecordDoc, '_id'> | null> {
-        return RecordModel.coll.findOne({ _claimKey: claimKey }, { projection: { _id: 1 } });
     }
 
     static getMulti(domainId: string, query: any, options?: FindOptions) {
@@ -339,7 +333,6 @@ export async function apply(ctx: Context) {
             { key: { domainId: 1, contest: 1, pid: 1, _id: -1 }, name: 'withProblem' },
             { key: { domainId: 1, contest: 1, pid: 1, uid: 1, _id: -1 }, name: 'withUserAndProblem' },
             { key: { domainId: 1, contest: 1, status: 1, _id: -1 }, name: 'withStatus' },
-            { key: { _claimKey: 1 }, name: 'claimKey', unique: true, sparse: true },
         ),
         db.ensureIndexes(
             RecordModel.collStat,

@@ -61,7 +61,7 @@ const { ProblemSubmitHandler } = require('../src/handler/problem') as typeof imp
 const record = recordMock;
 
 describe('problem submit endpoint', () => {
-    it('propagates post-insert counter failures', async () => {
+    it('propagates record insertion failures', async () => {
         const failure = new Error('nSubmit failed');
         record.add = async () => { throw failure; };
         const handler = Object.create(ProblemSubmitHandler.prototype) as any;

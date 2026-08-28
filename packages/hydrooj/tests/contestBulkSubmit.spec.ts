@@ -1,9 +1,6 @@
 import assert from 'assert';
 import { describe, it } from 'node:test';
 import {
-    bulkSubmitClaimKey, bulkSubmitItemIdentity, isDuplicateKeyError,
-} from '../src/lib/bulkSubmit/claim';
-import {
     applyProblemMapping, BulkSubmitDuplicateZipPathError, BulkSubmitMappingError, decideBulkSubmitIdentity,
     dryrunSubmittedFromInspect, indexZipEntriesByNormalizedPath, inspectContestBulkSubmit, parseContestBulkSubmitPaths, parseProblemMapping,
     problemAllowsLang, SKIP_DUPLICATE, SKIP_EMPTY, SKIP_JUNK, SKIP_LANG, SKIP_LAYOUT, SKIP_NAME_MISMATCH, SKIP_NOT_CPP,
@@ -34,9 +31,12 @@ mockRecordDependency('../src/utils', {
     Time: {},
 });
 mockRecordDependency('../src/model/builtin', { STATUS: { STATUS_WAITING: 0 } });
-mockRecordDependency('../src/model/contest', {
+const contestMock = {
+    attend: async () => { },
+    getStatus: async () => null,
     updateStatus: async () => { judgeDependencyCalls.contest++; },
-});
+};
+mockRecordDependency('../src/model/contest', contestMock);
 class MockDomainModel {
     static async incUserInDomain() { judgeDependencyCalls.domain++; }
 }
@@ -47,10 +47,11 @@ mockRecordDependency('../src/model/problem', {
 });
 mockRecordDependency('../src/model/system', {});
 mockRecordDependency('../src/model/task', {});
+mockRecordDependency('../src/model/user', { ensureVuser: async () => -1000 });
 
 Object.assign(global, { Hydro: { model: {} } });
 const RecordModel = require('../src/model/record').default;
-const { addJudgeRecord } = require('../src/lib/bulkSubmit/addJudgeRecord');
+const { commitContestBulkSubmit } = require('../src/lib/bulkSubmit/commit');
 
 describe('contest bulk submit zip layout', () => {
     it('parses contestant/problem/problem.cpp entries', () => {
@@ -408,113 +409,46 @@ describe('contest bulk submit zip path uniqueness', () => {
     });
 });
 
-describe('contest bulk submit claim', () => {
-    it('derives a stable key from domain, contest, problem, user, and source', () => {
-        const item = bulkSubmitItemIdentity('int main(){}\n');
-        const key = bulkSubmitClaimKey('system', '665f00000000000000000001', 1001, -1000, item);
-        assert.equal(key, bulkSubmitClaimKey('system', '665f00000000000000000001', 1001, -1000, item));
-        assert.notEqual(key, bulkSubmitClaimKey('system', '665f00000000000000000001', 1001, -1000, bulkSubmitItemIdentity('int main(){}')));
-        assert.notEqual(key, bulkSubmitClaimKey('system', '665f00000000000000000001', 1002, -1000, item));
-        assert.notEqual(key, bulkSubmitClaimKey('system', '665f00000000000000000001', 1001, -1001, item));
-    });
-
-    it('detects Mongo duplicate-key errors', () => {
-        assert.equal(isDuplicateKeyError({ code: 11000 }), true);
-        assert.equal(isDuplicateKeyError({ code: 11001 }), false);
-        assert.equal(isDuplicateKeyError('duplicate'), false);
-    });
-});
-
-describe('judge record addition', () => {
-    const rid = { toHexString: () => 'new' };
-    const claimed = { toHexString: () => 'existing' };
-
-    it('updates submission state after inserting a record', async (t) => {
+describe('contest bulk submit commit', () => {
+    it('adds a judge record and updates submission state', async (t) => {
         judgeDependencyCalls.contest = 0;
         judgeDependencyCalls.domain = 0;
         judgeDependencyCalls.problem = 0;
+        const rid = { toHexString: () => 'new' };
         const add = t.mock.method(RecordModel, 'add', async () => rid);
         const contestId = { toHexString: () => 'contest' };
-        const files = { code: 'stored.cpp' };
-        const result = await addJudgeRecord(
-            'system', 1001, -1000, 'cc.cc14', 'int main(){}',
-            {
-                contest: contestId, files, claimKey: 'claim',
-            },
-        );
-        assert.equal(result, rid);
-        assert.deepStrictEqual(add.mock.calls[0].arguments, [
-            'system', 1001, -1000, 'cc.cc14', 'int main(){}', true,
-            {
-                contest: contestId, files, type: 'judge', claimKey: 'claim',
-            },
-        ]);
-        assert.deepStrictEqual(judgeDependencyCalls, {
-            contest: 1,
-            domain: 1,
-            problem: 1,
+        const result = await commitContestBulkSubmit({
+            domainId: 'system',
+            tid: contestId,
+            beginAt: new Date(0),
+            lang: 'cc.cc14',
+            ready: [{ uname: 'alice', pid: 1001, problemName: 'apple', code: 'int main(){}' }],
+            usersPreview: [{ uname: 'alice', kind: 'vuser', uid: -1000, created: false }],
+            skipped: [],
         });
+        assert.equal(add.mock.calls[0].arguments[0], 'system');
+        assert.equal(add.mock.calls[0].arguments[5], true);
+        assert.deepStrictEqual(add.mock.calls[0].arguments[6], { contest: contestId, type: 'judge' });
+        assert.deepStrictEqual(result.submitted, [{ uname: 'alice', uid: -1000, pid: 1001, rid }]);
+        assert.deepStrictEqual(judgeDependencyCalls, { contest: 1, domain: 1, problem: 1 });
     });
 
-    it('returns the claimed record without updating submission state again', async (t) => {
-        judgeDependencyCalls.contest = 0;
-        judgeDependencyCalls.domain = 0;
-        judgeDependencyCalls.problem = 0;
+    it('skips a failed item and continues with later submissions', async (t) => {
+        let calls = 0;
         t.mock.method(RecordModel, 'add', async () => {
-            throw Object.assign(new Error('duplicate key'), { code: 11000 });
+            calls++;
+            if (calls === 1) throw new Error('queue failed');
+            return { toHexString: () => 'second' };
         });
-        t.mock.method(RecordModel, 'getByClaimKey', async () => ({ _id: claimed }));
-        const result = await addJudgeRecord(
-            'system', 1001, -1000, 'cc.cc14', 'int main(){}', { claimKey: 'claim' },
-        );
-        assert.equal(result, claimed);
-        assert.deepStrictEqual(judgeDependencyCalls, {
-            contest: 0,
-            domain: 1,
-            problem: 1,
+        const result = await commitContestBulkSubmit({
+            domainId: 'system', tid: { toHexString: () => 'contest' }, beginAt: new Date(0), lang: 'cc.cc14',
+            ready: [
+                { uname: 'alice', pid: 1001, problemName: 'apple', code: 'bad' },
+                { uname: 'alice', pid: 1002, problemName: 'gcd', code: 'good' },
+            ],
+            usersPreview: [{ uname: 'alice', kind: 'vuser', uid: -1000, created: false }], skipped: [],
         });
-    });
-
-    it('returns the durable record for claimed post-insert update failures', async (t) => {
-        t.mock.method(RecordModel, 'add', async () => rid);
-        t.mock.method(MockDomainModel, 'incUserInDomain', async () => {
-            throw new Error('nSubmit failed');
-        });
-        const result = await addJudgeRecord('system', 1001, -1000, 'cc.cc14', 'int main(){}', { claimKey: 'claim' });
-        assert.equal(result, rid);
-    });
-
-    it('rethrows post-insert update failures for ordinary submissions', async (t) => {
-        t.mock.method(RecordModel, 'add', async () => rid);
-        t.mock.method(MockDomainModel, 'incUserInDomain', async () => {
-            throw new Error('nSubmit failed');
-        });
-        await assert.rejects(
-            () => addJudgeRecord('system', 1001, -1000, 'cc.cc14', 'int main(){}'),
-            /nSubmit failed/,
-        );
-    });
-
-    it('rethrows insert errors that cannot resolve to an existing claim', async (t) => {
-        t.mock.method(RecordModel, 'add', async () => {
-            throw new Error('disk full');
-        });
-        await assert.rejects(
-            () => addJudgeRecord('system', 1001, -1000, 'cc.cc14', 'int main(){}'),
-            /disk full/,
-        );
-    });
-
-    it('rethrows a duplicate-key error when its claim cannot be found', async (t) => {
-        t.mock.method(RecordModel, 'add', async () => {
-            throw Object.assign(new Error('duplicate key'), { code: 11000 });
-        });
-        t.mock.method(RecordModel, 'getByClaimKey', async () => null);
-        await assert.rejects(
-            () => addJudgeRecord(
-                'system', 1001, -1000, 'cc.cc14', 'int main(){}', { claimKey: 'claim' },
-            ),
-            /duplicate key/,
-        );
+        assert.deepStrictEqual(result.submitted.map((item) => item.pid), [1002]);
+        assert.deepStrictEqual(result.skipped, [{ uname: 'alice', problem: 'apple', reason: 'queue failed' }]);
     });
 });
