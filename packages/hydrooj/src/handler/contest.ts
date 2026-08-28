@@ -21,7 +21,7 @@ import {
     applyProblemMapping, BULK_SUBMIT_ZIP_MODES, BulkSubmitDuplicateZipPathError, BulkSubmitExistingUserPolicy,
     BulkSubmitMappingError, BulkSubmitZipMode,
     dryrunSubmittedFromInspect, groupByContestant, indexZipEntriesByNormalizedPath, inspectContestBulkSubmit, isCppLang,
-    normalizeZipPath, parseContestBulkSubmitPaths, parseProblemMapping, pickDefaultCppLang,
+    normalizeZipPath, parseContestBulkSubmitPaths, parseProblemMapping, pickDefaultCppLang, problemAllowsLang,
 } from '../lib/bulkSubmit/inspect';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
@@ -658,14 +658,6 @@ function listAllowedCppLangs(tdoc: Tdoc, domainLangs?: string) {
         return isCppLang(i);
     });
     return filters.reduce((acc, f) => acc.filter((l) => f.includes(l)), all);
-}
-
-function problemAllowsLang(pdoc: { config?: any }, lang: string) {
-    const config = pdoc?.config;
-    if (typeof config !== 'object' || !config) return false;
-    if (['submit_answer', 'objective'].includes(config.type)) return false;
-    if (config.langs?.length && !config.langs.includes(lang)) return false;
-    return true;
 }
 
 export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {

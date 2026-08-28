@@ -6,7 +6,7 @@ import {
 import {
     applyProblemMapping, BulkSubmitDuplicateZipPathError, BulkSubmitMappingError, decideBulkSubmitIdentity,
     dryrunSubmittedFromInspect, indexZipEntriesByNormalizedPath, inspectContestBulkSubmit, parseContestBulkSubmitPaths, parseProblemMapping,
-    SKIP_DUPLICATE, SKIP_EMPTY, SKIP_JUNK, SKIP_LANG, SKIP_LAYOUT, SKIP_NAME_MISMATCH, SKIP_NOT_CPP,
+    problemAllowsLang, SKIP_DUPLICATE, SKIP_EMPTY, SKIP_JUNK, SKIP_LANG, SKIP_LAYOUT, SKIP_NAME_MISMATCH, SKIP_NOT_CPP,
     SKIP_PROBLEM_NOT_FOUND, SKIP_TOO_LONG, SKIP_UNMAPPED,
 } from '../src/lib/bulkSubmit/inspect';
 
@@ -306,6 +306,11 @@ describe('contest bulk submit inspect', () => {
         });
     }
 
+    it('rejects an explicitly empty problem language list', () => {
+        assert.equal(problemAllowsLang({ config: { type: 'default', langs: [] } }, 'cc.cc14'), false);
+        assert.equal(problemAllowsLang({ config: { type: 'default' } }, 'cc.cc14'), true);
+    });
+
     it('skips missing problem, disallowed language, missing source, empty, too long, and read errors', async () => {
         const missingProblem = await runInspect({ pdict: {} });
         assert.deepStrictEqual(missingProblem.skipped.map((s) => s.reason), [SKIP_PROBLEM_NOT_FOUND]);
@@ -313,6 +318,12 @@ describe('contest bulk submit inspect', () => {
 
         const lang = await runInspect({ allowsLang: () => false });
         assert.deepStrictEqual(lang.skipped.map((s) => s.reason), [SKIP_LANG]);
+
+        const emptyLang = await runInspect({
+            pdict: { 1001: { config: { type: 'default', langs: [] } } },
+            allowsLang: problemAllowsLang,
+        });
+        assert.deepStrictEqual(emptyLang.skipped.map((s) => s.reason), [SKIP_LANG]);
 
         const missing = await runInspect({ hasSource: () => false });
         assert.deepStrictEqual(missing.skipped.map((s) => s.reason), [SKIP_LAYOUT]);

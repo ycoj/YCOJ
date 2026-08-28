@@ -51,6 +51,14 @@ export type BulkSubmitExistingUserPolicy = 'vuser' | 'existing';
 export const BULK_SUBMIT_ZIP_MODES = ['auto', 'subfolder', 'nosubfolder'] as const;
 export type BulkSubmitZipMode = typeof BULK_SUBMIT_ZIP_MODES[number];
 
+export function problemAllowsLang(pdoc: { config?: any }, lang: string) {
+    const config = pdoc?.config;
+    if (typeof config !== 'object' || !config) return false;
+    if (['submit_answer', 'objective'].includes(config.type)) return false;
+    if (config.langs && !config.langs.includes(lang)) return false;
+    return true;
+}
+
 export interface BulkSubmitIdentity {
     kind: 'vuser' | 'user';
     uid: number;

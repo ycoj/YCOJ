@@ -56,7 +56,7 @@ There is no `operation` field; the route's default POST is the bulk submission.
 
 Multipart example: `POST /contest/665f00000000000000000001/bulk-submit` with `file=@weekly.zip&mapping={"1001":"apple"}&lang=cc.cc14&dryrun=on&existingUser=vuser&zipMode=auto`.
 
-Management requests are limited to five per 60 seconds (`contest_bulk_submit`) and do not use the contestant's personal submission rate limit. Each source file remains subject to `limit.codelength`. Before extracting source code, an archive with more than 10,000 entries, an uncompressed total size above `limit.contest_files_size` (128 MiB by default), or multiple entries with the same path after `normalizeZipPath` returns `ValidationError('file')`. Non-`.cpp` archive files, invalid layouts, empty or oversized source files, a language not allowed by the problem, and `record.addJudge()` rejections are skipped per entry and do not stop the remaining entries.
+Management requests are limited to five per 60 seconds (`contest_bulk_submit`) and do not use the contestant's personal submission rate limit. Each source file remains subject to `limit.codelength`. Before extracting source code, an archive with more than 10,000 entries, an uncompressed total size above `limit.contest_files_size` (128 MiB by default), or multiple entries with the same path after `normalizeZipPath` returns `ValidationError('file')`. Non-`.cpp` archive files, invalid layouts, empty or oversized source files, a language not allowed by the problem (including a problem with an explicitly empty `config.langs` list), and `record.addJudge()` rejections are skipped per entry and do not stop the remaining entries.
 
 ### Result
 
