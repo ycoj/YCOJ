@@ -139,7 +139,7 @@ const page = new NamedPage('contest_bulk_submit', () => {
     data.append('mapping', JSON.stringify(mapping));
     data.append('lang', String($('[name="lang"]').val() || ''));
     if ($('[name="dryrun"]').prop('checked')) data.append('dryrun', 'on');
-    data.append('existingUser', String($('[name="existingUser"]:checked').val() || 'vuser'));
+    data.append('existingUser', String($('[name="existingUser"]:checked').val() || 'existing'));
     data.append('zipMode', String($('[name="zipMode"]:checked').val() || 'auto'));
     submitting = true;
     $submit.prop('disabled', true);

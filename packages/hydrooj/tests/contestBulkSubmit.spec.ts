@@ -1,9 +1,11 @@
 import assert from 'assert';
 import { describe, it } from 'node:test';
 import {
-    applyProblemMapping, BulkSubmitDuplicateZipPathError, BulkSubmitMappingError, decideBulkSubmitIdentity,
+    applyProblemMapping, buildBulkSubmitMappingDefaults, BulkSubmitDuplicateZipPathError, BulkSubmitMappingError,
+    decideBulkSubmitIdentity,
+    DEFAULT_BULK_SUBMIT_EXISTING_USER_POLICY,
     dryrunSubmittedFromInspect, indexZipEntriesByNormalizedPath, inspectContestBulkSubmit, parseContestBulkSubmitPaths, parseProblemMapping,
-    problemAllowsLang, SKIP_DUPLICATE, SKIP_EMPTY, SKIP_JUNK, SKIP_LANG, SKIP_LAYOUT, SKIP_NAME_MISMATCH, SKIP_NOT_CPP,
+    pickDefaultCppLang, problemAllowsLang, SKIP_DUPLICATE, SKIP_EMPTY, SKIP_JUNK, SKIP_LANG, SKIP_LAYOUT, SKIP_NAME_MISMATCH, SKIP_NOT_CPP,
     SKIP_PROBLEM_NOT_FOUND, SKIP_TOO_LONG, SKIP_UNMAPPED,
 } from '../src/lib/bulkSubmit/inspect';
 
@@ -260,6 +262,24 @@ describe('contest bulk submit zip layout', () => {
 });
 
 describe('contest bulk submit mapping', () => {
+    it('uses unique file-IO names while preserving ordinary problem defaults', () => {
+        const pids = [1001, 1002, 1003, 1004, 1005, 1006];
+        assert.deepStrictEqual(buildBulkSubmitMappingDefaults(pids, {
+            1001: { config: { type: 'default', subType: 'rag' } },
+            1002: { config: { type: 'default' } },
+            1003: { config: { type: 'default', subType: 'RAG' } },
+            1004: { config: { type: 'objective', subType: 'quiz' } },
+            1005: { config: { type: 'default', subType: '  paint  ' } },
+        }, ['A', 'remote-id', 'C', 'D', 'E', 'F']), {
+            1001: 'rag',
+            1002: 'remote-id',
+            1003: '',
+            1004: 'D',
+            1005: 'paint',
+            1006: 'F',
+        });
+    });
+
     it('parses pid to zip folder names and rejects unknown pids', () => {
         const mapping = parseProblemMapping('{"1001":"apple","1002":" gcd ","1003":"  "}', [1001, 1002, 1003]);
         assert.deepStrictEqual(mapping, { 1001: 'apple', 1002: 'gcd' });
@@ -314,6 +334,19 @@ describe('contest bulk submit identity', () => {
         assert.deepStrictEqual(decideBulkSubmitIdentity(real, vuser, 'existing'), {
             kind: 'user', uid: 42, created: false,
         });
+    });
+
+    it('submits as the registered user by default when both identities exist', () => {
+        assert.deepStrictEqual(decideBulkSubmitIdentity(real, vuser, DEFAULT_BULK_SUBMIT_EXISTING_USER_POLICY), {
+            kind: 'user', uid: 42, created: false,
+        });
+    });
+});
+
+describe('contest bulk submit default language', () => {
+    it('prefers C++14 O2 when available and otherwise uses the first language', () => {
+        assert.equal(pickDefaultCppLang(['cc.cc17', 'cc.cc14o2', 'cc.cc14']), 'cc.cc14o2');
+        assert.equal(pickDefaultCppLang(['cc.cc17', 'cc.cc14']), 'cc.cc17');
     });
 });
 

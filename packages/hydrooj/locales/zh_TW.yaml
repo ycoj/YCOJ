@@ -210,7 +210,6 @@ Create Role: 建立角色
 Create Training Plan: 建立訓練計劃
 Create training plans: 建立訓練計劃
 Create: 建立
-Create or reuse a virtual user: 建立或重用虛擬使用者
 Created By: 建立人
 Created virtual user: 已建立虛擬使用者
 Created virtual user (a registered user also exists): 已建立虛擬使用者（同時存在同名正式使用者）
@@ -981,7 +980,8 @@ Existing registered user: 已有正式使用者
 Existing virtual user: 已有虛擬使用者
 Existing virtual user (a registered user also exists): 已有虛擬使用者（同時存在同名正式使用者）
 If a registered user already has this name: 若已有同名正式使用者
-Submit as the existing registered user: 以該正式使用者身分提交
+Submit all as virtual users: 全部以虛擬使用者方式提交
+Merge submissions for system users; submit non-system users as virtual users: 系統使用者合併提交，非系統使用者以虛擬使用者提交
 Ignored junk file: 已忽略無效檔案
 Not a C++ file: 不是 C++ 檔案
 Only zip files are allowed: 僅允許 zip 檔案

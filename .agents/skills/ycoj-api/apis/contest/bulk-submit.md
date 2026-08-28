@@ -33,10 +33,10 @@ POST always **inspects first** (parse zip, map pids, read sources, apply problem
 - owner_udoc: UserDoc
 - pdict: ProblemDict
 - langRange: Record\<string, string\>  (allowed C++ language ID -> display name)
-- defaultLang: string  (prefers `cc.cc14`)
-- mappingDefaults: Record\<number, string\>  (pid -> prefilled zip problem name, either the problem pid or its letter index such as A/B/C)
+- defaultLang: string  (prefers `cc.cc14o2` when available; otherwise uses the first allowed C++ language)
+- mappingDefaults: Record\<number, string\>  (pid -> prefilled zip problem name. A default-type file-IO problem uses `config.subType`, the parsed base filename for `.in/.out`; if multiple such problems have the same trimmed, case-insensitive filename, only the first is prefilled and later values are empty. Other problems keep the problem pid or letter index such as A/B/C.)
 
-HTML: `contest_bulk_submit.html`. JSON example: `{ "tdoc":{"docId":"665f00000000000000000001"},"langRange":{"cc.cc14":"C++14"},"defaultLang":"cc.cc14","mappingDefaults":{"1001":"A"} }`.
+HTML: `contest_bulk_submit.html`. JSON example for two file-IO problems that both use `rag.in/rag.out`: `{ "tdoc":{"docId":"665f00000000000000000001"},"langRange":{"cc.cc14o2":"C++14(O2)"},"defaultLang":"cc.cc14o2","mappingDefaults":{"1001":"rag","1002":""} }`.
 
 ## POST `/contest/:tid/bulk-submit`
 
@@ -49,12 +49,12 @@ There is no `operation` field; the route's default POST is the bulk submission.
 | tid | string (ObjectId) | Contest ID | Contest owner/maintainer, or `PERM_EDIT_CONTEST` |
 | file | Blob (zip) | Zip archive of contestant source code | Same as above |
 | mapping | string (JSON) or object | Maps site problem IDs to problem names in the zip (a subfolder name in `subfolder` layout or the `.cpp` basename in `nosubfolder` layout), for example `{"1001":"apple","1002":"gcd"}`. Unmapped pids are skipped. A pid outside this contest, or duplicate mapped problem names after trimming and case-insensitive comparison, returns `ValidationError('mapping')`. | Same as above |
-| lang | string (Name), optional | C++ language ID (`cc` or `cc.*`). Defaults to a C++ language allowed by the contest/domain, preferring `cc.cc14`. | Same as above |
+| lang | string (Name), optional | C++ language ID (`cc` or `cc.*`). Defaults to `cc.cc14o2` when it is allowed by the contest/domain; otherwise uses the first allowed C++ language. | Same as above |
 | dryrun | boolean, optional | When true, return only the inspect result; do not create/reuse accounts, attend the contest, insert records, or update counters or contest status. | Same as above |
-| existingUser | `"vuser"` \| `"existing"`, optional, default `"vuser"` | When a **real user** (in the `user` collection) already has the contestant folder name, `vuser` creates or reuses a virtual user; `existing` attends and submits as that real user's uid. When no real user exists, both strategies reuse or create a virtual user. | Same as above |
+| existingUser | `"vuser"` \| `"existing"`, optional, default `"existing"` | When a **real user** (in the `user` collection) already has the contestant folder name, the default `existing` strategy attends and submits as that real user's uid; `vuser` explicitly creates or reuses a virtual user instead. When no real user exists, both strategies reuse or create a virtual user. | Same as above |
 | zipMode | `"auto"` \| `"subfolder"` \| `"nosubfolder"`, optional, default `"auto"` | Zip layout: `subfolder` requires `contestant/problem/problem.cpp`; `nosubfolder` requires `contestant/problem.cpp`; `auto` recognizes both paths and prefers the subfolder layout for the same contestant and problem. | Same as above |
 
-Multipart example: `POST /contest/665f00000000000000000001/bulk-submit` with `file=@weekly.zip&mapping={"1001":"apple"}&lang=cc.cc14&dryrun=on&existingUser=vuser&zipMode=auto`.
+Multipart example: `POST /contest/665f00000000000000000001/bulk-submit` with `file=@weekly.zip&mapping={"1001":"apple"}&lang=cc.cc14o2&dryrun=on&existingUser=existing&zipMode=auto`.
 
 Each source file remains subject to `limit.codelength`. Before extracting source code, an archive with more than 10,000 entries, an uncompressed total size above `limit.contest_files_size` (128 MiB by default), or multiple entries with the same path after `normalizeZipPath` returns `ValidationError('file')`. Non-`.cpp` archive files, invalid layouts, empty or oversized source files, and a language not allowed by the problem (including a problem with an explicitly empty `config.langs` list) are skipped per entry and do not stop the remaining entries.
 
@@ -76,15 +76,15 @@ Successful commit example:
 ```json
 {
   "dryrun": false,
-  "lang": "cc.cc14",
+  "lang": "cc.cc14o2",
   "users": [{ "uname": "alice", "uid": -1000, "created": true, "kind": "vuser" }],
   "submitted": [{ "uname": "alice", "uid": -1000, "pid": 1001, "rid": "665f00000000000000000002" }],
   "skipped": []
 }
 ```
 
-Dry-run example: `{ "dryrun":true,"lang":"cc.cc14","users":[{ "uname":"alice","uid":0,"created":true,"kind":"vuser" }],"submitted":[{ "uname":"alice","uid":0,"pid":1001 }],"skipped":[] }`.
+Dry-run example: `{ "dryrun":true,"lang":"cc.cc14o2","users":[{ "uname":"alice","uid":0,"created":true,"kind":"vuser" }],"submitted":[{ "uname":"alice","uid":0,"pid":1001 }],"skipped":[] }`.
 
-For a real user with the same name and `existingUser=existing`, `users` is shaped like `{ "uname":"alice","uid":42,"created":false,"kind":"user" }`. For a real user with the same name and `existingUser=vuser` (the default), the request still uses a vuser and can include `realUid`.
+For a real user with the same name, the default `existingUser=existing` strategy produces `{ "uname":"alice","uid":42,"created":false,"kind":"user" }`. With an explicit `existingUser=vuser`, the request uses a vuser instead and can include `realUid`.
 
 Validation errors identify `file`, `mapping`, `lang`, `existingUser`, or `zipMode`. A contest that has not started returns `ContestNotLiveError`.

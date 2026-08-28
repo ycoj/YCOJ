@@ -215,7 +215,6 @@ Create Role: 创建角色
 Create Training Plan: 创建训练计划
 Create training plans: 创建训练计划
 Create: 创建
-Create or reuse a virtual user: 创建或复用虚拟用户
 Created By: 创建人
 Created virtual user: 已创建虚拟用户
 Created virtual user (a registered user also exists): 已创建虚拟用户（同时存在同名正式用户）
@@ -983,7 +982,8 @@ Existing registered user: 已有正式用户
 Existing virtual user: 已有虚拟用户
 Existing virtual user (a registered user also exists): 已有虚拟用户（同时存在同名正式用户）
 If a registered user already has this name: 若已有同名正式用户
-Submit as the existing registered user: 以该正式用户身份提交
+Submit all as virtual users: 全部以虚拟用户方式提交
+Merge submissions for system users; submit non-system users as virtual users: 系统用户合并提交，非系统用户以虚拟用户提交
 Ignored junk file: 已忽略无效文件
 Not a C++ file: 不是 C++ 文件
 Only zip files are allowed: 仅允许 zip 文件

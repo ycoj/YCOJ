@@ -28,7 +28,7 @@
 {%- set b = '    ' if last_contestant else '│   ' -%}
 {%- if tdoc.pids.length -%}
 {%- for pid in tdoc.pids -%}
-{%- if loop.index0 < 2 %}
+{%- if loop.index0 < 2 and mappingDefaults[pid] %}
 {{ b }}{{ '└' if (loop.index0 == 0 and tdoc.pids.length == 1) or (loop.index0 == 1 and tdoc.pids.length == 2) else '├' }}── {{ mappingDefaults[pid] }}/
 {{ b }}{{ ' ' if (loop.index0 == 0 and tdoc.pids.length == 1) or (loop.index0 == 1 and tdoc.pids.length == 2) else '│' }}   └── {{ mappingDefaults[pid] }}.cpp
 {% endif -%}
@@ -45,7 +45,7 @@
 {%- set b = '    ' if last_contestant else '│   ' -%}
 {%- if tdoc.pids.length -%}
 {%- for pid in tdoc.pids -%}
-{%- if loop.index0 < 2 %}
+{%- if loop.index0 < 2 and mappingDefaults[pid] %}
 {{ b }}{{ '└' if (loop.index0 == 0 and tdoc.pids.length == 1) or (loop.index0 == 1 and tdoc.pids.length == 2) else '├' }}── {{ mappingDefaults[pid] }}.cpp
 {% endif -%}
 {%- endfor -%}
@@ -106,10 +106,10 @@
             label: 'If a registered user already has this name',
             name: 'existingUser',
             options: {
-              vuser: 'Create or reuse a virtual user',
-              existing: 'Submit as the existing registered user'
+              vuser: 'Submit all as virtual users',
+              existing: 'Merge submissions for system users; submit non-system users as virtual users'
             },
-            value: 'vuser'
+            value: 'existing'
           }) }}
         </div>
         <div style="padding-top: 0" class="section__header">

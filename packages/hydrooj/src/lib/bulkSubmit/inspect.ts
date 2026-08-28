@@ -47,6 +47,7 @@ export const SKIP_READ = 'Failed to read file';
 export const SKIP_SUBMIT = 'Submit failed';
 
 export type BulkSubmitExistingUserPolicy = 'vuser' | 'existing';
+export const DEFAULT_BULK_SUBMIT_EXISTING_USER_POLICY: BulkSubmitExistingUserPolicy = 'existing';
 
 export const BULK_SUBMIT_ZIP_MODES = ['auto', 'subfolder', 'nosubfolder'] as const;
 export type BulkSubmitZipMode = typeof BULK_SUBMIT_ZIP_MODES[number];
@@ -113,7 +114,31 @@ export function isCppLang(lang: string) {
 }
 
 export function pickDefaultCppLang(langs: string[]) {
-    return langs.find((l) => l === 'cc.cc14') || langs[0];
+    return langs.find((l) => l === 'cc.cc14o2') || langs[0];
+}
+
+export function buildBulkSubmitMappingDefaults(
+    pids: number[],
+    pdict: Record<number, { config?: any } | undefined>,
+    fallbacks: string[],
+) {
+    const result: Record<number, string> = {};
+    const usedFileIoNames = new Set<string>();
+    for (let i = 0; i < pids.length; i++) {
+        const pid = pids[i];
+        const config = pdict[pid]?.config;
+        const fileIoName = config?.type === 'default' && typeof config.subType === 'string'
+            ? config.subType.trim()
+            : '';
+        if (!fileIoName) {
+            result[pid] = fallbacks[i] || '';
+            continue;
+        }
+        const normalized = fileIoName.toLowerCase();
+        result[pid] = usedFileIoNames.has(normalized) ? '' : fileIoName;
+        usedFileIoNames.add(normalized);
+    }
+    return result;
 }
 
 export function normalizeZipPath(filename: string) {

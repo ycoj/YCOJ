@@ -17,8 +17,8 @@ import {
 import { ContestStatusDoc, FileInfo, ScoreboardConfig, Tdoc } from '../interface';
 import { listAllowedCppLangs } from '../lib/bulkSubmit/config';
 import {
-    BULK_SUBMIT_ZIP_MODES, BulkSubmitExistingUserPolicy, BulkSubmitMappingError, BulkSubmitZipMode,
-    isCppLang, parseProblemMapping, pickDefaultCppLang,
+    buildBulkSubmitMappingDefaults, BULK_SUBMIT_ZIP_MODES, BulkSubmitExistingUserPolicy, BulkSubmitMappingError, BulkSubmitZipMode,
+    DEFAULT_BULK_SUBMIT_EXISTING_USER_POLICY, isCppLang, parseProblemMapping, pickDefaultCppLang,
 } from '../lib/bulkSubmit/inspect';
 import { processContestBulkSubmit } from '../lib/bulkSubmit/process';
 import { PERM, PRIV, STATUS } from '../model/builtin';
@@ -647,11 +647,11 @@ export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
         const pdict = await problem.getList(domainId, this.tdoc.pids, true, true, problem.PROJECTION_CONTEST_LIST);
         const cppLangs = listAllowedCppLangs(this.tdoc, this.domain.langs);
         const langRange = Object.fromEntries(cppLangs.map((l) => [l, setting.langs[l]?.display || l]));
-        const mappingDefaults: Record<number, string> = {};
-        for (let i = 0; i < this.tdoc.pids.length; i++) {
-            const pid = this.tdoc.pids[i];
-            mappingDefaults[pid] = pdict[pid]?.pid ? String(pdict[pid].pid) : getAlphabeticId(i);
-        }
+        const mappingDefaults = buildBulkSubmitMappingDefaults(
+            this.tdoc.pids,
+            pdict,
+            this.tdoc.pids.map((pid, i) => (pdict[pid]?.pid ? String(pdict[pid].pid) : getAlphabeticId(i))),
+        );
         this.response.body = {
             tdoc: this.tdoc,
             tsdoc: this.tsdoc,
@@ -672,7 +672,8 @@ export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
     @post('zipMode', Types.Range([...BULK_SUBMIT_ZIP_MODES]), true)
     async post(
         domainId: string, tid: ObjectId, mappingRaw: unknown, lang = '', dryrun = false,
-        existingUser: BulkSubmitExistingUserPolicy = 'vuser', zipMode: BulkSubmitZipMode = 'auto',
+        existingUser: BulkSubmitExistingUserPolicy = DEFAULT_BULK_SUBMIT_EXISTING_USER_POLICY,
+        zipMode: BulkSubmitZipMode = 'auto',
     ) {
         if (contest.isNotStarted(this.tdoc)) throw new ContestNotLiveError(domainId, tid);
         const cppLangs = listAllowedCppLangs(this.tdoc, this.domain.langs);
