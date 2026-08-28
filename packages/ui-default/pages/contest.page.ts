@@ -6,7 +6,10 @@ import { addSpeculationRules, tpl } from 'vj/utils';
 const contestTimer = $(tpl`<pre class="contest-timer" style="display:none"></pre>`);
 contestTimer.appendTo(document.body);
 
-export default new NamedPage(['contest_detail', 'contest_problemlist', 'contest_detail_problem', 'contest_scoreboard', 'contest_solution'], () => {
+export default new NamedPage([
+  'contest_detail', 'contest_problemlist', 'contest_detail_problem', 'contest_scoreboard',
+  'contest_solution', 'contest_solution_detail',
+], () => {
   const beginAt = new Date((UiContext.tdoc.duration && UiContext.tsdoc?.startAt) || UiContext.tdoc.beginAt).getTime();
   const endAt = new Date(UiContext.tsdoc?.endAt || UiContext.tdoc.endAt).getTime();
   NProgress.configure({ trickle: false, showSpinner: false, minimum: 0 });

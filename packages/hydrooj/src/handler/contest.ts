@@ -216,16 +216,6 @@ export class ContestDetailHandler extends ContestDetailBaseHandler {
     }
 }
 
-function isContestSolutionManager(handler: ContestDetailBaseHandler) {
-    return handler.user.own(handler.tdoc) || handler.user.hasPerm(PERM.PERM_EDIT_CONTEST);
-}
-
-function ensureContestSolutionParent(doc: any, tid: ObjectId, domainId: string) {
-    if (!doc || doc.parentType !== document.TYPE_CONTEST || doc.parentId.toString() !== tid.toString()) {
-        throw new NotFoundError(domainId, tid);
-    }
-}
-
 export class ContestSolutionHandler extends ContestDetailBaseHandler {
     @param('tid', Types.ObjectId)
     async prepare(domainId: string, tid: ObjectId) {
@@ -237,12 +227,12 @@ export class ContestSolutionHandler extends ContestDetailBaseHandler {
     @param('sid', Types.ObjectId, true)
     async get(domainId: string, tid: ObjectId, page = 1, sid?: ObjectId) {
         if (this.tdoc.rule === 'homework') throw new ContestNotFoundError(domainId, tid);
-        const manager = isContestSolutionManager(this);
+        const manager = contestSolution.isManager(this.user, this.tdoc);
         if (!manager && !contest.isDone(this.tdoc)) throw new ContestNotEndedError(domainId, tid);
         let [csdocs, pcount, cscount] = await this.paginate(contestSolution.getMulti(domainId, tid), page, 'solution');
         if (sid) {
             const selected = await contestSolution.get(domainId, sid);
-            ensureContestSolutionParent(selected, tid, domainId);
+            contestSolution.ensureParent(selected, tid, domainId);
             csdocs = [selected];
         }
         const uids = [this.tdoc.owner];
@@ -263,7 +253,7 @@ export class ContestSolutionHandler extends ContestDetailBaseHandler {
     @param('tid', Types.ObjectId)
     @param('content', Types.Content)
     async postSubmit(domainId: string, tid: ObjectId, content: string) {
-        if (!isContestSolutionManager(this)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
+        if (!contestSolution.isManager(this.user, this.tdoc)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
         const csid = await contestSolution.add(domainId, tid, this.user._id, content);
         this.back({ csid });
     }
@@ -273,8 +263,8 @@ export class ContestSolutionHandler extends ContestDetailBaseHandler {
     @param('psid', Types.ObjectId)
     async postEditSolution(domainId: string, tid: ObjectId, content: string, psid: ObjectId) {
         const doc = await contestSolution.get(domainId, psid);
-        ensureContestSolutionParent(doc, tid, domainId);
-        if (!isContestSolutionManager(this)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
+        contestSolution.ensureParent(doc, tid, domainId);
+        if (!contestSolution.isManager(this.user, this.tdoc)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
         this.back({ csdoc: await contestSolution.edit(domainId, psid, content) });
     }
 
@@ -282,8 +272,8 @@ export class ContestSolutionHandler extends ContestDetailBaseHandler {
     @param('psid', Types.ObjectId)
     async postDeleteSolution(domainId: string, tid: ObjectId, psid: ObjectId) {
         const doc = await contestSolution.get(domainId, psid);
-        ensureContestSolutionParent(doc, tid, domainId);
-        if (!isContestSolutionManager(this)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
+        contestSolution.ensureParent(doc, tid, domainId);
+        if (!contestSolution.isManager(this.user, this.tdoc)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
         await contestSolution.del(domainId, psid);
         this.back();
     }
@@ -292,9 +282,10 @@ export class ContestSolutionHandler extends ContestDetailBaseHandler {
     @param('psid', Types.ObjectId)
     @param('content', Types.Content)
     async postReply(domainId: string, tid: ObjectId, psid: ObjectId, content: string) {
+        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
         this.checkPerm(PERM.PERM_REPLY_PROBLEM_SOLUTION);
         const doc = await contestSolution.get(domainId, psid);
-        ensureContestSolutionParent(doc, tid, domainId);
+        contestSolution.ensureParent(doc, tid, domainId);
         await contestSolution.reply(domainId, psid, this.user._id, content);
         this.back();
     }
@@ -304,8 +295,10 @@ export class ContestSolutionHandler extends ContestDetailBaseHandler {
     @param('psrid', Types.ObjectId)
     @param('content', Types.Content)
     async postEditReply(domainId: string, tid: ObjectId, psid: ObjectId, psrid: ObjectId, content: string) {
+        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
         const [doc, reply] = await contestSolution.getReply(domainId, psid, psrid);
-        ensureContestSolutionParent(doc, tid, domainId);
+        contestSolution.ensureParent(doc, tid, domainId);
+        contestSolution.ensureReply(reply, domainId, psid);
         if (!this.user.own(reply) || !this.user.hasPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION_REPLY_SELF)) {
             throw new PermissionError(PERM.PERM_EDIT_PROBLEM_SOLUTION_REPLY_SELF);
         }
@@ -317,8 +310,10 @@ export class ContestSolutionHandler extends ContestDetailBaseHandler {
     @param('psid', Types.ObjectId)
     @param('psrid', Types.ObjectId)
     async postDeleteReply(domainId: string, tid: ObjectId, psid: ObjectId, psrid: ObjectId) {
+        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
         const [doc, reply] = await contestSolution.getReply(domainId, psid, psrid);
-        ensureContestSolutionParent(doc, tid, domainId);
+        contestSolution.ensureParent(doc, tid, domainId);
+        contestSolution.ensureReply(reply, domainId, psid);
         if (this.user.own(reply)) this.checkPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY_SELF);
         else this.checkPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY);
         await contestSolution.delReply(domainId, psid, psrid);
@@ -328,9 +323,10 @@ export class ContestSolutionHandler extends ContestDetailBaseHandler {
     @param('tid', Types.ObjectId)
     @param('psid', Types.ObjectId)
     async postUpvote(domainId: string, tid: ObjectId, psid: ObjectId) {
+        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
         this.checkPerm(PERM.PERM_VOTE_PROBLEM_SOLUTION);
         const doc = await contestSolution.get(domainId, psid);
-        ensureContestSolutionParent(doc, tid, domainId);
+        contestSolution.ensureParent(doc, tid, domainId);
         const updated = await contestSolution.vote(domainId, psid, this.user._id, 1);
         this.back({ vote: updated.vote, user_vote: 1 });
     }
@@ -338,9 +334,10 @@ export class ContestSolutionHandler extends ContestDetailBaseHandler {
     @param('tid', Types.ObjectId)
     @param('psid', Types.ObjectId)
     async postDownvote(domainId: string, tid: ObjectId, psid: ObjectId) {
+        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
         this.checkPerm(PERM.PERM_VOTE_PROBLEM_SOLUTION);
         const doc = await contestSolution.get(domainId, psid);
-        ensureContestSolutionParent(doc, tid, domainId);
+        contestSolution.ensureParent(doc, tid, domainId);
         const updated = await contestSolution.vote(domainId, psid, this.user._id, -1);
         this.back({ vote: updated.vote, user_vote: -1 });
     }
@@ -352,14 +349,15 @@ export class ContestSolutionRawHandler extends ContestDetailBaseHandler {
     @route('csrid', Types.ObjectId, true)
     async get(domainId: string, tid: ObjectId, csid: ObjectId, csrid?: ObjectId) {
         if (this.tdoc.rule === 'homework') throw new ContestNotFoundError(domainId, tid);
-        if (!isContestSolutionManager(this) && !contest.isDone(this.tdoc)) throw new ContestNotEndedError(domainId, tid);
+        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
         if (csrid) {
             const [doc, reply] = await contestSolution.getReply(domainId, csid, csrid);
-            ensureContestSolutionParent(doc, tid, domainId);
+            contestSolution.ensureParent(doc, tid, domainId);
+            contestSolution.ensureReply(reply, domainId, csid);
             this.response.body = reply.content;
         } else {
             const doc = await contestSolution.get(domainId, csid);
-            ensureContestSolutionParent(doc, tid, domainId);
+            contestSolution.ensureParent(doc, tid, domainId);
             this.response.body = doc.content;
         }
         this.response.type = 'text/markdown';

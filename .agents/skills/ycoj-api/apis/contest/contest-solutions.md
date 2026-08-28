@@ -12,4 +12,4 @@ Operations: `submit` (`content`), `edit_solution` (`psid`, `content`), `delete_s
 
 ## GET `/contest/:tid/solution/:csid/raw` and `/contest/:tid/solution/:csid/:csrid/raw`
 
-Returns the selected contest solution or reply as Markdown (`Content-Type: text/markdown`) with the same completion, visibility, homework, and parent-validation rules.
+Returns the selected contest solution or reply as Markdown (`Content-Type: text/markdown`) with the same completion, visibility, homework, and parent-validation rules. Missing or cross-contest solution/reply IDs return not-found errors.

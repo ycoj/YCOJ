@@ -8,7 +8,7 @@ Authentication is `Cookie: sid=...` or `Authorization: Bearer <sid>`. Permission
 Description: list visible contests, optionally filtered by rule/group/text. Request: `type Q={rule?:string;group?:string;page?:number;q?:string}`; `GET /contest?page=1&q=weekly`. Response: `type R={tdocs:Tdoc[];page:number;tpcount:number;groups:string[];q:string}`; `{ "tdocs":[],"page":1,"tpcount":0,"groups":[],"q":"weekly" }` rendered as `contest_main.html`; requires `PERM_VIEW_CONTEST`.
 
 ### GET `/contest/:tid`
-Description: show contest details and participant status. Request: `type Q={tid:ObjectId}`; `GET /contest/665f00000000000000000001`. Response: `type R={tdoc:Tdoc;tsdoc:ContestStatus;pids:number[];pdict:Record<number,ProblemDoc>;psdict:Record<number,ProblemStatus>;rdict:Record<string,RecordDoc>}`; `{ "tdoc":{"docId":"665f...","title":"Weekly"},"pids":[1001],"pdict":{"1001":{"title":"A+B"}} }`, HTML `contest_detail.html`; view permission required.
+Description: show contest details and participant status. Request: `type Q={tid:ObjectId}`; `GET /contest/665f00000000000000000001`. Response: `type R={tdoc:Tdoc;tsdoc:ContestStatus;pids:number[];pdict:Record<number,ProblemDoc>;psdict:Record<number,ProblemStatus>;rdict:Record<string,RecordDoc>;solutionCount:number}`; `{ "tdoc":{"docId":"665f...","title":"Weekly"},"pids":[1001],"pdict":{"1001":{"title":"A+B"}},"solutionCount":0 }`, HTML `contest_detail.html`; view permission required.
 
 ### GET/POST `/contest/:tid/solution[/:sid]`
 

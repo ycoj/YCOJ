@@ -48,9 +48,15 @@ export const service = getLoader('service', 'service');
 
 export async function builtinModel(ctx: Context) {
     const modelDir = path.resolve(__dirname, '..', 'model');
-    const models = await fs.readdir(modelDir);
-    for (const t of models.filter((i) => i.endsWith('.ts'))) {
-        const q = path.resolve(modelDir, t);
+    const entries = await fs.readdir(modelDir, { withFileTypes: true });
+    const models = entries.flatMap((entry) => {
+        if (entry.isDirectory()) {
+            const index = path.resolve(modelDir, entry.name, 'index.ts');
+            return fs.existsSync(index) ? [index] : [];
+        }
+        return entry.name.endsWith('.ts') ? [path.resolve(modelDir, entry.name)] : [];
+    });
+    for (const q of models) {
         const module = require(q);
         if ('apply' in module) ctx.loader.reloadPlugin(q, '');
         const exports = unwrapExports(module);

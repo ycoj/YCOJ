@@ -1,12 +1,33 @@
 import { ObjectId } from 'mongodb';
-import { SolutionNotFoundError } from '../error';
+import { NotFoundError, SolutionNotFoundError } from '../error';
+import type { Tdoc, User } from '../interface';
 import bus from '../service/bus';
+import { PERM } from './builtin';
+import { isDone } from './contest/common';
 import * as document from './document';
 
 const TYPE = document.TYPE_CONTEST_SOLUTION;
 const PARENT = document.TYPE_CONTEST;
 
 class ContestSolutionModel {
+    static isManager(user: User, tdoc: Tdoc) {
+        return user.own(tdoc) || user.hasPerm(PERM.PERM_EDIT_CONTEST);
+    }
+
+    static canManageOrDone(user: User, tdoc: Tdoc) {
+        return this.isManager(user, tdoc) || isDone(tdoc);
+    }
+
+    static ensureParent(doc: any, tid: ObjectId, domainId: string) {
+        if (!doc || doc.parentType !== PARENT || !doc.parentId || doc.parentId.toString() !== tid.toString()) {
+            throw new NotFoundError(domainId, tid);
+        }
+    }
+
+    static ensureReply(reply: any, domainId: string, csid: ObjectId) {
+        if (!reply) throw new SolutionNotFoundError(domainId, csid);
+    }
+
     static add(domainId: string, tid: ObjectId, owner: number, content: string) {
         return document.add(domainId, content, owner, TYPE, null, PARENT, tid, { reply: [], vote: 0 });
     }

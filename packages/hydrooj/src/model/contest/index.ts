@@ -347,12 +347,13 @@ export async function apply(ctx: Context) {
                 get(domainId, tid),
                 ProblemModel.get(domainId, bdoc.pid),
             ]);
+            if (!pdoc) return;
             await MessageModel.send(1, uids, JSON.stringify({
                 message: 'First Blood Notice\n{0} solved problem {1} ({2})',
                 avatar: avatar(team.avatar),
                 params: [team.uname, getAlphabeticId(tdoc.pids.indexOf(bdoc.pid)), pdoc.title],
             }), MessageModel.FLAG_I18N);
-        })();
+        })().catch((e) => ctx.logger.error(e));
     });
     await ctx.db.ensureIndexes(
         collBalloon,
