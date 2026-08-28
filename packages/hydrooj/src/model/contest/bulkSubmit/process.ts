@@ -2,10 +2,10 @@ import { createReadStream } from 'fs';
 import { Readable } from 'stream';
 import { FileEntry, TextWriter, ZipReader } from '@zip.js/zip.js';
 import { ObjectId } from 'mongodb';
-import { ValidationError } from '../../error';
-import problem from '../../model/problem';
-import system from '../../model/system';
-import user from '../../model/user';
+import { ValidationError } from '../../../error';
+import problem from '../../problem';
+import system from '../../system';
+import user from '../../user';
 import { commitContestBulkSubmit } from './commit';
 import {
     applyProblemMapping, BulkSubmitExistingUserPolicy, BulkSubmitZipMode, dryrunSubmittedFromInspect,

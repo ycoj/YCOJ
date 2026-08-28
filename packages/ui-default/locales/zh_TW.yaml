@@ -755,6 +755,8 @@ problem_edit: 編輯題目
 problem_import: 匯入題目
 problem_main: 題庫
 problem_solution: 題解
+Contest Solutions: 比賽題解
+View all contest solutions: 檢視所有比賽題解
 problem_submit: 遞交程式碼
 problem_type.communication: 通訊題
 problem_type.default: 傳統題

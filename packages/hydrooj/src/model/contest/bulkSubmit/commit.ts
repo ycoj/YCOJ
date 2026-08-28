@@ -1,11 +1,11 @@
 /* eslint-disable no-await-in-loop */
 import { ObjectId } from 'mongodb';
-import { ContestAlreadyAttendedError } from '../../error';
-import * as contest from '../../model/contest';
-import domain from '../../model/domain';
-import problem from '../../model/problem';
-import record from '../../model/record';
-import user from '../../model/user';
+import { ContestAlreadyAttendedError } from '../../../error';
+import domain from '../../domain';
+import problem from '../../problem';
+import record from '../../record';
+import user from '../../user';
+import * as contest from '..';
 import {
     BulkSubmitUser, PreparedBulkSubmit, SKIP_SUBMIT, ZipLayoutSkip,
 } from './inspect';

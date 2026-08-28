@@ -549,6 +549,8 @@ problem_edit: 문제 수정
 problem_import: 문제 가져오기
 problem_main: 문제
 problem_solution: 문제 해설
+Contest Solutions: 대회 해설
+View all contest solutions: 모든 대회 해설 보기
 problem_submit: 제출
 problem-category-delim: '|'
 problem-subcategory-delim: 、

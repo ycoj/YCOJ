@@ -10,6 +10,10 @@ Description: list visible contests, optionally filtered by rule/group/text. Requ
 ### GET `/contest/:tid`
 Description: show contest details and participant status. Request: `type Q={tid:ObjectId}`; `GET /contest/665f00000000000000000001`. Response: `type R={tdoc:Tdoc;tsdoc:ContestStatus;pids:number[];pdict:Record<number,ProblemDoc>;psdict:Record<number,ProblemStatus>;rdict:Record<string,RecordDoc>}`; `{ "tdoc":{"docId":"665f...","title":"Weekly"},"pids":[1001],"pdict":{"1001":{"title":"A+B"}} }`, HTML `contest_detail.html`; view permission required.
 
+### GET/POST `/contest/:tid/solution[/:sid]`
+
+Description: list or manage contest-scoped Markdown solutions. Completed contests are readable by normal contest viewers; managers may access and manage them earlier. Request and operation bodies, response models, raw routes, and validation rules: [contest-solutions.md](contest-solutions.md).
+
 ### POST `/contest/:tid` (`attend`, `subscribe`, `earlyEnd`)
 Description: attend with optional code, toggle subscription, or end early (manager). Request: `type B={operation:"attend";code?:string}|{operation:"subscribe";subscribe:boolean}|{operation:"earlyEnd"}`; `POST /contest/665f...` body `{ "operation":"subscribe","subscribe":true }`. Response: `type R={url?:string}|Record<string,unknown>`; JSON `{ "url":"/contest/665f..." }` or browser back/redirect.
 

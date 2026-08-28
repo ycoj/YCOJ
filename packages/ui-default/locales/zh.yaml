@@ -757,6 +757,8 @@ problem_edit: 编辑题目
 problem_import: 导入题目
 problem_main: 题库
 problem_solution: 题解
+Contest Solutions: 比赛题解
+View all contest solutions: 查看所有比赛题解
 problem_submit: 递交代码
 problem_type.communication: 通信题
 problem_type.default: 传统题

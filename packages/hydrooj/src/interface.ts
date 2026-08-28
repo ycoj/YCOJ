@@ -455,6 +455,16 @@ export interface ContestPrintDoc extends Document {
     status: PrintTaskStatus;
 }
 
+export interface ContestSolutionDoc extends Document {
+    docType: document['TYPE_CONTEST_SOLUTION'];
+    docId: ObjectId;
+    parentType: document['TYPE_CONTEST'];
+    parentId: ObjectId;
+    content: string;
+    vote: number;
+    reply: DiscussionTailReplyDoc[];
+}
+
 export interface TokenDoc {
     _id: string;
     tokenType: number;
@@ -710,6 +720,7 @@ export interface Model {
     record: typeof import('./model/record').default;
     setting: typeof import('./model/setting');
     solution: typeof import('./model/solution').default;
+    contestSolution: typeof import('./model/contestSolution').default;
     system: typeof import('./model/system').default;
     task: typeof import('./model/task').default;
     schedule: typeof import('./model/schedule').default;

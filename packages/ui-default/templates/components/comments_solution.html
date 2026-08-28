@@ -30,7 +30,7 @@
   reply_delete_op = 'delete_tail_reply'
 ) %}
 <ul class="dczcomments__list view--solution">
-{% if handler.user.hasPerm(comment_post_perm) %}
+{% if (canManage and tdoc) or handler.user.hasPerm(comment_post_perm) %}
 <li class="dczcomments__item">
   <div class="media">
     <div class="media__left top">
@@ -102,8 +102,8 @@
           {{ user.render_inline(udoc) }} @ {{ datetimeSpan(doc._id)|safe }}
         </div>
         <div class="dczcomments__operations nojs--hide">
-        {% if pdoc %}
-          <a href="javascript:;" data-tooltip="{{ _('Copy Link') }}" data-copylink="{{ url('problem_solution_detail', pid=pdoc.pid|default(pdoc.docId), sid=doc._id) }}">
+        {% if pdoc or tdoc %}
+          <a href="javascript:;" data-tooltip="{{ _('Copy Link') }}" data-copylink="{{ url('contest_solution_detail', tid=tdoc.docId, sid=doc._id) if tdoc else url('problem_solution_detail', pid=pdoc.pid|default(pdoc.docId), sid=doc._id) }}">
             <span class="icon icon-link"></span>
           </a>
         {% endif %}
@@ -112,19 +112,19 @@
             data-form="{{ {operation: reply_post_op, psid: doc._id}|json }}"
           ><span class="icon icon-reply"></span></a>
         {% endif %}
-        {% if (handler.user.hasPerm(comment_edit_self_perm) and handler.user.own(doc)) or handler.user.hasPerm(comment_edit_perm) %}
+        {% if (canManage and tdoc) or (handler.user.hasPerm(comment_edit_self_perm) and handler.user.own(doc)) or handler.user.hasPerm(comment_edit_perm) %}
           <a href="javascript:;" data-tooltip="{{ _('Edit') }}" data-op="edit" data-type="comment"
             data-form="{{ {operation: comment_edit_op, psid: doc._id}|json }}"
           ><span class="icon icon-edit"></span></a>
         {% endif %}
-        {% if (handler.user.hasPerm(comment_delete_self_perm) and handler.user.own(doc)) or handler.user.hasPerm(comment_delete_perm) %}
+        {% if (canManage and tdoc) or (handler.user.hasPerm(comment_delete_self_perm) and handler.user.own(doc)) or handler.user.hasPerm(comment_delete_perm) %}
           <a href="javascript:;" data-tooltip="{{ _('Delete') }}" data-op="delete" data-type="comment"
             data-form="{{ {operation: comment_delete_op, psid: doc._id}|json }}"
           ><span class="icon icon-delete"></span></a>
         {% endif %}
         </div>
       </div>
-      <div class="typo richmedia collapsible-content" data-emoji-enabled data-raw-url="{{ url('problem_solution_raw', pid=doc.parentId, psid=doc._id) }}">
+      <div class="typo richmedia collapsible-content" data-emoji-enabled data-raw-url="{{ url('contest_solution_raw', tid=tdoc.docId, csid=doc._id) if tdoc else url('problem_solution_raw', pid=doc.parentId, psid=doc._id) }}">
         {{ doc['content']|markdown|safe }}
       </div>
       <div class="commentbox-edit-target"></div>
@@ -154,7 +154,7 @@
                 {% endif %}
                 </div>
               </div>
-              <div class="typo richmedia collapsible-content" data-emoji-enabled data-raw-url="{{ url('problem_solution_reply_raw', pid=doc.parentId, psid=doc._id, psrid=rdoc._id) }}">
+              <div class="typo richmedia collapsible-content" data-emoji-enabled data-raw-url="{{ url('contest_solution_reply_raw', tid=tdoc.docId, csid=doc._id, csrid=rdoc._id) if tdoc else url('problem_solution_reply_raw', pid=doc.parentId, psid=doc._id, psrid=rdoc._id) }}">
                 {{ rdoc['content']|markdown|safe }}
               </div>
               <div class="commentbox-edit-target"></div>

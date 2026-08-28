@@ -68,6 +68,11 @@
       <li class="menu__item"><a class="menu__link" href="{{ url('contest_problemlist', tid=tdoc.docId) }}">
         <span class="icon icon-unordered_list"></span> {{ _('Problem List') }}
       </a></li>
+      {% if (model.contest.isDone(tdoc) or handler.user.own(tdoc) or handler.user.hasPerm(perm.PERM_EDIT_CONTEST)) and tdoc.rule !== 'homework' %}
+      <li class="menu__item"><a class="menu__link{% if page_name == 'contest_solution' %} active{% endif %}" href="{{ url('contest_solution', tid=tdoc.docId) }}">
+        <span class="icon icon-comment--text"></span> {{ _('Contest Solutions') }}{% if solutionCount !== undefined %} ({{ solutionCount }}){% endif %}
+      </a></li>
+      {% endif %}
       {% if page_name == 'contest_detail' and tsdoc.attend and model.contest.isOngoing(tdoc, tsdoc) and tdoc.rule !== 'homework' %}
       <li class="menu__item">
         <form action="{{ url('contest_detail', tid=tdoc.docId) }}" method="POST" onsubmit='return confirm({{ _("Confirm end contest early? You will not be able to submit after this.")|json|safe }});'>

@@ -28,6 +28,7 @@ export const TYPE_DISCUSSION_REPLY = 22 as const;
 export const TYPE_CONTEST = 30 as const;
 export const TYPE_CONTEST_CLARIFICATION = 31 as const;
 export const TYPE_CONTEST_PRINT = 32 as const;
+export const TYPE_CONTEST_SOLUTION = 33 as const;
 export const TYPE_TRAINING = 40 as const;
 export const TYPE_CHECKIN = 80 as const;
 
@@ -40,6 +41,7 @@ export interface DocType {
     [TYPE_DISCUSSION_REPLY]: DiscussionReplyDoc;
     [TYPE_CONTEST]: Tdoc;
     [TYPE_CONTEST_PRINT]: ContestPrintDoc;
+    [TYPE_CONTEST_SOLUTION]: any;
     [TYPE_CONTEST_CLARIFICATION]: ContestClarificationDoc;
     [TYPE_TRAINING]: TrainingDoc;
     [TYPE_CHECKIN]: CheckinDoc;
@@ -492,6 +494,7 @@ global.Hydro.model.document = {
     TYPE_CONTEST,
     TYPE_CONTEST_CLARIFICATION,
     TYPE_CONTEST_PRINT,
+    TYPE_CONTEST_SOLUTION,
     TYPE_DISCUSSION,
     TYPE_DISCUSSION_NODE,
     TYPE_DISCUSSION_REPLY,

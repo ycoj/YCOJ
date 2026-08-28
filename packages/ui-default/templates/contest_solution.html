@@ -1,0 +1,38 @@
+{% extends "layout/basic.html" %}
+{% import "components/comments_solution.html" as comments with context %}
+{% block content %}
+{{ set(UiContext, 'tdoc', tdoc) }}
+{{ set(UiContext, 'tsdoc', tsdoc) }}
+<div class="row">
+  <div class="medium-9 columns">
+    <div class="section">
+      <div class="section__header"><h1 class="section__title">{{ _('Contest Solutions') }} ({{ cscount }})</h1></div>
+      <div class="section__body">
+        {% set pssdict = cssdict %}
+        {{ comments.render(
+          view = 'solution', docs = csdocs, udict = udict,
+          comment_ref = 'psid', reply_ref = 'psrid',
+          comment_placeholder = 'Write Your Solution', comment_post_op = 'submit',
+          comment_edit_op = 'edit_solution', comment_post_text = 'Share',
+          reply_post_op = 'reply', reply_edit_op = 'edit_reply',
+          comment_delete_op = 'delete_solution', reply_delete_op = 'delete_reply',
+          comment_post_perm = perm.PERM_EDIT_CONTEST,
+          comment_edit_perm = perm.PERM_EDIT_CONTEST,
+          comment_edit_self_perm = perm.PERM_NEVER,
+          comment_delete_perm = perm.PERM_EDIT_CONTEST,
+          comment_delete_self_perm = perm.PERM_NEVER,
+          reply_post_perm = perm.PERM_REPLY_PROBLEM_SOLUTION,
+          reply_edit_perm = perm.PERM_NEVER,
+          reply_edit_self_perm = perm.PERM_EDIT_PROBLEM_SOLUTION_REPLY_SELF,
+          reply_delete_perm = perm.PERM_DELETE_PROBLEM_SOLUTION,
+          reply_delete_self_perm = perm.PERM_DELETE_PROBLEM_SOLUTION_REPLY_SELF
+        ) }}
+        {% if not csdocs.length %}{{ nothing.render('No solutions so far...') }}{% endif %}
+        {% if not sid %}{{ paginator.render(page, pcount) }}{% endif %}
+      </div>
+    </div>
+    {% if sid %}<div class="section"><a href="{{ url('contest_solution', tid=tdoc.docId) }}" class="menu__link" style="width:100%">{{ _('View all contest solutions') }}</a></div>{% endif %}
+  </div>
+  <div class="medium-3 columns">{% set owner_udoc = udict[tdoc.owner] %}{% include "partials/contest_sidebar.html" %}</div>
+</div>
+{% endblock %}

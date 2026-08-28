@@ -52,6 +52,8 @@ problem_edit: Problem Edit
 problem_import: Import Problem
 problem_main: Problem Set
 problem_solution: Problem Solution
+Contest Solutions: Contest Solutions
+View all contest solutions: View all contest solutions
 problem_submit: Problem Submit
 problem_type.communication: 'Type: Communication'
 problem_type.default: 'Type: Default'
