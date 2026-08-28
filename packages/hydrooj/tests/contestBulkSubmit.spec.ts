@@ -433,14 +433,14 @@ describe('judge record addition', () => {
         });
     });
 
-    it('returns a persisted record when post-insert updates fail', async (t) => {
+    it('rethrows post-insert update failures after persisting the record', async (t) => {
         t.mock.method(RecordModel, 'add', async () => rid);
         t.mock.method(MockDomainModel, 'incUserInDomain', async () => {
             throw new Error('nSubmit failed');
         });
-        assert.equal(
-            await RecordModel.addJudge('system', 1001, -1000, 'cc.cc14', 'int main(){}'),
-            rid,
+        await assert.rejects(
+            () => RecordModel.addJudge('system', 1001, -1000, 'cc.cc14', 'int main(){}'),
+            /nSubmit failed/,
         );
     });
 

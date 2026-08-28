@@ -16,13 +16,13 @@ import {
     InvalidTokenError, MethodNotAllowedError, NotAssignedError, NotFoundError, PermissionError, ValidationError,
 } from '../error';
 import { ContestStatusDoc, FileInfo, ScoreboardConfig, Tdoc } from '../interface';
+import { commitContestBulkSubmit } from '../lib/bulkSubmit/commit';
 import {
     applyProblemMapping, BULK_SUBMIT_ZIP_MODES, BulkSubmitDuplicateZipPathError, BulkSubmitExistingUserPolicy,
     BulkSubmitMappingError, BulkSubmitZipMode,
     dryrunSubmittedFromInspect, groupByContestant, indexZipEntriesByNormalizedPath, inspectContestBulkSubmit, isCppLang,
     normalizeZipPath, parseContestBulkSubmitPaths, parseProblemMapping, pickDefaultCppLang,
 } from '../lib/bulkSubmit/inspect';
-import { commitContestBulkSubmit } from '../lib/bulkSubmit/commit';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
@@ -670,7 +670,7 @@ function problemAllowsLang(pdoc: { config?: any }, lang: string) {
 
 export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
     @param('tid', Types.ObjectId)
-    async get(domainId: string, tid: ObjectId) {
+    async get(domainId: string, _tid: ObjectId) {
         const pdict = await problem.getList(domainId, this.tdoc.pids, true, true, problem.PROJECTION_CONTEST_LIST);
         const cppLangs = listAllowedCppLangs(this.tdoc, this.domain.langs);
         const langRange = Object.fromEntries(cppLangs.map((l) => [l, setting.langs[l]?.display || l]));

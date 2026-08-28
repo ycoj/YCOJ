@@ -5,7 +5,6 @@ import {
     ObjectId, OnlyFieldsOfType, PushOperator, UpdateFilter,
 } from 'mongodb';
 import { ProblemConfigFile, STATUS_TEXTS } from '@hydrooj/common';
-import { Logger } from '@hydrooj/utils/lib/utils';
 import { Context } from '../context';
 import { ProblemNotFoundError } from '../error';
 import { JudgeMeta, RecordDoc } from '../interface';
@@ -20,8 +19,6 @@ import MessageModel from './message';
 import problem from './problem';
 import SystemModel from './system';
 import task from './task';
-
-const logger = new Logger('model/record');
 
 export default class RecordModel {
     static coll = db.collection('record');
@@ -216,16 +213,11 @@ export default class RecordModel {
             }
             throw error;
         }
-        try {
-            await Promise.all([
-                problem.inc(domainId, pid, 'nSubmit', 1),
-                DomainModel.incUserInDomain(domainId, uid, 'nSubmit'),
-                args.contest && contest.updateStatus(domainId, args.contest, uid, rid, pid),
-            ]);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            logger.warn('Failed to update submission counters for record %s: %s', rid, message);
-        }
+        await Promise.all([
+            problem.inc(domainId, pid, 'nSubmit', 1),
+            DomainModel.incUserInDomain(domainId, uid, 'nSubmit'),
+            args.contest && contest.updateStatus(domainId, args.contest, uid, rid, pid),
+        ]);
         return rid;
     }
 

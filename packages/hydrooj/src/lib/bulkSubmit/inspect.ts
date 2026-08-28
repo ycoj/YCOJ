@@ -175,8 +175,8 @@ function sharedFirstDir(partsList: string[][]) {
 }
 
 type ClassifiedEntry =
-    | { kind: 'file'; file: ZipSourceFile }
-    | { kind: 'skip'; skip: ZipLayoutSkip }
+    | { kind: 'file', file: ZipSourceFile }
+    | { kind: 'skip', skip: ZipLayoutSkip }
     | { kind: 'other' };
 
 function classifySubfolder(original: string, parts: string[]): ClassifiedEntry {
@@ -418,6 +418,8 @@ export async function inspectContestBulkSubmit(opts: {
     const ready: PreparedBulkSubmit[] = [];
     const usersPreview: BulkSubmitUser[] = [];
     for (const group of opts.groups) {
+        // Account lookup is kept sequential to preserve preview ordering and limit backend fan-out.
+        // eslint-disable-next-line no-await-in-loop
         const { real, vuser } = await opts.lookupAccounts(group.uname);
         usersPreview.push({ uname: group.uname, ...decideBulkSubmitIdentity(real, vuser, opts.policy) });
         for (const item of group.files) {
@@ -436,6 +438,8 @@ export async function inspectContestBulkSubmit(opts: {
             }
             let code = '';
             try {
+                // Read each source in input order so skipped and ready entries remain deterministic.
+                // eslint-disable-next-line no-await-in-loop
                 code = await opts.readSource(item.path);
             } catch (e) {
                 skipped.push({ uname: group.uname, problem: item.problemName, reason: e.message || SKIP_READ });
