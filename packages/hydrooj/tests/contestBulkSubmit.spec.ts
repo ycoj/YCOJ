@@ -178,6 +178,16 @@ describe('contest bulk submit zip layout', () => {
         ]);
     });
 
+    it('ignores root non-C++ files when detecting a wrapper in auto mode', () => {
+        const { files } = parseContestBulkSubmitPaths([
+            'README.txt',
+            'weekly/alice/apple/apple.cpp',
+        ]);
+        assert.deepStrictEqual(files, [
+            { path: 'weekly/alice/apple/apple.cpp', contestant: 'alice', problemName: 'apple' },
+        ]);
+    });
+
     it('does not reinterpret a subfolder zip as contestants named after problems', () => {
         const { files, skipped } = parseContestBulkSubmitPaths([
             'alice/apple/apple.cpp',

@@ -311,11 +311,12 @@ export function parseContestBulkSubmitPaths(
         candidates.push(item);
     }
     const partsList = candidates.map((item) => item.path.split('/').filter(Boolean));
+    const sourcePartsList = partsList.filter((parts) => isCppFilename(parts[parts.length - 1] || ''));
     const noStrip = parseWithStrip(candidates, 0, mode);
     let chosen = noStrip;
     switch (mode) {
         case 'auto':
-            if (sharedFirstDir(partsList)) {
+            if (sharedFirstDir(sourcePartsList)) {
                 const stripped = parseWithStrip(candidates, 1, mode);
                 if (stripped.files.length > noStrip.files.length) chosen = stripped;
             }
