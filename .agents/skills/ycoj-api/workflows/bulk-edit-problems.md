@@ -12,7 +12,7 @@ This workflow uses [problem-set.md](../apis/problem/problem-set.md) and [problem
 
    From `pdocs`, save `docId` values (for example `[1000,1001]`). Stop if the search has additional pages (`ppcount > 1`) until all intended IDs are collected.
 
-2. For the common task of translating selected statements to Chinese, process one problem at a time. Fetch the full current edit/detail data, then translate only `title` and `content`. Preserve `pid`, `hidden`, `tag`, and `difficulty` exactly; preserve all code blocks, math syntax, and `file://` references in content unchanged.
+2. To translate selected statements into another language, process one problem at a time. Fetch the full current edit/detail data, then translate only `title` and `content`. Preserve `pid`, `hidden`, `tag`, and `difficulty` exactly; preserve all code blocks, math syntax, and `file://` references in content unchanged.
 
    ```http
    GET /p/P1000/edit
@@ -26,7 +26,7 @@ This workflow uses [problem-set.md](../apis/problem/problem-set.md) and [problem
    Cookie: sid=…
    Content-Type: application/json
 
-   {"title":"甲加乙","content":"## 题目描述\n计算 A+B。\n\n![asset](file://diagram.png)","pid":"P1000","hidden":false,"tag":"math,beginner","difficulty":1}
+   {"title":"A Plus B","content":"## Problem Description\nCalculate A+B.\n\n![asset](file://diagram.png)","pid":"P1000","hidden":false,"tag":"math,beginner","difficulty":1}
    ```
 
    Read back `GET /p/P1000` and compare the translated title/content plus the preserved PID, hidden flag, tags, difficulty, and file references. Stop on the first mismatch, duplicate PID, or authorization error; do not continue to the next problem until it is corrected.
