@@ -526,7 +526,7 @@ My status: 我的状态
 name: 名称
 Name: 名称
 Network error: 网络错误
-Never expire: 从不过期
+Never expire: 永不过期
 New Email: 新电子邮件
 New file: 新文件
 New Password: 新密码
@@ -652,6 +652,7 @@ problem.import.input_format: '## 输入格式'
 problem.import.limit_and_hint: '## 限制'
 problem.import.output_format: '## 输出格式'
 problem.import.problem_description: '## 题目描述'
+Pastes per page: 每页展示的分享记录数量
 Problems per page: 每页展示的题目数量
 Problems Sets: 题库
 Problems: 题目
@@ -1009,3 +1010,21 @@ Auto: 自动
 Subfolder mode: 子文件夹模式
 Non-subfolder mode: 非子文件夹模式
 Detail: 详情
+paste_main: 分享代码片段
+paste_detail: 分享详情
+paste_edit: 编辑分享
+Pastebin: 分享代码片段
+Create Paste: 分享代码片段
+Edit Paste: 编辑分享
+Paste type: 类型
+Markdown: Markdown
+Expiration: 过期时间
+1 day: 1 天
+1 week: 1 周
+1 month: 1 个月
+Raw: 原始内容
+Copy link: 复制链接
+My Pastes: 分享记录
+No pastes yet: 暂无分享记录
+Expires: 过期时间
+Optional title: 可选标题

@@ -28,6 +28,7 @@ export default class Editor extends DOMAttachedObject {
   valueCache?: string;
   setMarkdownEditorValue?: (v: string) => void;
   reactRoot?: ReactDOM.Root;
+  monaco?: typeof import('../monaco').default;
   isValid: boolean;
 
   constructor($dom, public options: Options = {}) {
@@ -40,13 +41,15 @@ export default class Editor extends DOMAttachedObject {
   async initMonaco() {
     const { load } = await import('vj/components/monaco/loader');
     const {
-      onChange, language = 'markdown',
+      onChange,
       theme = `vs-${getTheme()}`,
       model = `file://model-${Math.random().toString(16)}`,
       autoResize = true, autoLayout = true,
       hide = [], lineNumbers = 'on',
     } = this.options;
-    const { monaco, registerAction } = await load([language]);
+    const { monaco, registerAction } = await load([this.options.language || 'markdown']);
+    this.monaco = monaco;
+    const language = this.options.language || 'markdown';
     const { $dom } = this;
     const hasFocus = $dom.is(':focus') || $dom.hasClass('autofocus');
     const origin = $dom.get(0);
@@ -266,6 +269,15 @@ export default class Editor extends DOMAttachedObject {
     this.detach();
     if (this.reactRoot) this.reactRoot.unmount();
     else if (this.editor?.dispose) this.editor.dispose();
+  }
+
+  setLanguage(language: string) {
+    this.options.language = language;
+    if (!this.monaco || !this.model) return;
+    this.monaco.editor.setModelLanguage(this.model, language);
+    this.editor?.updateOptions({
+      unicodeHighlight: { ambiguousCharacters: language !== 'markdown' },
+    });
   }
 
   ensureValid() {

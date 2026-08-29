@@ -1,0 +1,83 @@
+.pastebin-page
+  .pastebin-row
+    display: flex
+    align-items: flex-end
+    gap: 0 1rem
+    .columns
+      float: none
+      width: 100%
+      padding-left: 0
+      padding-right: 0
+    .textbox-container,
+    .select-container,
+    .radiobox-container
+      margin-bottom: 0.45rem
+    input.textbox,
+    select.select
+      margin-bottom: 0
+      width: 100%
+  .pastebin-title-field
+    flex: 1 1 auto
+    min-width: 0
+  .pastebin-mode-field
+    flex: 0 0 auto
+    .radiobox-container
+      display: flex
+      flex-wrap: nowrap
+      gap: 0.85rem
+      margin-top: 0
+    .radiobox
+      display: inline-flex
+      align-items: center
+      margin: 0
+      white-space: nowrap
+  .pastebin-language-field,
+  .pastebin-expire-field
+    flex: 1 1 0
+    min-width: 0
+  textarea.pastebin-content
+    min-height: 22rem
+  .textarea-container.pastebin-content
+    min-height: 0
+    font-family: inherit
+    white-space: normal
+    margin-top: 0.2rem
+    > .textbox
+      min-height: 22rem
+      height: 22rem
+    .md-editor
+      min-height: 22rem
+      height: 28rem
+      margin-top: 0
+  .form__item:has(.pastebin-content)
+    padding-top: 0
+  .col--type
+    width: rem(72px)
+  .col--time
+    width: rem(108px)
+  .section.side .data-table
+    th
+      padding-top: rem(8px)
+      padding-bottom: rem(8px)
+    td
+      padding-top: 4px
+      padding-bottom: 4px
+  .pastebin-meta
+    display: flex
+    gap: 1.25rem
+    flex-wrap: wrap
+    margin-bottom: 1rem
+  .pastebin-code
+    overflow: auto
+    white-space: pre
+  +mobile()
+    .pastebin-row
+      flex-direction: column
+      align-items: stretch
+    .pastebin-mode-field
+      flex: 1 1 auto
+    .pastebin-language-field,
+    .pastebin-expire-field
+      flex: 1 1 auto
+    .col--time
+      display: none

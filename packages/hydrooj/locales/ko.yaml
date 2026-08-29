@@ -428,7 +428,7 @@ My Role: 내 역할
 name: 이름
 Name: 이름
 Network error: Network error
-Never expire: 영원히 만료되지 않음
+Never expire: 만료 없음
 New Email: 새 이메일
 New file: 새 파일
 New Password: 새 비밀번호
@@ -822,3 +822,22 @@ You've already claimed this homework.: 이미 숙제를 받음
 You've already voted.: 이미 투표함
 Your permission: 당신의 권한
 Your role: 당신의 역할
+paste_main: 코드 스니펫 공유
+paste_detail: 공유 상세
+paste_edit: 공유 수정
+Pastebin: 코드 스니펫 공유
+Create Paste: 코드 스니펫 공유
+Edit Paste: 공유 수정
+Paste type: 유형
+Markdown: Markdown
+Expiration: 만료
+1 day: 1일
+1 week: 1주
+1 month: 1개월
+Raw: 원문
+Copy link: 링크 복사
+My Pastes: 공유 기록
+Pastes per page: 페이지당 공유 기록 수
+No pastes yet: 공유 기록이 없습니다
+Expires: 만료
+Optional title: 선택 제목

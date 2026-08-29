@@ -163,6 +163,42 @@ describe('App', () => {
         await agent.get('/api/user?args={"id":2}&projection=uname').expect({ uname: 'root' });
     });
 
+    it('Paste pages are not stored in cache across sessions', async () => {
+        const created = await agent.post('/paste')
+            .set('Accept', 'application/json')
+            .send({
+                mode: 'code', language: 'cpp', content: 'secret-from-root\n', expire: 'never',
+            })
+            .expect(200);
+        const id = created.body.id;
+        assert.ok(id);
+
+        const peer = supertest.agent(require('hydrooj').httpServer);
+        const register = await peer.post('/register')
+            .send({ mail: 'peer@example.com' })
+            .expect(302)
+            .then((res) => res.headers.location);
+        await peer.post(register)
+            .send({ uname: 'peer', password: '123456', verifyPassword: '123456' })
+            .expect(302);
+
+        const [rootList, peerList, rootDetail, peerDetail, rootEdit] = await Promise.all([
+            agent.get('/paste').set('Accept', 'application/json').expect(200),
+            peer.get('/paste').set('Accept', 'application/json').expect(200),
+            agent.get(`/paste/${id}`).set('Accept', 'application/json').expect(200),
+            peer.get(`/paste/${id}`).set('Accept', 'application/json').expect(200),
+            agent.get(`/paste/${id}/edit`).set('Accept', 'application/json').expect(200),
+        ]);
+        for (const response of [rootList, peerList, rootDetail, peerDetail, rootEdit]) {
+            assert.match(String(response.headers['cache-control'] || ''), /no-store/i);
+        }
+        assert.ok(rootList.body.pdocs.some((pdoc: { _id: string }) => pdoc._id === id));
+        assert.ok(!peerList.body.pdocs.some((pdoc: { _id: string }) => pdoc._id === id));
+        assert.equal(rootDetail.body.pdoc.content, 'secret-from-root\n');
+        assert.equal(peerDetail.body.pdoc.content, 'secret-from-root\n');
+        await peer.get(`/paste/${id}/edit`).set('Accept', 'application/json').expect(403);
+    });
+
     it('Validates contest attendance for query and body problem mutations', async () => {
         const pid = await global.Hydro.model.problem.add(
             'system', 'CONTEST_CONTEXT_TEST', 'Contest context test', '', 2,

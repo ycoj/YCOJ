@@ -376,6 +376,7 @@ SystemSetting(
     Setting('setting_basic', 'pagination.solution', 20, 'number', 'pagination.solution', 'Solutions per page'),
     Setting('setting_basic', 'pagination.training', 10, 'number', 'pagination.training', 'Trainings per page'),
     Setting('setting_basic', 'pagination.reply', 50, 'number', 'pagination.reply', 'Replies per page'),
+    Setting('setting_basic', 'pagination.paste', 20, 'number', 'pagination.paste', 'Pastes per page'),
     Setting('setting_basic', 'hydrooj.homepage', settingFile.homepage.default, 'yaml', 'hydrooj.homepage', 'Homepage config'),
     Setting('setting_basic', 'hydrooj.langs', settingFile.langs.default, 'yaml', 'hydrooj.langs', 'Language config'),
     Setting('setting_session', 'session.keys', [randomstring(32)], 'text', 'session.keys', 'session.keys', FLAG_HIDDEN),
