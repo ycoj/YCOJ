@@ -16,7 +16,7 @@ class HomeRealnameHandler extends Handler {
 
     async get() {
         const status = getRealnameStatus(this.user);
-        if (!isSuperAdmin(this.user) && (status === 'pending' || status === 'approved')) {
+        if (!isSuperAdmin(this.user) && status === 'approved') {
             this.response.redirect = this.url('home_realname_result');
             return;
         }

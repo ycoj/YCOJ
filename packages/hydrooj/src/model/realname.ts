@@ -89,7 +89,8 @@ export async function review(id: ObjectId, reviewer: number, action: RealnameRev
         rejectReason: action === 'approve' ? '' : reason,
         updatedAt: now,
     };
-    await coll.updateOne({ _id: id }, { $set });
+    const result = await coll.updateOne({ _id: id, status: doc.status }, { $set });
+    if (!result.modifiedCount) throw new RealnameInvalidTransitionError();
     await syncUser(doc.uid, status, { realName: doc.realName, school: doc.school });
     return { ...doc, ...$set };
 }

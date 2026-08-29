@@ -8,11 +8,11 @@ Description: list applications for review. Request `type Query={page?:number;sta
 
 ## POST `approve`
 
-Description: approve a pending application and unlock the user. Request `type Approve={operation:"approve";id:string}`, example `{"operation":"approve","id":"66aa66aa66aa66aa66aa66aa"}`. Response `Redirect`, example `{"url":"/manage/realname?status=pending"}`. Non-pending applications return `RealnameNotPendingError`; unknown ids return `RealnameApplicationNotFoundError`.
+Description: approve a pending application and unlock the user. Request `type Approve={operation:"approve";id:string}`, example `{"operation":"approve","id":"66aa66aa66aa66aa66aa66aa"}`. Response `Redirect`, example `{"url":"/manage/realname?status=pending"}`. Invalid transitions, including non-pending applications, return `RealnameInvalidTransitionError`; unknown ids return `RealnameApplicationNotFoundError`.
 
 ## POST `reject`
 
-Description: reject a pending application. Request `type Reject={operation:"reject";id:string;reason?:string}`, example `{"operation":"reject","id":"66aa66aa66aa66aa66aa66aa","reason":"Name does not match"}`. Response `Redirect`. Same status/id errors as approve. The user stays locked and may resubmit.
+Description: reject a pending application. Request `type Reject={operation:"reject";id:string;reason?:string}`, example `{"operation":"reject","id":"66aa66aa66aa66aa66aa66aa","reason":"Name does not match"}`. Response `Redirect`. Invalid transitions, including non-pending applications, return `RealnameInvalidTransitionError`; unknown ids return `RealnameApplicationNotFoundError`. The user stays locked and may resubmit.
 
 ## POST `revoke`
 
