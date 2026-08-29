@@ -57,6 +57,11 @@ describe('contest solutions', () => {
         assert.deepStrictEqual(calls[0], ['add', 'system', 'answer', 42, 33, null, 30, tid, { title: 'Editorial' }]);
     });
 
+    it('is imported by the contest model so CLI contest del can clean up', () => {
+        const src = require('fs').readFileSync(require.resolve('../src/model/contest/index.ts'), 'utf8');
+        assert.match(src, /import ['"]\.\/solution['"]/);
+    });
+
     it('registers contest deletion cleanup', async () => {
         calls.length = 0;
         solutions.length = 0;
