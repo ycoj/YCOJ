@@ -1,4 +1,4 @@
-import { PRIV } from '@hydrooj/common';
+import { PRIV } from '../model/builtin';
 
 export const REALNAME_STATUSES = ['pending', 'approved', 'rejected'] as const;
 export type RealnameStatus = typeof REALNAME_STATUSES[number];

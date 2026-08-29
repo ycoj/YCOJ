@@ -1,21 +1,27 @@
 import assert from 'assert';
 import { describe, it } from 'node:test';
-import { PRIV } from '@hydrooj/common';
 import {
     canSubmitApplication, canTransition, getRealnameStatus, handlerAllowsUnverified,
     isRealnameExempt, isRealnameVerified, nextRealnameRoute, parseRealnameFields,
     requiresRealname, reviewStatusFor, shouldBlockUnverifiedAccess,
 } from '../src/lib/realname';
 
+const PRIV_USER_PROFILE = 1 << 2;
+const PRIV_CREATE_FILE = 1 << 16;
+const PRIV_SEND_MESSAGE = 1 << 24;
+const PRIV_JUDGE = 1 << 9;
+const PRIV_ALL = -1;
+const PRIV_DEFAULT = PRIV_USER_PROFILE + PRIV_CREATE_FILE + PRIV_SEND_MESSAGE;
+
 const guest = { _id: 0, priv: 0 };
-const user = { _id: 2, priv: PRIV.PRIV_DEFAULT, realnameStatus: 'none' };
+const user = { _id: 2, priv: PRIV_DEFAULT, realnameStatus: 'none' };
 const pending = { ...user, realnameStatus: 'pending' };
 const approved = { ...user, realnameStatus: 'approved' };
 const rejected = { ...user, realnameStatus: 'rejected' };
-const superAdmin = { _id: 3, priv: PRIV.PRIV_ALL, realnameStatus: 'none' };
+const superAdmin = { _id: 3, priv: PRIV_ALL, realnameStatus: 'none' };
 const judge = {
     _id: 4,
-    priv: PRIV.PRIV_USER_PROFILE | PRIV.PRIV_JUDGE,
+    priv: PRIV_USER_PROFILE | PRIV_JUDGE,
     realnameStatus: 'none',
 };
 
