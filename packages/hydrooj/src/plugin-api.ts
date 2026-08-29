@@ -31,7 +31,7 @@ export { default as ProblemModel } from './model/problem';
 export { default as RecordModel } from './model/record';
 export { default as ScheduleModel } from './model/schedule';
 export { default as SolutionModel } from './model/solution';
-export { default as ContestSolutionModel } from './model/contestSolution';
+export { default as ContestSolutionModel } from './model/contest/solution';
 export { default as MessageModel } from './model/message';
 export { default as OauthModel } from './model/oauth';
 export { default as BlackListModel } from './model/blacklist';

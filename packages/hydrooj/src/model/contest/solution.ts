@@ -1,10 +1,10 @@
 import { ObjectId } from 'mongodb';
-import { NotFoundError, SolutionNotFoundError } from '../error';
-import type { Tdoc, User } from '../interface';
-import bus from '../service/bus';
-import { PERM } from './builtin';
-import { isDone } from './contest/common';
-import * as document from './document';
+import { NotFoundError, SolutionNotFoundError } from '../../error';
+import type { Tdoc, User } from '../../interface';
+import bus from '../../service/bus';
+import { PERM } from '../builtin';
+import * as document from '../document';
+import { isDone } from './common';
 
 const TYPE = document.TYPE_CONTEST_SOLUTION;
 const PARENT = document.TYPE_CONTEST;

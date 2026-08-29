@@ -14,16 +14,10 @@ import {
     ContestNotFoundError, ContestNotLiveError, ContestScoreboardHiddenError, FileLimitExceededError, FileUploadError,
     InvalidTokenError, MethodNotAllowedError, NotAssignedError, NotFoundError, PermissionError, ValidationError,
 } from '../error';
-import { ContestStatusDoc, FileInfo, ScoreboardConfig, Tdoc } from '../interface';
+import { FileInfo, ScoreboardConfig, Tdoc } from '../interface';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
-import { listAllowedCppLangs } from '../model/contest/bulkSubmit/config';
-import {
-    buildBulkSubmitMappingDefaults, BULK_SUBMIT_ZIP_MODES, BulkSubmitExistingUserPolicy, BulkSubmitMappingError, BulkSubmitZipMode,
-    DEFAULT_BULK_SUBMIT_EXISTING_USER_POLICY, isCppLang, parseProblemMapping, pickDefaultCppLang,
-} from '../model/contest/bulkSubmit/inspect';
-import { processContestBulkSubmit } from '../model/contest/bulkSubmit/process';
-import contestSolution from '../model/contestSolution';
+import contestSolution from '../model/contest/solution';
 import * as discussion from '../model/discussion';
 import * as document from '../model/document';
 import message from '../model/message';
@@ -31,12 +25,20 @@ import * as oplog from '../model/oplog';
 import problem from '../model/problem';
 import record from '../model/record';
 import ScheduleModel from '../model/schedule';
-import * as setting from '../model/setting';
 import storage from '../model/storage';
 import user from '../model/user';
 import {
-    Handler, param, post, route, Type, Types,
+    Handler, param, post, Type, Types,
 } from '../service/server';
+import { ContestDetailBaseHandler } from './contest/base';
+import { ContestBulkSubmitHandler } from './contest/bulkSubmit';
+import { ContestManagementBaseHandler } from './contest/managementBase';
+import { ContestSolutionHandler, ContestSolutionRawHandler } from './contest/solution';
+
+export { ContestDetailBaseHandler } from './contest/base';
+export { ContestBulkSubmitHandler } from './contest/bulkSubmit';
+export { ContestManagementBaseHandler } from './contest/managementBase';
+export { ContestSolutionHandler, ContestSolutionRawHandler } from './contest/solution';
 
 export class ContestListHandler extends Handler {
     @param('rule', Types.Range(contest.RULES), true)
@@ -80,85 +82,6 @@ export class ContestListHandler extends Handler {
         this.response.body = {
             page, tpcount, qs, rule, tdocs, tsdict, groups: groupsFilter, group, q,
         };
-    }
-}
-
-export class ContestDetailBaseHandler extends Handler {
-    tdoc?: Tdoc;
-    tsdoc?: ContestStatusDoc;
-
-    @param('tid', Types.ObjectId, true)
-    async __prepare(domainId: string, tid: ObjectId) {
-        if (!tid) return; // ProblemDetailHandler also extends from ContestDetailBaseHandler
-        [this.tdoc, this.tsdoc] = await Promise.all([
-            contest.get(domainId, tid),
-            contest.getStatus(domainId, tid, this.user._id),
-        ]);
-        if (this.tdoc.assign?.length && !this.user.own(this.tdoc) && !this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST)) {
-            const groups = await user.listGroup(domainId, this.user._id);
-            if (!new Set(this.tdoc.assign).intersection(new Set(groups.map((i) => i.name))).size) {
-                throw new NotAssignedError('contest', tid);
-            }
-        }
-        if (this.tdoc.duration && this.tsdoc?.startAt) {
-            this.tsdoc.endAt = moment.min([
-                moment(this.tsdoc.startAt).add(this.tdoc.duration, 'hours'),
-                moment(this.tdoc.endAt),
-                ...(this.tsdoc.endAt ? [moment(this.tsdoc.endAt)] : []),
-            ]).toDate();
-        }
-    }
-
-    tsdocAsPublic() {
-        if (!this.tsdoc) return null;
-        return pick(this.tsdoc, ['attend', 'subscribe', 'startAt', ...(this.tdoc.duration || this.tsdoc.endAt ? ['endAt'] : [])]);
-    }
-
-    @param('tid', Types.ObjectId, true)
-    async after(domainId: string, tid: ObjectId) {
-        if (!tid || this.tdoc.rule === 'homework') return;
-        if (this.request.json || !this.response.template) return;
-        const pdoc = 'pdoc' in this ? (this as any).pdoc : {};
-        this.response.body.overrideNav = [
-            {
-                name: 'contest_main',
-                args: {},
-                displayName: 'Back to contest list',
-                checker: () => true,
-            },
-            {
-                name: 'contest_detail',
-                displayName: this.tdoc.title,
-                args: { tid, prefix: 'contest_detail' },
-                checker: () => true,
-            },
-            {
-                name: 'contest_problemlist',
-                args: { tid, prefix: 'contest_problemlist' },
-                checker: () => this.tsdoc?.attend || contest.isDone(this.tdoc),
-            },
-            {
-                name: 'contest_print',
-                args: { tid, prefix: 'contest_print' },
-                checker: () => this.tdoc.allowPrint && (this.tsdoc?.attend || this.user.own(this.tdoc) || this.user.hasPerm(PERM.PERM_EDIT_CONTEST)),
-            },
-            {
-                name: 'contest_scoreboard',
-                args: { tid, prefix: 'contest_scoreboard' },
-                checker: () => contest.canShowScoreboard.call(this, this.tdoc, true),
-            },
-            {
-                name: 'contest_solution',
-                args: { tid, prefix: 'contest_solution' },
-                checker: () => contest.isDone(this.tdoc) || this.user.own(this.tdoc) || this.user.hasPerm(PERM.PERM_EDIT_CONTEST),
-            },
-            {
-                name: 'problem_detail',
-                displayName: `${getAlphabeticId(this.tdoc.pids.indexOf(pdoc.docId))}. ${pdoc.title}`,
-                args: { query: { tid }, pid: pdoc.docId, prefix: 'contest_detail_problem' },
-                checker: () => 'pdoc' in this,
-            },
-        ];
     }
 }
 
@@ -213,154 +136,6 @@ export class ContestDetailHandler extends ContestDetailBaseHandler {
         const now = new Date();
         await contest.setStatus(domainId, tid, this.user._id, { endAt: now, ...(!this.tsdoc.startAt ? { startAt: now } : {}) });
         this.back();
-    }
-}
-
-export class ContestSolutionHandler extends ContestDetailBaseHandler {
-    @param('tid', Types.ObjectId)
-    async prepare(domainId: string, tid: ObjectId) {
-        if (this.tdoc.rule === 'homework') throw new ContestNotFoundError(domainId, tid);
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('page', Types.PositiveInt, true)
-    @param('sid', Types.ObjectId, true)
-    async get(domainId: string, tid: ObjectId, page = 1, sid?: ObjectId) {
-        if (this.tdoc.rule === 'homework') throw new ContestNotFoundError(domainId, tid);
-        const manager = contestSolution.isManager(this.user, this.tdoc);
-        if (!manager && !contest.isDone(this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        let [csdocs, pcount, cscount] = await this.paginate(contestSolution.getMulti(domainId, tid), page, 'solution');
-        if (sid) {
-            const selected = await contestSolution.get(domainId, sid);
-            contestSolution.ensureParent(selected, tid, domainId);
-            csdocs = [selected];
-        }
-        const uids = [this.tdoc.owner];
-        const ids = [];
-        for (const doc of csdocs) {
-            ids.push(doc.docId);
-            uids.push(doc.owner);
-            for (const reply of doc.reply || []) uids.push(reply.owner);
-        }
-        this.response.template = 'contest_solution.html';
-        this.response.body = {
-            tdoc: this.tdoc, tsdoc: this.tsdocAsPublic(), csdocs, page, pcount, cscount,
-            udict: await user.getList(domainId, uids),
-            cssdict: await contestSolution.getListStatus(domainId, ids, this.user._id), sid, canManage: manager,
-        };
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('content', Types.Content)
-    async postSubmit(domainId: string, tid: ObjectId, content: string) {
-        if (!contestSolution.isManager(this.user, this.tdoc)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
-        const csid = await contestSolution.add(domainId, tid, this.user._id, content);
-        this.back({ csid });
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('content', Types.Content)
-    @param('psid', Types.ObjectId)
-    async postEditSolution(domainId: string, tid: ObjectId, content: string, psid: ObjectId) {
-        const doc = await contestSolution.get(domainId, psid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        if (!contestSolution.isManager(this.user, this.tdoc)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
-        this.back({ csdoc: await contestSolution.edit(domainId, psid, content) });
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('psid', Types.ObjectId)
-    async postDeleteSolution(domainId: string, tid: ObjectId, psid: ObjectId) {
-        const doc = await contestSolution.get(domainId, psid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        if (!contestSolution.isManager(this.user, this.tdoc)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
-        await contestSolution.del(domainId, psid);
-        this.back();
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('psid', Types.ObjectId)
-    @param('content', Types.Content)
-    async postReply(domainId: string, tid: ObjectId, psid: ObjectId, content: string) {
-        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        this.checkPerm(PERM.PERM_REPLY_PROBLEM_SOLUTION);
-        const doc = await contestSolution.get(domainId, psid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        await contestSolution.reply(domainId, psid, this.user._id, content);
-        this.back();
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('psid', Types.ObjectId)
-    @param('psrid', Types.ObjectId)
-    @param('content', Types.Content)
-    async postEditReply(domainId: string, tid: ObjectId, psid: ObjectId, psrid: ObjectId, content: string) {
-        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        const [doc, reply] = await contestSolution.getReply(domainId, psid, psrid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        contestSolution.ensureReply(reply, domainId, psid);
-        if (!this.user.own(reply) || !this.user.hasPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION_REPLY_SELF)) {
-            throw new PermissionError(PERM.PERM_EDIT_PROBLEM_SOLUTION_REPLY_SELF);
-        }
-        await contestSolution.editReply(domainId, psid, psrid, content);
-        this.back();
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('psid', Types.ObjectId)
-    @param('psrid', Types.ObjectId)
-    async postDeleteReply(domainId: string, tid: ObjectId, psid: ObjectId, psrid: ObjectId) {
-        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        const [doc, reply] = await contestSolution.getReply(domainId, psid, psrid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        contestSolution.ensureReply(reply, domainId, psid);
-        if (this.user.own(reply)) this.checkPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY_SELF);
-        else this.checkPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY);
-        await contestSolution.delReply(domainId, psid, psrid);
-        this.back();
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('psid', Types.ObjectId)
-    async postUpvote(domainId: string, tid: ObjectId, psid: ObjectId) {
-        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        this.checkPerm(PERM.PERM_VOTE_PROBLEM_SOLUTION);
-        const doc = await contestSolution.get(domainId, psid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        const updated = await contestSolution.vote(domainId, psid, this.user._id, 1);
-        this.back({ vote: updated.vote, user_vote: 1 });
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('psid', Types.ObjectId)
-    async postDownvote(domainId: string, tid: ObjectId, psid: ObjectId) {
-        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        this.checkPerm(PERM.PERM_VOTE_PROBLEM_SOLUTION);
-        const doc = await contestSolution.get(domainId, psid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        const updated = await contestSolution.vote(domainId, psid, this.user._id, -1);
-        this.back({ vote: updated.vote, user_vote: -1 });
-    }
-}
-
-export class ContestSolutionRawHandler extends ContestDetailBaseHandler {
-    @param('tid', Types.ObjectId)
-    @param('csid', Types.ObjectId)
-    @route('csrid', Types.ObjectId, true)
-    async get(domainId: string, tid: ObjectId, csid: ObjectId, csrid?: ObjectId) {
-        if (this.tdoc.rule === 'homework') throw new ContestNotFoundError(domainId, tid);
-        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        if (csrid) {
-            const [doc, reply] = await contestSolution.getReply(domainId, csid, csrid);
-            contestSolution.ensureParent(doc, tid, domainId);
-            contestSolution.ensureReply(reply, domainId, csid);
-            this.response.body = reply.content;
-        } else {
-            const doc = await contestSolution.get(domainId, csid);
-            contestSolution.ensureParent(doc, tid, domainId);
-            this.response.body = doc.content;
-        }
-        this.response.type = 'text/markdown';
     }
 }
 
@@ -662,12 +437,6 @@ export class ContestEditHandler extends Handler {
     }
 }
 
-export class ContestManagementBaseHandler extends ContestDetailBaseHandler {
-    async prepare() {
-        if (!this.user.own(this.tdoc)) this.checkPerm(PERM.PERM_EDIT_CONTEST);
-    }
-}
-
 export class ContestCodeHandler extends Handler {
     @param('tid', Types.ObjectId)
     @param('all', Types.Boolean)
@@ -794,73 +563,6 @@ export class ContestManagementHandler extends ContestManagementBaseHandler {
         await contest.edit(domainId, this.tdoc.docId, { score: this.tdoc.score });
         await contest.recalcStatus(domainId, this.tdoc.docId);
         this.back();
-    }
-}
-
-export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
-    @param('tid', Types.ObjectId)
-    async get(domainId: string, _tid: ObjectId) {
-        const pdict = await problem.getList(domainId, this.tdoc.pids, true, true, problem.PROJECTION_CONTEST_LIST);
-        const cppLangs = listAllowedCppLangs(this.tdoc, this.domain.langs);
-        const langRange = Object.fromEntries(cppLangs.map((l) => [l, setting.langs[l]?.display || l]));
-        const mappingDefaults = buildBulkSubmitMappingDefaults(
-            this.tdoc.pids,
-            pdict,
-            this.tdoc.pids.map((pid, i) => (pdict[pid]?.pid ? String(pdict[pid].pid) : getAlphabeticId(i))),
-        );
-        this.response.body = {
-            tdoc: this.tdoc,
-            tsdoc: this.tsdoc,
-            owner_udoc: await user.getById(domainId, this.tdoc.owner),
-            pdict,
-            langRange,
-            defaultLang: pickDefaultCppLang(cppLangs) || '',
-            mappingDefaults,
-        };
-        this.response.template = 'contest_bulk_submit.html';
-    }
-
-    @param('tid', Types.ObjectId)
-    @post('mapping', Types.Any)
-    @post('lang', Types.Name, true)
-    @post('dryrun', Types.Boolean)
-    @post('existingUser', Types.Range(['vuser', 'existing']), true)
-    @post('zipMode', Types.Range([...BULK_SUBMIT_ZIP_MODES]), true)
-    async post(
-        domainId: string, tid: ObjectId, mappingRaw: unknown, lang = '', dryrun = false,
-        existingUser: BulkSubmitExistingUserPolicy = DEFAULT_BULK_SUBMIT_EXISTING_USER_POLICY,
-        zipMode: BulkSubmitZipMode = 'auto',
-    ) {
-        if (contest.isNotStarted(this.tdoc)) throw new ContestNotLiveError(domainId, tid);
-        const cppLangs = listAllowedCppLangs(this.tdoc, this.domain.langs);
-        const submitLang = lang || pickDefaultCppLang(cppLangs);
-        if (!submitLang || !isCppLang(submitLang) || !cppLangs.includes(submitLang)
-            || !setting.langs[submitLang] || setting.langs[submitLang].disabled) {
-            throw new ValidationError('lang');
-        }
-        let mapping: Record<number, string>;
-        try {
-            mapping = parseProblemMapping(mappingRaw, this.tdoc.pids);
-        } catch (e) {
-            if (e instanceof BulkSubmitMappingError) throw new ValidationError('mapping', null, e.message);
-            throw e;
-        }
-        const file = this.request.files?.file;
-        if (!file) throw new ValidationError('file');
-        const filename = file.originalFilename || '';
-        if (!filename.toLowerCase().endsWith('.zip')) throw new ValidationError('file', null, 'Only zip files are allowed');
-        this.response.body = await processContestBulkSubmit({
-            domainId,
-            tid,
-            pids: this.tdoc.pids,
-            beginAt: this.tdoc.beginAt,
-            filePath: file.filepath,
-            mapping,
-            submitLang,
-            dryrun,
-            existingUser,
-            zipMode,
-        });
     }
 }
 

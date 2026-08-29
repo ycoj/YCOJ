@@ -23,7 +23,7 @@ const busPath = require.resolve('../src/service/bus');
 require.cache[documentPath] = { exports: documentMock } as NodeJS.Module;
 require.cache[busPath] = { exports: { on: (name: string, fn: Function) => { listeners[name] = fn; }, parallel: async () => {} } } as NodeJS.Module;
 Object.assign(global, { Hydro: { model: {} } });
-const ContestSolutionModel = require('../src/model/contestSolution').default;
+const ContestSolutionModel = require('../src/model/contest/solution').default;
 
 describe('contest solutions', () => {
     it('creates solutions under the contest parent type', async () => {

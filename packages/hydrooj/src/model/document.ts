@@ -4,7 +4,7 @@ import {
 } from 'mongodb';
 import { Context } from '../context';
 import {
-    CheckinDoc, Content, ContestClarificationDoc, ContestPrintDoc, ContestStatusDoc,
+    CheckinDoc, Content, ContestClarificationDoc, ContestPrintDoc, ContestSolutionDoc, ContestStatusDoc,
     DiscussionDoc, DiscussionReplyDoc, ProblemDoc, ProblemStatusDoc,
     Tdoc, TrainingDoc, TrainingStatusDoc,
 } from '../interface';
@@ -41,7 +41,7 @@ export interface DocType {
     [TYPE_DISCUSSION_REPLY]: DiscussionReplyDoc;
     [TYPE_CONTEST]: Tdoc;
     [TYPE_CONTEST_PRINT]: ContestPrintDoc;
-    [TYPE_CONTEST_SOLUTION]: any;
+    [TYPE_CONTEST_SOLUTION]: ContestSolutionDoc;
     [TYPE_CONTEST_CLARIFICATION]: ContestClarificationDoc;
     [TYPE_TRAINING]: TrainingDoc;
     [TYPE_CHECKIN]: CheckinDoc;
