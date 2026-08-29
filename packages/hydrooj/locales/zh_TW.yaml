@@ -526,7 +526,7 @@ My status: 我的狀態
 name: 名稱
 Name: 名稱
 Network error: 網路錯誤
-Never expire: 從不過期
+Never expire: 永不過期
 New Email: 新電子郵件
 New file: 新檔案
 New Password: 新密碼
@@ -652,6 +652,7 @@ problem.import.input_format: '## 輸入格式'
 problem.import.limit_and_hint: '## 限制'
 problem.import.output_format: '## 輸出格式'
 problem.import.problem_description: '## 題目描述'
+Pastes per page: 每頁展示的分享記錄數量
 Problems per page: 每頁展示的題目數量
 Problems Sets: 題庫
 Problems: 題目
@@ -1010,3 +1011,21 @@ Auto: 自動
 Subfolder mode: 子資料夾模式
 Non-subfolder mode: 非子資料夾模式
 Detail: 詳情
+paste_main: 分享程式碼片段
+paste_detail: 分享詳情
+paste_edit: 編輯分享
+Pastebin: 分享程式碼片段
+Create Paste: 分享程式碼片段
+Edit Paste: 編輯分享
+Paste type: 類型
+Markdown: Markdown
+Expiration: 到期時間
+1 day: 1 天
+1 week: 1 週
+1 month: 1 個月
+Raw: 原始內容
+Copy link: 複製連結
+My Pastes: 分享記錄
+No pastes yet: 尚無分享記錄
+Expires: 到期時間
+Optional title: 可選標題
