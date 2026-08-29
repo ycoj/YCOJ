@@ -44,6 +44,12 @@ Description: leave a non-system domain. Request `type Leave={operation:"leave";i
 ## `GET|POST /home/domain/create`
 Description: show/create a domain. GET `type Query={}`, response `HTML`. POST `type Input={id:string;name:string;bulletin:string;avatar:string}`, example `{"id":"school","name":"School","bulletin":"Welcome","avatar":""}`, response `Redirect`, example `{"url":"/home/domain"}`. Requires `PRIV_CREATE_DOMAIN`.
 
+## `GET|POST /home/realname`
+Description: submit or update the caller’s real-name application. GET `type Query={}`, example `GET /home/realname`, response `HTML` or redirect to `/home/realname/result` when status is `pending` or `approved`. POST `type Input={realName:string;school:string}`, example `{"realName":"张三","school":"第一中学"}`, response `Redirect`, example `{"url":"/home/realname/result"}`. Requires profile privilege. Unverified users may call this route. Until approved, other feature routes return `RealnameRequiredError`. Super administrators are exempt.
+
+## `GET /home/realname/result`
+Description: show the caller’s latest verification status. Request `type Query={}`, example `GET /home/realname/result`. Response `HTML`, or redirect to `/home/realname` when no application exists. Requires profile privilege.
+
 ## `GET|POST /home/messages`
 Description: view/manage private messages. GET `type Query={}`, response `HTML`. POST `type Input={operation?:string;messageId?:string;content?:string}`, example `{"operation":"delete","messageId":"66aa66aa66aa66aa66aa66aa"}`, response `Redirect`, example `{"url":"/home/messages"}`. Requires profile privilege.
 

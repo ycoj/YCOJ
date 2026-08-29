@@ -1,0 +1,64 @@
+{% extends "layout/basic.html" %}
+{% block content %}
+<div class="row">
+  <div class="medium-8 columns">
+    <div class="section">
+      <div class="section__header">
+        <h1 class="section__title">{{ _('Real-name Verification') }}</h1>
+      </div>
+      <div class="section__body typo">
+        {% if exempt %}
+          <blockquote class="note">{{ _('You are a super administrator and do not need real-name verification.') }}</blockquote>
+        {% else %}
+          <p>{{ _('Please enter your legal name and school. A super administrator will review your application. You cannot use any site features until it is approved.') }}</p>
+          {% if status == 'rejected' and application %}
+            <blockquote class="red">
+              {{ _('Your real-name verification was rejected.') }}
+              {% if application.rejectReason %}
+                <br>{{ _('Rejection Reason') }}: {{ application.rejectReason }}
+              {% endif %}
+            </blockquote>
+          {% endif %}
+          <form method="post">
+            {{ form.form_text({
+              label: 'Real Name',
+              name: 'realName',
+              value: realName,
+              required: true,
+              autofocus: true,
+              extra_attr: 'maxlength="64" autocomplete="name"',
+              help_text: 'Use your legal name. 2–64 characters.'
+            }) }}
+            {{ form.form_text({
+              label: 'School',
+              name: 'school',
+              value: school,
+              required: true,
+              extra_attr: 'maxlength="128" autocomplete="organization"',
+              help_text: 'Full official school name. 2–128 characters.'
+            }) }}
+            <div class="row"><div class="columns">
+              <input type="submit" class="rounded primary button" value="{{ _('Update Verification') if status == 'pending' or status == 'rejected' else _('Submit Verification') }}">
+              {% if status == 'pending' or status == 'rejected' %}
+                <a href="{{ url('home_realname_result') }}" class="rounded button">{{ _('Verification Result') }}</a>
+              {% endif %}
+            </div></div>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="medium-4 columns">
+    <div class="section side">
+      <div class="section__header">
+        <h1 class="section__title">{{ _('Help') }}</h1>
+      </div>
+      <div class="section__body typo">
+        <p>{{ _('After submission, a super administrator will review your real name and school.') }}</p>
+        <p>{{ _('You may update a pending application if you entered something incorrectly.') }}</p>
+        <p>{{ _('Rejected applications can be corrected and submitted again.') }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

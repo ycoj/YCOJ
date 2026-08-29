@@ -1,0 +1,78 @@
+{% extends "layout/basic.html" %}
+{% block content %}
+<div class="row">
+  <div class="medium-8 columns">
+    <div class="section">
+      <div class="section__header">
+        <h1 class="section__title">{{ _('Verification Result') }}</h1>
+      </div>
+      <div class="section__body">
+        {% if exempt %}
+          <blockquote class="note">{{ _('You are a super administrator and do not need real-name verification.') }}</blockquote>
+        {% elif status == 'pending' %}
+          <div class="realname-result realname-result--pending">
+            <div class="realname-result__badge">{{ _('Pending') }}</div>
+            <h2 class="realname-result__title">{{ _('Your real-name verification is pending review.') }}</h2>
+            <p class="realname-result__desc">{{ _('Please complete real-name verification before using this site.') }}</p>
+          </div>
+        {% elif status == 'approved' %}
+          <div class="realname-result realname-result--approved">
+            <div class="realname-result__badge">{{ _('Approved') }}</div>
+            <h2 class="realname-result__title">{{ _('Your real-name verification has been approved.') }}</h2>
+            <p class="realname-result__desc">{{ _('You can now use the site normally.') }}</p>
+          </div>
+        {% elif status == 'rejected' %}
+          <div class="realname-result realname-result--rejected">
+            <div class="realname-result__badge">{{ _('Rejected') }}</div>
+            <h2 class="realname-result__title">{{ _('Your real-name verification was rejected.') }}</h2>
+            {% if application and application.rejectReason %}
+              <p class="realname-result__desc">{{ _('Rejection Reason') }}: {{ application.rejectReason }}</p>
+            {% endif %}
+          </div>
+        {% else %}
+          <blockquote class="warn">{{ _('Please complete real-name verification before using this site.') }}</blockquote>
+        {% endif %}
+      </div>
+      {% if application %}
+      <div class="section__body no-padding">
+        <table class="data-table">
+          <colgroup>
+            <col class="col--key">
+            <col class="col--value">
+          </colgroup>
+          <tbody>
+            <tr>
+              <td>{{ _('Real Name') }}</td>
+              <td>{{ application.realName }}</td>
+            </tr>
+            <tr>
+              <td>{{ _('School') }}</td>
+              <td>{{ application.school }}</td>
+            </tr>
+            <tr>
+              <td>{{ _('Submitted At') }}</td>
+              <td>{{ datetimeSpan(application.submittedAt)|safe }}</td>
+            </tr>
+            {% if application.reviewedAt %}
+            <tr>
+              <td>{{ _('Reviewed At') }}</td>
+              <td>{{ datetimeSpan(application.reviewedAt)|safe }}</td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+      <div class="section__body">
+        {% if status == 'rejected' or status == 'none' %}
+          <a href="{{ url('home_realname') }}" class="rounded primary button">{{ _('Resubmit') }}</a>
+        {% elif status == 'pending' %}
+          <a href="{{ url('home_realname') }}" class="rounded button">{{ _('Update Verification') }}</a>
+        {% elif status == 'approved' %}
+          <a href="{{ url('homepage') }}" class="rounded primary button">{{ _('Back to homepage') }}</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

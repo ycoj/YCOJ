@@ -1,0 +1,64 @@
+.realname-result
+  padding: rem(8px 0 16px)
+
+  &__badge
+    display: inline-block
+    min-width: rem(72px)
+    padding: rem(2px 10px)
+    border-radius: rem(12px)
+    font-size: rem($font-size-small)
+    font-weight: 600
+    line-height: 1.6
+    text-align: center
+
+  &__title
+    margin: rem(12px) 0 rem(6px)
+    font-size: 1.15rem
+
+  &__desc
+    margin: 0
+    color: $text-2-color
+
+.realname-result--pending .realname-result__badge
+  background: #f7e3b0
+  color: #8a5a00
+
+.realname-result--approved .realname-result__badge
+  background: #d4edda
+  color: $success-color
+
+.realname-result--rejected .realname-result__badge
+  background: #f8d7da
+  color: $fail-color
+
+.realname-status
+  display: inline-block
+  padding: rem(1px 8px)
+  border-radius: rem(10px)
+  font-size: rem($font-size-small)
+  font-weight: 600
+
+.realname-status--pending
+  background: #f7e3b0
+  color: #8a5a00
+
+.realname-status--approved
+  background: #d4edda
+  color: $success-color
+
+.realname-status--rejected
+  background: #f8d7da
+  color: $fail-color
+
+.col--realname
+  width: rem(120px)
+
+.col--school
+  width: rem(180px)
+
+.realname-filter
+  display: inline-block
+
+  label
+    margin: 0
+    font-weight: normal

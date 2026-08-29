@@ -194,6 +194,8 @@ export class HomeHandler extends Handler {
 }
 
 class HomeSecurityHandler extends Handler {
+    skipRealnameCheck = true;
+
     @requireSudo
     async get() {
         // TODO(iceboy): pagination? or limit session count for uid?

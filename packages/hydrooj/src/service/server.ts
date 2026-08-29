@@ -10,7 +10,8 @@ import {
 } from '@hydrooj/framework';
 import { errorMessage, Time } from '@hydrooj/utils';
 import { Context } from '../context';
-import { PermissionError, PrivilegeError } from '../error';
+import { PermissionError, PrivilegeError, RealnameRequiredError } from '../error';
+import { nextRealnameRoute, shouldBlockUnverifiedAccess } from '../lib/realname';
 import type { DomainDoc } from '../interface';
 import { Logger } from '../logger';
 import { PERM, PRIV } from '../model/builtin';
@@ -78,9 +79,11 @@ export function requireSudo(target: any, funcName: string, obj: any) {
 
 export class Handler extends HandlerOriginal {
     domain: DomainDoc;
+    skipRealnameCheck?: boolean;
 }
 export class ConnectionHandler extends ConnectionHandlerOriginal {
     domain: DomainDoc;
+    skipRealnameCheck?: boolean;
 }
 
 export async function apply(ctx: Context) {
@@ -219,6 +222,8 @@ export async function apply(ctx: Context) {
                             redirect: (this.context.originalPath || this.request.path) + this.context.search,
                         },
                     });
+                } else if (error instanceof RealnameRequiredError) {
+                    this.response.redirect = this.url(nextRealnameRoute(this.user));
                 } else if (!this.user._dudoc.join && error instanceof PermissionError) {
                     this.response.redirect = this.url('domain_join', {
                         domainId: 'system',
@@ -276,10 +281,12 @@ export async function apply(ctx: Context) {
                     text: v.text,
                     name: v.name,
                 }));
+            if (shouldBlockUnverifiedAccess(h.user, h)) throw new RealnameRequiredError();
             if ((!('noCheckPermView' in h) || !h.noCheckPermView) && !h.user.hasPriv(PRIV.PRIV_VIEW_ALL_DOMAIN)) h.checkPerm(PERM.PERM_VIEW);
             if (h.context.pendingError) throw h.context.pendingError;
         });
         on('handler/create/ws', async (h) => {
+            if (shouldBlockUnverifiedAccess(h.user, h)) throw new RealnameRequiredError();
             if (h.context.pendingError) throw h.context.pendingError;
         });
     });

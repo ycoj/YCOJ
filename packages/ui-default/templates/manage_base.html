@@ -12,9 +12,9 @@
             <span class="icon icon-info"></span> {{ _('Properties') }}
           </div>
           <ol class="menu collapsed">
-            {%- for item in ui.getNodes('ControlPanel') -%}
+            {%- for item in ui.getNodes('ControlPanel') -%}{% if item.checker(handler) %}
               {{ sidemenu.render_item(item.icon, item.name) }}
-            {%- endfor -%}
+            {% endif %}{%- endfor -%}
           </ol>
         </li>
       </ol>

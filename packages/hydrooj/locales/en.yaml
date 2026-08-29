@@ -41,6 +41,8 @@ home_domain_create: Create Domain
 home_domain: My Domains
 home_messages: Messages
 home_preference: Preference
+home_realname: Real-name Verification
+home_realname_result: Verification Result
 home_security: Security
 homepage: Home
 homework_create: Homework Create
@@ -55,6 +57,7 @@ manage_dashboard: System
 manage_module: Module Management
 manage_script: Scripts
 manage_setting: System Settings
+manage_realname: Real-name Verification
 manage_user_import: Import Users
 manage_user_priv: User Privilege
 manage: System Manage

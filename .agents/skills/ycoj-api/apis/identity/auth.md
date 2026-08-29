@@ -10,7 +10,7 @@ Use this to show local login. `type LoginPageQuery = { redirect?: string }`; exa
 
 ### POST — sign in
 
-Use this to create a session. `type LoginInput = { uname: string; password: string; rememberme: boolean; redirect?: string; tfa?: string; authnChallenge?: string; judge?: boolean }`; example `{"uname":"alice","password":"correct horse","rememberme":true,"redirect":"/"}`. Username/password are validated; TFA/WebAuthn is required when configured. Returns `type Redirect = {url:string}` (JSON example `{"url":"/"}`) and sets `sid`; public.
+Use this to create a session. `type LoginInput = { uname: string; password: string; rememberme: boolean; redirect?: string; tfa?: string; authnChallenge?: string; judge?: boolean }`; example `{"uname":"alice","password":"correct horse","rememberme":true,"redirect":"/"}`. Username/password are validated; TFA/WebAuthn is required when configured. Returns `type Redirect = {url:string}` (JSON example `{"url":"/"}`) and sets `sid`; public. Logged-in users who still need real-name verification are redirected to `/home/realname` or `/home/realname/result` instead of `redirect` or the homepage. Super administrators and judge service accounts skip this.
 
 ## `/logout`
 

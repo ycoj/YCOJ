@@ -397,6 +397,8 @@ home_domain: 我的域
 home_files: 我的文件
 home_messages: 站内消息
 home_preference: 偏好设置
+home_realname: 实名认证
+home_realname_result: 认证结果
 home_security: 安全设置
 Homepage Config: 主页设置
 homepage: 首页
@@ -495,6 +497,7 @@ manage_dashboard: 控制面板
 manage_join_applications: 加域申请
 manage_module: 管理模块
 manage_setting: 系统设置
+manage_realname: 实名认证管理
 manage_user_import: 导入用户
 manage: 管理
 Manage: 管理

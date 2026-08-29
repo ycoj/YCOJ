@@ -393,6 +393,8 @@ home_domain: 我的域
 home_files: 我的檔案
 home_messages: 站內訊息
 home_preference: 偏好設定
+home_realname: 實名認證
+home_realname_result: 認證結果
 home_security: 安全設定
 Homepage Config: 主頁設定
 homepage: 首頁
@@ -492,6 +494,7 @@ manage_dashboard: 概況
 manage_join_applications: 加域申請
 manage_module: 管理模組
 manage_setting: 系統設定
+manage_realname: 實名認證管理
 manage_user_import: 匯入使用者
 manage: 管理
 Manage: 管理

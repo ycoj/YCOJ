@@ -2,6 +2,7 @@
 
 - [Strict home/account endpoint contracts](home.md)
 - [Strict discussion and blog endpoint contracts](discussion-blog.md)
+- [Real-name verification](../realname/README.md)
 
 ## Home/account routes
 
@@ -14,6 +15,8 @@
 | `/home/changeMail/:code` GET | token path parameter | Consumes/validates email-change token then redirects; profile privilege. |
 | `/home/domain` GET | `?all=true` | HTML containing accessible domains; profile privilege. |
 | `/home/domain/create` GET/POST | `{id:"school",name:"School",bulletin:"…",avatar:"…"}` | Form/redirect; `PRIV_CREATE_DOMAIN`. |
+| `/home/realname` GET/POST | POST `{realName:"张三",school:"第一中学"}`. | Form/redirect; profile privilege. Unverified users allowed. |
+| `/home/realname/result` GET | no arguments | Status HTML; profile privilege. Unverified users allowed. |
 | `/home/messages` GET/POST | UI operations include message content and `messageId:ObjectId`; e.g. `{operation:"delete",messageId:"66…"}`. | HTML/redirect; profile privilege. |
 
 ## Discussion routes

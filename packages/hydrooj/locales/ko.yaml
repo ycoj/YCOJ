@@ -327,6 +327,8 @@ home_domain_create: 그룹 생성
 home_domain: 그룹
 home_messages: 메시지
 home_preference: 설정
+home_realname: 실명 인증
+home_realname_result: 인증 결과
 home_security: 보안
 homepage: 홈
 Homework Introduction: 과제 안내
@@ -405,6 +407,7 @@ manage_join_applications: 참여 요청 관리
 manage_module: 모듈 관리
 manage_script: 스크립트 관리
 manage_setting: 설정 관리
+manage_realname: 실명 인증 관리
 manage_user_import: 사용자 불러오기
 manage: 관리
 Manage: 관리
