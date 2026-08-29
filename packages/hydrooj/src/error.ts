@@ -35,6 +35,10 @@ export const RealnameNotPendingError = Err(
     'RealnameNotPendingError', BadRequestError,
     'This application is not pending review.',
 );
+export const RealnameInvalidTransitionError = Err(
+    'RealnameInvalidTransitionError', BadRequestError,
+    'Invalid real-name application transition.',
+);
 export const UserAlreadyExistError = Err('UserAlreadyExistError', ForbiddenError, 'User {0} already exists.');
 export const InvalidTokenError = Err('InvalidTokenError', ForbiddenError, 'The {0} Token is invalid.');
 export const BlacklistedError = Err('BlacklistedError', ForbiddenError, 'Address or user {0} is blacklisted.');

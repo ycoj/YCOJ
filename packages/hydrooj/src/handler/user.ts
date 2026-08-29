@@ -14,7 +14,7 @@ import {
 import { TokenDoc, Udoc, User } from '../interface';
 import avatar from '../lib/avatar';
 import { CHECKIN_TIMEZONE, toCheckinRecord } from '../lib/checkin';
-import { nextRealnameRoute, requiresRealname } from '../lib/realname';
+import { getRealnameStatus, requiresRealname } from '../lib/realname';
 import { sendMail } from '../lib/mail';
 import { verifyTFA } from '../lib/verifyTFA';
 import BlackListModel from '../model/blacklist';
@@ -33,7 +33,7 @@ import {
     Handler, param, post, Query, Types,
 } from '../service/server';
 
-async function successfulAuth(this: Handler, udoc: User) {
+async function successfulAuth(this: Handler, udoc: User, redirect = '') {
     if (udoc._id !== 0) {
         await this.ctx.serial('auth/before-login', this, udoc);
         await user.setById(udoc._id, { loginat: new Date(), loginip: this.request.ip });
@@ -49,6 +49,10 @@ async function successfulAuth(this: Handler, udoc: User) {
     if (udoc._id !== 0) {
         await oplog.log(this, 'user.loginSuccess', { uid: udoc._id });
         await this.ctx.serial('auth/login', this, udoc);
+        this.response.redirect = requiresRealname(udoc)
+            ? this.url(getRealnameStatus(udoc) === 'none' ? 'home_realname' : 'home_realname_result')
+            : (redirect || ((this.request.referer || '/login').endsWith('/login')
+                ? this.url('homepage') : this.request.referer));
     }
 }
 
@@ -106,12 +110,8 @@ class UserLoginHandler extends Handler {
         }
         await udoc.checkPassword(password);
         if (!udoc.hasPriv(PRIV.PRIV_USER_PROFILE)) throw new BlacklistedError(uname, udoc.banReason);
-        await successfulAuth.call(this, udoc);
+        await successfulAuth.call(this, udoc, redirect);
         this.session.save = rememberme;
-        this.response.redirect = requiresRealname(udoc)
-            ? this.url(nextRealnameRoute(udoc))
-            : (redirect || ((this.request.referer || '/login').endsWith('/login')
-                ? this.url('homepage') : this.request.referer));
     }
 }
 
@@ -226,12 +226,8 @@ class UserWebauthnHandler extends Handler {
         await user.setById(udoc._id, { authenticators: udoc._authenticators });
         if (tdoc.uid === 'login') {
             const loggedIn = await user.getById(domainId, udoc._id);
-            await successfulAuth.call(this, loggedIn);
+            await successfulAuth.call(this, loggedIn, redirect);
             await token.del(challenge, token.TYPE_WEBAUTHN);
-            this.response.redirect = requiresRealname(loggedIn)
-                ? this.url(nextRealnameRoute(loggedIn))
-                : (redirect || ((this.request.referer || '/login').endsWith('/login')
-                    ? this.url('homepage') : this.request.referer));
         } else {
             await token.update(challenge, token.TYPE_WEBAUTHN, 60, { verified: true });
             this.back();
@@ -350,10 +346,7 @@ class UserRegisterWithCodeHandler extends Handler {
         if (Object.keys(this.tdoc.setInDomain || {}).length) await domain.setUserInDomain(domainId, uid, this.tdoc.setInDomain);
         await this.ctx.oauth.set(this.tdoc.identity.platform, this.tdoc.identity.id, uid);
         const created = await user.getById(domainId, uid);
-        await successfulAuth.call(this, created);
-        this.response.redirect = requiresRealname(created)
-            ? this.url(nextRealnameRoute(created))
-            : (this.tdoc.redirect || this.url('home_settings', { category: 'preference' }));
+        await successfulAuth.call(this, created, this.tdoc.redirect || this.url('home_settings', { category: 'preference' }));
     }
 }
 
@@ -527,20 +520,14 @@ class OauthCallbackHandler extends Handler {
         const effective = existing.find((i) => i);
         if (effective) {
             const bound = await user.getById('system', effective);
-            await successfulAuth.call(this, bound);
-            this.response.redirect = requiresRealname(bound)
-                ? this.url(nextRealnameRoute(bound))
-                : (this.session.oauthRedirect || this.url('homepage'));
+            await successfulAuth.call(this, bound, this.session.oauthRedirect || this.url('homepage'));
             delete this.session.oauthRedirect;
             return;
         }
         const udoc = await user.getByEmail('system', r.email);
         if (udoc) {
             await Promise.all(ids.map((i) => this.ctx.oauth.set(args.type, i, udoc._id)));
-            await successfulAuth.call(this, udoc);
-            this.response.redirect = requiresRealname(udoc)
-                ? this.url(nextRealnameRoute(udoc))
-                : (this.session.oauthRedirect || this.url('homepage'));
+            await successfulAuth.call(this, udoc, this.session.oauthRedirect || this.url('homepage'));
             delete this.session.oauthRedirect;
             return;
         }

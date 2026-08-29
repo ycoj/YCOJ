@@ -1,8 +1,7 @@
 import { ObjectId } from 'mongodb';
 import { Context } from '../context';
-import { ValidationError } from '../error';
 import {
-    getRealnameStatus, isSuperAdmin, parseRealnameFields, requiresRealname,
+    getRealnameStatus, isSuperAdmin, requiresRealname,
 } from '../lib/realname';
 import { PRIV } from '../model/builtin';
 import * as realname from '../model/realname';
@@ -36,11 +35,6 @@ class HomeRealnameHandler extends Handler {
     @param('realName', Types.Title)
     @param('school', Types.ShortString)
     async post({ }, realName: string, school: string) {
-        try {
-            parseRealnameFields(realName, school);
-        } catch (e) {
-            throw new ValidationError(e.field || 'realName');
-        }
         await this.limitRate('realname_submit', 60, 10, '{{user}}');
         await realname.submit(this.user._id, realName, school);
         this.response.redirect = this.url('home_realname_result');
@@ -78,7 +72,7 @@ class SystemRealnameHandler extends Handler {
     @param('page', Types.PositiveInt, true)
     @param('status', Types.Range(['all', 'pending', 'approved', 'rejected']), true)
     async get({ }, page = 1, status = 'pending') {
-        const query = status === 'all' ? {} : { status };
+        const query = status === 'all' ? {} : { status } as { status: 'pending' | 'approved' | 'rejected' };
         const [rdocs, numPages, count] = await this.paginate(
             realname.getMulti(query).sort({ submittedAt: -1 }),
             page,
@@ -121,7 +115,8 @@ class SystemRealnameHandler extends Handler {
     }
 }
 
-const i18nZh = {
+/* locale strings are maintained in packages/hydrooj/locales */
+/*
     'Real-name Verification': '实名认证',
     'Verification Result': '认证结果',
     'Real Name': '真实姓名',
@@ -218,6 +213,7 @@ const i18nZhTw = {
     'Rejected applications can be corrected and submitted again.': '被拒絕的申請可以修改後再次提交。',
     'You can now use the site normally.': '你現在可以正常使用本站功能。',
 };
+*/
 
 export async function apply(ctx: Context) {
     ctx.Route('home_realname', '/home/realname', HomeRealnameHandler, PRIV.PRIV_USER_PROFILE);
@@ -239,6 +235,4 @@ export async function apply(ctx: Context) {
         { type: 'warn' },
         (h) => requiresRealname(h.user),
     );
-    ctx.i18n.load('zh', i18nZh);
-    ctx.i18n.load('zh_TW', i18nZhTw);
 }

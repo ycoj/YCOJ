@@ -19,6 +19,7 @@ import { sortFiles } from '../utils';
 
 class SwitchLanguageHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
 
     @param('lang', Types.Name)
     async get(domainId: string, lang: string) {
@@ -88,6 +89,7 @@ export class FilesHandler extends Handler {
 
 export class FSDownloadHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
 
     @param('uid', Types.Int)
     @param('filename', Types.Filename)
@@ -113,6 +115,7 @@ export class FSDownloadHandler extends Handler {
 
 export class StorageHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
     notUsage = true;
 
     @param('target', Types.Name)

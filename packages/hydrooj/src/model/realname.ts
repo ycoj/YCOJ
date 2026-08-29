@@ -1,11 +1,11 @@
 import { Filter, ObjectId } from 'mongodb';
 import { Context } from '../context';
 import {
-    RealnameAlreadyApprovedError, RealnameApplicationNotFoundError, RealnameNotPendingError,
+    RealnameAlreadyApprovedError, RealnameApplicationNotFoundError, RealnameInvalidTransitionError,
 } from '../error';
 import type { RealnameApplication, RealnameStatus } from '../interface';
 import {
-    canTransition, parseRealnameFields, RealnameReviewAction, RealnameUserStatus, reviewStatusFor,
+    parseRealnameFields, REALNAME_TRANSITIONS, RealnameReviewAction, RealnameUserStatus,
 } from '../lib/realname';
 import db from '../service/db';
 import user from './user';
@@ -23,7 +23,6 @@ async function syncUser(uid: number, status: RealnameStatus, fields: { realName:
         realnameStatus: status,
         realName: fields.realName,
         realnameSchool: fields.school,
-        school: fields.school,
     });
 }
 
@@ -43,7 +42,8 @@ export async function submit(uid: number, realName: string, school: string) {
     const fields = parseRealnameFields(realName, school);
     const latest = await getLatestByUid(uid);
     const status = (latest?.status || 'none') as RealnameUserStatus;
-    if (!canTransition(status, 'submit')) throw new RealnameAlreadyApprovedError();
+    const nextStatus = REALNAME_TRANSITIONS[status].submit;
+    if (!nextStatus) throw new RealnameAlreadyApprovedError();
 
     const now = new Date();
     if (status === 'pending' && latest) {
@@ -79,9 +79,9 @@ export async function submit(uid: number, realName: string, school: string) {
 export async function review(id: ObjectId, reviewer: number, action: RealnameReviewAction, reason = '') {
     const doc = await get(id);
     if (!doc) throw new RealnameApplicationNotFoundError(id.toHexString());
-    if (!canTransition(doc.status, action)) throw new RealnameNotPendingError();
+    const status = REALNAME_TRANSITIONS[doc.status][action];
+    if (!status) throw new RealnameInvalidTransitionError();
     const now = new Date();
-    const status = reviewStatusFor(action);
     const $set: Partial<RealnameApplication> = {
         status,
         reviewedAt: now,
@@ -109,4 +109,5 @@ global.Hydro.model.realname = {
     getMulti,
     review,
     submit,
+    apply,
 };

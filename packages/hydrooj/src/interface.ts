@@ -200,7 +200,8 @@ export interface CheckinRecord {
     };
 }
 
-export type RealnameStatus = 'pending' | 'approved' | 'rejected';
+import type { RealnameStatus } from './lib/realname';
+export type { RealnameStatus } from './lib/realname';
 
 export interface RealnameApplication {
     _id: ObjectId;
