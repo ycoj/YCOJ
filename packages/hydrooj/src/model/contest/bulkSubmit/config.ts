@@ -1,4 +1,4 @@
-import * as setting from '../../model/setting';
+import * as setting from '../../setting';
 import { isCppLang } from './inspect';
 
 export function listAllowedCppLangs(tdoc: { langs?: string[] }, domainLangs?: string) {

@@ -198,6 +198,7 @@ Confirm deleting the selected roles?: 您確定刪除所選身分組嗎？
 Confirm deleting this comment? Its replies will be deleted as well.: 確認刪除這個評論嗎？回覆會被同時刪除。
 Confirm deleting this domain? This action cannot be undone.: 確認刪除此域？此操作無法撤銷。
 Confirm deleting this reply?: 確認刪除這個回覆嗎？
+Confirm deleting this solution?: 確認刪除這篇題解嗎？
 Confirm rejudge this problem?: 確定要重測這道題嗎？
 Confirm removing the selected users?: 您確定將所選使用者移除嗎？
 Confirm to delete the file?: 確認刪除此檔案嗎？
@@ -220,6 +221,9 @@ contest_detail_problem_submit: 遞交比賽程式碼
 contest_edit: 編輯比賽
 contest_main: 比賽
 contest_scoreboard: 比賽成績表
+contest_solution_create: 建立比賽題解
+contest_solution_detail: 比賽題解
+contest_solution_edit: 編輯比賽題解
 Contest: 比賽
 Continue: 繼續
 Contributed Problems: 貢獻的題目
@@ -255,6 +259,7 @@ Create problem solutions: 建立題解
 Create Problem: 建立題目
 Create problems: 建立題目
 Create Role: 建立身分組
+Create Solution: 建立題解
 Create Training Plan: 建立訓練計劃
 Create training plans: 建立訓練計劃
 Create: 建立
@@ -371,6 +376,7 @@ Edit problem solutions: 修改題解
 Edit Problem: 編輯題目
 Edit problems: 修改題目
 Edit Profile: 編輯個人資訊
+Edit Solution: 編輯題解
 Edit training plans: 修改訓練計劃
 Edit: 編輯
 Edited at: 修改於
@@ -755,6 +761,8 @@ problem_edit: 編輯題目
 problem_import: 匯入題目
 problem_main: 題庫
 problem_solution: 題解
+Contest Solutions: 比賽題解
+View all contest solutions: 檢視所有比賽題解
 problem_submit: 遞交程式碼
 problem_type.communication: 通訊題
 problem_type.default: 傳統題

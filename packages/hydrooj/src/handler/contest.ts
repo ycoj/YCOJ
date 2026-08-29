@@ -14,13 +14,7 @@ import {
     ContestNotFoundError, ContestNotLiveError, ContestScoreboardHiddenError, FileLimitExceededError, FileUploadError,
     InvalidTokenError, MethodNotAllowedError, NotAssignedError, NotFoundError, PermissionError, ValidationError,
 } from '../error';
-import { ContestStatusDoc, FileInfo, ScoreboardConfig, Tdoc } from '../interface';
-import { listAllowedCppLangs } from '../lib/bulkSubmit/config';
-import {
-    buildBulkSubmitMappingDefaults, BULK_SUBMIT_ZIP_MODES, BulkSubmitExistingUserPolicy, BulkSubmitMappingError, BulkSubmitZipMode,
-    DEFAULT_BULK_SUBMIT_EXISTING_USER_POLICY, isCppLang, parseProblemMapping, pickDefaultCppLang,
-} from '../lib/bulkSubmit/inspect';
-import { processContestBulkSubmit } from '../lib/bulkSubmit/process';
+import { FileInfo, ScoreboardConfig, Tdoc } from '../interface';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
@@ -30,12 +24,20 @@ import * as oplog from '../model/oplog';
 import problem from '../model/problem';
 import record from '../model/record';
 import ScheduleModel from '../model/schedule';
-import * as setting from '../model/setting';
 import storage from '../model/storage';
 import user from '../model/user';
 import {
     Handler, param, post, Type, Types,
 } from '../service/server';
+import { ContestDetailBaseHandler } from './contest/base';
+import { ContestBulkSubmitHandler } from './contest/bulkSubmit';
+import { ContestManagementBaseHandler } from './contest/managementBase';
+import { ContestSolutionDetailHandler, ContestSolutionEditHandler, loadContestSolutions } from './contest/solution';
+
+export { ContestDetailBaseHandler } from './contest/base';
+export { ContestBulkSubmitHandler } from './contest/bulkSubmit';
+export { ContestManagementBaseHandler } from './contest/managementBase';
+export { ContestSolutionDetailHandler, ContestSolutionEditHandler } from './contest/solution';
 
 export class ContestListHandler extends Handler {
     @param('rule', Types.Range(contest.RULES), true)
@@ -82,80 +84,6 @@ export class ContestListHandler extends Handler {
     }
 }
 
-export class ContestDetailBaseHandler extends Handler {
-    tdoc?: Tdoc;
-    tsdoc?: ContestStatusDoc;
-
-    @param('tid', Types.ObjectId, true)
-    async __prepare(domainId: string, tid: ObjectId) {
-        if (!tid) return; // ProblemDetailHandler also extends from ContestDetailBaseHandler
-        [this.tdoc, this.tsdoc] = await Promise.all([
-            contest.get(domainId, tid),
-            contest.getStatus(domainId, tid, this.user._id),
-        ]);
-        if (this.tdoc.assign?.length && !this.user.own(this.tdoc) && !this.user.hasPerm(PERM.PERM_VIEW_HIDDEN_CONTEST)) {
-            const groups = await user.listGroup(domainId, this.user._id);
-            if (!new Set(this.tdoc.assign).intersection(new Set(groups.map((i) => i.name))).size) {
-                throw new NotAssignedError('contest', tid);
-            }
-        }
-        if (this.tdoc.duration && this.tsdoc?.startAt) {
-            this.tsdoc.endAt = moment.min([
-                moment(this.tsdoc.startAt).add(this.tdoc.duration, 'hours'),
-                moment(this.tdoc.endAt),
-                ...(this.tsdoc.endAt ? [moment(this.tsdoc.endAt)] : []),
-            ]).toDate();
-        }
-    }
-
-    tsdocAsPublic() {
-        if (!this.tsdoc) return null;
-        return pick(this.tsdoc, ['attend', 'subscribe', 'startAt', ...(this.tdoc.duration || this.tsdoc.endAt ? ['endAt'] : [])]);
-    }
-
-    @param('tid', Types.ObjectId, true)
-    async after(domainId: string, tid: ObjectId) {
-        if (!tid || this.tdoc.rule === 'homework') return;
-        if (this.request.json || !this.response.template) return;
-        const pdoc = 'pdoc' in this ? (this as any).pdoc : {};
-        this.response.body.overrideNav = [
-            {
-                name: 'contest_main',
-                args: {},
-                displayName: 'Back to contest list',
-                checker: () => true,
-            },
-            {
-                name: 'contest_detail',
-                displayName: this.tdoc.title,
-                args: { tid, prefix: 'contest_detail' },
-                checker: () => true,
-            },
-            {
-                name: 'contest_problemlist',
-                args: { tid, prefix: 'contest_problemlist' },
-                checker: () => this.tsdoc?.attend || contest.isDone(this.tdoc),
-            },
-            {
-                name: 'contest_print',
-                args: { tid, prefix: 'contest_print' },
-                checker: () => this.tdoc.allowPrint && (this.tsdoc?.attend || this.user.own(this.tdoc) || this.user.hasPerm(PERM.PERM_EDIT_CONTEST)),
-            },
-            {
-                name: 'contest_scoreboard',
-                args: { tid, prefix: 'contest_scoreboard' },
-                checker: () => contest.canShowScoreboard.call(this, this.tdoc, true),
-            },
-            {
-                name: 'problem_detail',
-                displayName: `${getAlphabeticId(this.tdoc.pids.indexOf(pdoc.docId))}. ${pdoc.title}`,
-                args: { query: { tid }, pid: pdoc.docId, prefix: 'contest_detail_problem' },
-                checker: () => 'pdoc' in this,
-            },
-        ];
-    }
-}
-
 export class ContestDetailHandler extends ContestDetailBaseHandler {
     @param('tid', Types.ObjectId)
     async prepare(domainId: string, tid: ObjectId) {
@@ -173,6 +101,7 @@ export class ContestDetailHandler extends ContestDetailBaseHandler {
             files: (this.tsdoc?.attend && !contest.isNotStarted(this.tdoc)) ? sortFiles(this.tdoc.privateFiles || []) : [],
             urlForFile: (filename: string) => this.url('contest_file_download', { tid, filename, type: 'private' }),
         };
+        await loadContestSolutions(this, domainId, tid);
         if (this.request.json) return;
         this.response.body.tdoc.content = this.response.body.tdoc.content
             .replace(/\(file:\/\//g, `(./${this.tdoc.docId}/file/public/`)
@@ -506,12 +435,6 @@ export class ContestEditHandler extends Handler {
     }
 }
 
-export class ContestManagementBaseHandler extends ContestDetailBaseHandler {
-    async prepare() {
-        if (!this.user.own(this.tdoc)) this.checkPerm(PERM.PERM_EDIT_CONTEST);
-    }
-}
-
 export class ContestCodeHandler extends Handler {
     @param('tid', Types.ObjectId)
     @param('all', Types.Boolean)
@@ -638,73 +561,6 @@ export class ContestManagementHandler extends ContestManagementBaseHandler {
         await contest.edit(domainId, this.tdoc.docId, { score: this.tdoc.score });
         await contest.recalcStatus(domainId, this.tdoc.docId);
         this.back();
-    }
-}
-
-export class ContestBulkSubmitHandler extends ContestManagementBaseHandler {
-    @param('tid', Types.ObjectId)
-    async get(domainId: string, _tid: ObjectId) {
-        const pdict = await problem.getList(domainId, this.tdoc.pids, true, true, problem.PROJECTION_CONTEST_LIST);
-        const cppLangs = listAllowedCppLangs(this.tdoc, this.domain.langs);
-        const langRange = Object.fromEntries(cppLangs.map((l) => [l, setting.langs[l]?.display || l]));
-        const mappingDefaults = buildBulkSubmitMappingDefaults(
-            this.tdoc.pids,
-            pdict,
-            this.tdoc.pids.map((pid, i) => (pdict[pid]?.pid ? String(pdict[pid].pid) : getAlphabeticId(i))),
-        );
-        this.response.body = {
-            tdoc: this.tdoc,
-            tsdoc: this.tsdoc,
-            owner_udoc: await user.getById(domainId, this.tdoc.owner),
-            pdict,
-            langRange,
-            defaultLang: pickDefaultCppLang(cppLangs) || '',
-            mappingDefaults,
-        };
-        this.response.template = 'contest_bulk_submit.html';
-    }
-
-    @param('tid', Types.ObjectId)
-    @post('mapping', Types.Any)
-    @post('lang', Types.Name, true)
-    @post('dryrun', Types.Boolean)
-    @post('existingUser', Types.Range(['vuser', 'existing']), true)
-    @post('zipMode', Types.Range([...BULK_SUBMIT_ZIP_MODES]), true)
-    async post(
-        domainId: string, tid: ObjectId, mappingRaw: unknown, lang = '', dryrun = false,
-        existingUser: BulkSubmitExistingUserPolicy = DEFAULT_BULK_SUBMIT_EXISTING_USER_POLICY,
-        zipMode: BulkSubmitZipMode = 'auto',
-    ) {
-        if (contest.isNotStarted(this.tdoc)) throw new ContestNotLiveError(domainId, tid);
-        const cppLangs = listAllowedCppLangs(this.tdoc, this.domain.langs);
-        const submitLang = lang || pickDefaultCppLang(cppLangs);
-        if (!submitLang || !isCppLang(submitLang) || !cppLangs.includes(submitLang)
-            || !setting.langs[submitLang] || setting.langs[submitLang].disabled) {
-            throw new ValidationError('lang');
-        }
-        let mapping: Record<number, string>;
-        try {
-            mapping = parseProblemMapping(mappingRaw, this.tdoc.pids);
-        } catch (e) {
-            if (e instanceof BulkSubmitMappingError) throw new ValidationError('mapping', null, e.message);
-            throw e;
-        }
-        const file = this.request.files?.file;
-        if (!file) throw new ValidationError('file');
-        const filename = file.originalFilename || '';
-        if (!filename.toLowerCase().endsWith('.zip')) throw new ValidationError('file', null, 'Only zip files are allowed');
-        this.response.body = await processContestBulkSubmit({
-            domainId,
-            tid,
-            pids: this.tdoc.pids,
-            beginAt: this.tdoc.beginAt,
-            filePath: file.filepath,
-            mapping,
-            submitLang,
-            dryrun,
-            existingUser,
-            zipMode,
-        });
     }
 }
 
@@ -1014,6 +870,9 @@ export async function apply(ctx: Context) {
     ctx.Route('contest_create', '/contest/create', ContestEditHandler);
     ctx.Route('contest_main', '/contest', ContestListHandler, PERM.PERM_VIEW_CONTEST);
     ctx.Route('contest_detail', '/contest/:tid', ContestDetailHandler, PERM.PERM_VIEW_CONTEST);
+    ctx.Route('contest_solution_create', '/contest/:tid/solution/create', ContestSolutionEditHandler, PERM.PERM_VIEW_CONTEST);
+    ctx.Route('contest_solution_edit', '/contest/:tid/solution/:sid/edit', ContestSolutionEditHandler, PERM.PERM_VIEW_CONTEST);
+    ctx.Route('contest_solution_detail', '/contest/:tid/solution/:sid', ContestSolutionDetailHandler, PERM.PERM_VIEW_CONTEST);
     ctx.Route('contest_problemlist', '/contest/:tid/problems', ContestProblemListHandler, PERM.PERM_VIEW_CONTEST);
     ctx.Route('contest_edit', '/contest/:tid/edit', ContestEditHandler, PERM.PERM_VIEW_CONTEST);
     ctx.Route('contest_print', '/contest/:tid/print', ContestPrintHandler, PERM.PERM_VIEW_CONTEST);

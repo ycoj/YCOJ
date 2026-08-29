@@ -38,6 +38,9 @@
       {% endif %}
       </div>
     </div>
+    {% if showContestSolutions %}
+      {% include "partials/contest_solutions.html" %}
+    {% endif %}
     {% if files.length %}
       <div class="section">
         <div class="section__header">

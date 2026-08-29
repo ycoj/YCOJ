@@ -1,0 +1,43 @@
+<div class="section" id="contest-solutions">
+  <div class="section__header">
+    <h1 class="section__title">{{ _('Contest Solutions') }}</h1>
+    {% if canManage %}
+    <div class="section__tools">
+      <a href="{{ url('contest_solution_create', tid=tdoc.docId) }}" class="primary rounded button">{{ _('Create Solution') }}</a>
+    </div>
+    {% endif %}
+  </div>
+  {% if not csdocs.length %}
+    <div class="section__body">
+      {{ nothing.render('No solutions so far...') }}
+    </div>
+  {% else %}
+    <div class="section__body no-padding">
+      <table class="data-table">
+        <colgroup>
+          <col class="col--title">
+          <col class="col--user">
+          <col class="col--time">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="col--title">{{ _('Title') }}</th>
+            <th class="col--user">{{ _('Username') }}</th>
+            <th class="col--time">{{ _('Time') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {%- for doc in csdocs -%}
+          <tr>
+            <td class="col--title">
+              <a href="{{ url('contest_solution_detail', tid=tdoc.docId, sid=doc.docId) }}" data-emoji-enabled>{{ doc.title }}</a>
+            </td>
+            <td class="col--user">{{ user.render_inline(udict[doc.owner], badge=false) }}</td>
+            <td class="col--time">{{ datetimeSpan(doc.docId)|safe }}</td>
+          </tr>
+          {%- endfor -%}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>

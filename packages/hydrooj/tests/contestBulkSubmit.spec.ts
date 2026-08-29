@@ -7,7 +7,7 @@ import {
     dryrunSubmittedFromInspect, indexZipEntriesByNormalizedPath, inspectContestBulkSubmit, parseContestBulkSubmitPaths, parseProblemMapping,
     pickDefaultCppLang, problemAllowsLang, SKIP_DUPLICATE, SKIP_EMPTY, SKIP_JUNK, SKIP_LANG, SKIP_LAYOUT, SKIP_NAME_MISMATCH, SKIP_NOT_CPP,
     SKIP_PROBLEM_NOT_FOUND, SKIP_TOO_LONG, SKIP_UNMAPPED,
-} from '../src/lib/bulkSubmit/inspect';
+} from '../src/model/contest/bulkSubmit/inspect';
 
 const judgeDependencyCalls = {
     contest: 0,
@@ -53,7 +53,7 @@ mockRecordDependency('../src/model/user', { ensureVuser: async () => -1000 });
 
 Object.assign(global, { Hydro: { model: {} } });
 const RecordModel = require('../src/model/record').default;
-const { commitContestBulkSubmit } = require('../src/lib/bulkSubmit/commit');
+const { commitContestBulkSubmit } = require('../src/model/contest/bulkSubmit/commit');
 
 describe('contest bulk submit zip layout', () => {
     it('parses contestant/problem/problem.cpp entries', () => {
