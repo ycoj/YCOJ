@@ -39,7 +39,7 @@ const paste = require('../src/model/paste') as typeof import('../src/model/paste
 const PasteModel = paste.default;
 const { isExpired, resolveExpireAt } = paste;
 const {
-    PasteContent, PasteDetailHandler, PasteDocHandler, PasteEditHandler, PasteMainHandler, PasteRawHandler,
+    languageOptionsFor, PasteContent, PasteDetailHandler, PasteDocHandler, PasteEditHandler, PasteMainHandler, PasteRawHandler,
 } = require('../src/handler/paste') as typeof import('../src/handler/paste');
 
 describe('pastebin model helpers', () => {
@@ -132,6 +132,25 @@ describe('pastebin content contract', () => {
     });
 });
 
+describe('pastebin language options', () => {
+    it('returns the built-in map for missing or known languages', () => {
+        const known = languageOptionsFor('cpp');
+        assert.equal(known.cpp, 'C++');
+        assert.equal(Object.hasOwn(known, 'rust'), false);
+        assert.equal(languageOptionsFor(''), known);
+        assert.equal(languageOptionsFor(), known);
+    });
+
+    it('adds custom languages without treating prototype names as known', () => {
+        const rust = languageOptionsFor('rust');
+        assert.equal(rust.rust, 'rust');
+        assert.equal(rust.cpp, 'C++');
+        const inherited = languageOptionsFor('constructor');
+        assert.equal(inherited.constructor, 'constructor');
+        assert.equal(inherited.cpp, 'C++');
+    });
+});
+
 describe('pastebin handler dispatch', () => {
     it('keeps create on the list handler only', () => {
         assert.equal(Object.getPrototypeOf(PasteDetailHandler), PasteDocHandler);
@@ -145,5 +164,9 @@ describe('pastebin handler dispatch', () => {
         assert.equal(Object.hasOwn(PasteRawHandler.prototype, 'post'), false);
         assert.equal(typeof PasteEditHandler.prototype.postUpdate, 'function');
         assert.equal(typeof PasteEditHandler.prototype.postDelete, 'function');
+        assert.equal('noCheckPermView' in new PasteDocHandler(), false);
+        assert.equal('noCheckPermView' in new PasteMainHandler(), false);
+        assert.equal('noCheckPermView' in new PasteDetailHandler(), false);
+        assert.equal('noCheckPermView' in new PasteRawHandler(), false);
     });
 });

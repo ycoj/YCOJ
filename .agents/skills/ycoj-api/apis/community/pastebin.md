@@ -1,6 +1,6 @@
 # Pastebin
 
-All pastebin routes are global (they do not use the current domain) and require an authenticated account with `PRIV_USER_PROFILE`. Shared links are therefore addressable as `/paste/{id}` from any domain context. Expired documents are rejected immediately on read, regardless of MongoDB TTL cleanup timing.
+All pastebin routes require an authenticated account with `PRIV_USER_PROFILE` and the current domain’s `PERM_VIEW` (users with `PRIV_VIEW_ALL_DOMAIN` skip the domain visibility check). Paste documents themselves are global, so a given id is addressable as `/paste/{id}` from any domain the caller can view. Expired documents are rejected immediately on read, regardless of MongoDB TTL cleanup timing.
 
 ## `GET /paste`
 

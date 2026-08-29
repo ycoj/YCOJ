@@ -22,13 +22,11 @@ const LANGUAGE_OPTIONS: Record<string, string> = {
 };
 
 function languageOptionsFor(language = '') {
-    if (!language || language in LANGUAGE_OPTIONS) return LANGUAGE_OPTIONS;
+    if (!language || Object.hasOwn(LANGUAGE_OPTIONS, language)) return LANGUAGE_OPTIONS;
     return { ...LANGUAGE_OPTIONS, [language]: language };
 }
 
 class PasteDocHandler extends Handler {
-    noCheckPermView = true;
-
     pdoc?: PasteDoc;
 
     @param('id', Types.ShortString)
@@ -39,8 +37,6 @@ class PasteDocHandler extends Handler {
 }
 
 class PasteMainHandler extends Handler {
-    noCheckPermView = true;
-
     @param('page', Types.PositiveInt, true)
     async get(_domainId: string, page = 1) {
         const [pdocs, ppcount, pcount] = await this.paginate(PasteModel.getMultiByOwner(this.user._id), page, 'paste');
@@ -146,5 +142,5 @@ export async function apply(ctx) {
 }
 
 export {
-    PasteContent, PasteDetailHandler, PasteDocHandler, PasteEditHandler, PasteMainHandler, PasteRawHandler,
+    languageOptionsFor, PasteContent, PasteDetailHandler, PasteDocHandler, PasteEditHandler, PasteMainHandler, PasteRawHandler,
 };
