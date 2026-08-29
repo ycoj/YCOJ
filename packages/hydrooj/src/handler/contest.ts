@@ -17,7 +17,6 @@ import {
 import { FileInfo, ScoreboardConfig, Tdoc } from '../interface';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
-import contestSolution from '../model/contest/solution';
 import * as discussion from '../model/discussion';
 import * as document from '../model/document';
 import message from '../model/message';
@@ -33,12 +32,12 @@ import {
 import { ContestDetailBaseHandler } from './contest/base';
 import { ContestBulkSubmitHandler } from './contest/bulkSubmit';
 import { ContestManagementBaseHandler } from './contest/managementBase';
-import { ContestSolutionHandler, ContestSolutionRawHandler } from './contest/solution';
+import { ContestSolutionDetailHandler, ContestSolutionEditHandler, loadContestSolutions } from './contest/solution';
 
 export { ContestDetailBaseHandler } from './contest/base';
 export { ContestBulkSubmitHandler } from './contest/bulkSubmit';
 export { ContestManagementBaseHandler } from './contest/managementBase';
-export { ContestSolutionHandler, ContestSolutionRawHandler } from './contest/solution';
+export { ContestSolutionDetailHandler, ContestSolutionEditHandler } from './contest/solution';
 
 export class ContestListHandler extends Handler {
     @param('rule', Types.Range(contest.RULES), true)
@@ -95,15 +94,14 @@ export class ContestDetailHandler extends ContestDetailBaseHandler {
     async get(domainId: string, tid: ObjectId) {
         this.response.template = 'contest_detail.html';
         const udict = await user.getList(domainId, [this.tdoc.owner]);
-        const solutionCount = await contestSolution.count(domainId, tid);
         this.response.body = {
             tdoc: this.tdoc,
             tsdoc: this.tsdocAsPublic(),
             udict,
             files: (this.tsdoc?.attend && !contest.isNotStarted(this.tdoc)) ? sortFiles(this.tdoc.privateFiles || []) : [],
             urlForFile: (filename: string) => this.url('contest_file_download', { tid, filename, type: 'private' }),
-            solutionCount,
         };
+        await loadContestSolutions(this, domainId, tid);
         if (this.request.json) return;
         this.response.body.tdoc.content = this.response.body.tdoc.content
             .replace(/\(file:\/\//g, `(./${this.tdoc.docId}/file/public/`)
@@ -872,10 +870,9 @@ export async function apply(ctx: Context) {
     ctx.Route('contest_create', '/contest/create', ContestEditHandler);
     ctx.Route('contest_main', '/contest', ContestListHandler, PERM.PERM_VIEW_CONTEST);
     ctx.Route('contest_detail', '/contest/:tid', ContestDetailHandler, PERM.PERM_VIEW_CONTEST);
-    ctx.Route('contest_solution', '/contest/:tid/solution', ContestSolutionHandler, PERM.PERM_VIEW_CONTEST);
-    ctx.Route('contest_solution_detail', '/contest/:tid/solution/:sid', ContestSolutionHandler, PERM.PERM_VIEW_CONTEST);
-    ctx.Route('contest_solution_raw', '/contest/:tid/solution/:csid/raw', ContestSolutionRawHandler, PERM.PERM_VIEW_CONTEST);
-    ctx.Route('contest_solution_reply_raw', '/contest/:tid/solution/:csid/:csrid/raw', ContestSolutionRawHandler, PERM.PERM_VIEW_CONTEST);
+    ctx.Route('contest_solution_create', '/contest/:tid/solution/create', ContestSolutionEditHandler, PERM.PERM_VIEW_CONTEST);
+    ctx.Route('contest_solution_edit', '/contest/:tid/solution/:sid/edit', ContestSolutionEditHandler, PERM.PERM_VIEW_CONTEST);
+    ctx.Route('contest_solution_detail', '/contest/:tid/solution/:sid', ContestSolutionDetailHandler, PERM.PERM_VIEW_CONTEST);
     ctx.Route('contest_problemlist', '/contest/:tid/problems', ContestProblemListHandler, PERM.PERM_VIEW_CONTEST);
     ctx.Route('contest_edit', '/contest/:tid/edit', ContestEditHandler, PERM.PERM_VIEW_CONTEST);
     ctx.Route('contest_print', '/contest/:tid/print', ContestPrintHandler, PERM.PERM_VIEW_CONTEST);

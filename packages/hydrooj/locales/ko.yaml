@@ -139,6 +139,9 @@ contest_detail_problem_submit: 대회 상세 문제 제출
 contest_edit: 대회 수정
 contest_main: 대회
 contest_scoreboard: 대회 점수판
+contest_solution_create: 대회 해설 만들기
+contest_solution_detail: 대회 해설
+contest_solution_edit: 대회 해설 수정
 contest: 대회
 Contest: 대회
 Continue: 계속

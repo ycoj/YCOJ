@@ -131,6 +131,7 @@ Completed: 완료됨
 Confirm deleting the selected roles?: 정말로 제거하시겠습니까?
 Confirm deleting this comment? Its replies will be deleted as well.: 정말로 제거하시겠습니까? 모든 답글들도 제거됩니다.
 Confirm deleting this reply?: 정말로 제거하시겠습니까?
+Confirm deleting this solution?: 정말로 이 해설을 제거하시겠습니까?
 Confirm removing the selected users?: 정말로 제거하시겠습니까?
 Confirmation mail has been sent to your new email.: 확인 이메일이 전송되었습니다.
 Congratulations! Your submission is accepted.: 축하합니다! 맞았습니다!
@@ -145,6 +146,9 @@ contest_detail_problem_submit: 대회 상세 문제 제출
 contest_edit: 대회 수정
 contest_main: 대회
 contest_scoreboard: 대회 점수판
+contest_solution_create: 대회 해설 만들기
+contest_solution_detail: 대회 해설
+contest_solution_edit: 대회 해설 수정
 Contest: 대회
 Continue: 계속
 Contributed Problems: 기여한 문제
@@ -173,6 +177,7 @@ Create problem solutions: 해설 만들기
 Create Problem: 문제 만들기
 Create problems: 문제 만들기
 Create Role: 역할 만들기
+Create Solution: 해설 만들기
 Create Training Plan: 학습계획 만들기
 Create training plans: 학습계획 만들기
 Create: 만들기
@@ -282,6 +287,7 @@ Edit problem solutions: 해설 수정
 Edit Problem: 문제 수정
 Edit problems: 문제 수정
 Edit Profile: 프로필 수정
+Edit Solution: 해설 수정
 Edit training plans: 학습 계획 수정
 Edit: 수정
 Email Visibility: Email 공개

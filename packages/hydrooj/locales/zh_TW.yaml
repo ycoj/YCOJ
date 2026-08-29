@@ -176,6 +176,9 @@ contest_bulk_submit: 批量提交
 contest_print: 列印
 contest_problemlist: 題目列表
 contest_scoreboard: 比賽成績表
+contest_solution_create: 建立比賽題解
+contest_solution_detail: 比賽題解
+contest_solution_edit: 編輯比賽題解
 contest_user: 參賽者管理
 contest: 比賽
 Contest: 比賽

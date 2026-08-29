@@ -14,6 +14,9 @@ contest_bulk_submit: Bulk Submit
 contest_print: Print
 contest_problemlist: Problem List
 contest_scoreboard: Scoreboard
+contest_solution_create: Create Solution
+contest_solution_detail: Contest Solution
+contest_solution_edit: Edit Solution
 contest_user: Attendee Manage
 discussion_create: Create Discussion
 discussion_detail: Discussion Detail

@@ -8,14 +8,14 @@ Authentication is `Cookie: sid=...` or `Authorization: Bearer <sid>`. Permission
 Description: list visible contests, optionally filtered by rule/group/text. Request: `type Q={rule?:string;group?:string;page?:number;q?:string}`; `GET /contest?page=1&q=weekly`. Response: `type R={tdocs:Tdoc[];page:number;tpcount:number;groups:string[];q:string}`; `{ "tdocs":[],"page":1,"tpcount":0,"groups":[],"q":"weekly" }` rendered as `contest_main.html`; requires `PERM_VIEW_CONTEST`.
 
 ### GET `/contest/:tid`
-Description: show contest details and participant status. Request: `type Q={tid:ObjectId}`; `GET /contest/665f00000000000000000001`. Response: `type R={tdoc:Tdoc;tsdoc:ContestStatus;pids:number[];pdict:Record<number,ProblemDoc>;psdict:Record<number,ProblemStatus>;rdict:Record<string,RecordDoc>;solutionCount:number}`; `{ "tdoc":{"docId":"665f...","title":"Weekly"},"pids":[1001],"pdict":{"1001":{"title":"A+B"}},"solutionCount":0 }`, HTML `contest_detail.html`; view permission required.
+Description: show contest details and participant status. Authorized viewers also receive a compact contest-solution table (title, author, time) below the introduction, and `udict` includes those authors. Request: `type Q={tid:ObjectId}`; `GET /contest/665f00000000000000000001`. Response: `type R={tdoc:Tdoc;tsdoc:ContestStatus;pids:number[];pdict:Record<number,ProblemDoc>;psdict:Record<number,ProblemStatus>;rdict:Record<string,RecordDoc>;udict:Record<number,UserDoc>;csdocs?:{title:string;docId:ObjectId;owner:number}[];canManage?:boolean;showContestSolutions?:boolean}`; `{ "tdoc":{"docId":"665f...","title":"Weekly"},"pids":[1001],"pdict":{"1001":{"title":"A+B"}} }` (plus `csdocs` when permitted), HTML `contest_detail.html`; view permission required.
 
-### GET/POST `/contest/:tid/solution[/:sid]`
+### GET/POST `/contest/:tid/solution/create`, `/contest/:tid/solution/:sid`, `/contest/:tid/solution/:sid/edit`
 
-Description: list or manage contest-scoped Markdown solutions. Completed contests are readable by normal contest viewers; managers may access and manage them earlier. Request and operation bodies, response models, raw routes, and validation rules: [contest-solutions.md](contest-solutions.md).
+Description: create, read, edit, or delete a titled Markdown contest solution. Completed contests are readable by normal contest viewers; managers may access and manage them earlier. Request and operation bodies, response models, and validation rules: [contest-solutions.md](contest-solutions.md).
 
 ### POST `/contest/:tid` (`attend`, `subscribe`, `earlyEnd`)
-Description: attend with optional code, toggle subscription, or end early (manager). Request: `type B={operation:"attend";code?:string}|{operation:"subscribe";subscribe:boolean}|{operation:"earlyEnd"}`; `POST /contest/665f...` body `{ "operation":"subscribe","subscribe":true }`. Response: `type R={url?:string}|Record<string,unknown>`; JSON `{ "url":"/contest/665f..." }` or browser back/redirect.
+Description: attend with optional code, toggle subscription, or end early. Request: `type B={operation:"attend";code?:string}|{operation:"subscribe";subscribe:boolean}|{operation:"earlyEnd"}`; `POST /contest/665f...` body `{ "operation":"subscribe","subscribe":true }`. Response: `type R={url?:string}|Record<string,unknown>`; JSON `{ "url":"/contest/665f..." }` or browser back/redirect.
 
 ## Create/edit
 

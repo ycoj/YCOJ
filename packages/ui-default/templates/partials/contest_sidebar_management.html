@@ -35,11 +35,6 @@
       <li class="menu__item"><a class="menu__link" href="{{ url('contest_clarification', tid=tdoc.docId) }}">
         <span class="icon icon-comment--text"></span> {{ _('Contest Clarifications') }}
       </a></li>
-      {% if tdoc.rule !== 'homework' %}
-      <li class="menu__item"><a class="menu__link{% if page_name == 'contest_solution' %} active{% endif %}" href="{{ url('contest_solution', tid=tdoc.docId) }}">
-        <span class="icon icon-comment--text"></span> {{ _('Contest Solutions') }}
-      </a></li>
-      {% endif %}
       <li class="menu__seperator"></li>
     </ol>
   </div>

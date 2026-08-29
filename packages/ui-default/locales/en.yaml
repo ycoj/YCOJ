@@ -52,6 +52,9 @@ problem_edit: Problem Edit
 problem_import: Import Problem
 problem_main: Problem Set
 problem_solution: Problem Solution
+contest_solution_create: Create Solution
+contest_solution_detail: Contest Solution
+contest_solution_edit: Edit Solution
 Contest Solutions: Contest Solutions
 View all contest solutions: View all contest solutions
 problem_submit: Problem Submit

@@ -2,157 +2,105 @@ import { ObjectId } from 'mongodb';
 import {
     ContestNotEndedError, ContestNotFoundError, PermissionError,
 } from '../../error';
+import { ContestSolutionDoc } from '../../interface';
 import { PERM } from '../../model/builtin';
 import * as contest from '../../model/contest';
 import contestSolution from '../../model/contest/solution';
 import user from '../../model/user';
-import { param, route, Types } from '../../service/server';
+import { param, Types } from '../../service/server';
 import { ContestDetailBaseHandler } from './base';
 
-export class ContestSolutionHandler extends ContestDetailBaseHandler {
-    @param('tid', Types.ObjectId)
-    async prepare(domainId: string, tid: ObjectId) {
-        if (this.tdoc.rule === 'homework') throw new ContestNotFoundError(domainId, tid);
-    }
+export function ensureContestSolutionFeature(tdoc: { rule: string }, domainId: string, tid: ObjectId) {
+    if (tdoc.rule === 'homework') throw new ContestNotFoundError(domainId, tid);
+}
+
+export async function loadContestSolutions(handler: ContestDetailBaseHandler, domainId: string, tid: ObjectId) {
+    if (handler.tdoc.rule === 'homework') return;
+    const manager = contestSolution.isManager(handler.user, handler.tdoc);
+    if (!manager && !contest.isDone(handler.tdoc)) return;
+    const csdocs = await contestSolution.getMulti(domainId, tid)
+        .project({ title: 1, docId: 1, owner: 1 })
+        .toArray();
+    const udict = await user.getList(domainId, csdocs.map((doc) => doc.owner));
+    handler.response.body = {
+        ...handler.response.body,
+        csdocs,
+        canManage: manager,
+        showContestSolutions: true,
+        udict: Object.assign(handler.response.body.udict || {}, udict),
+    };
+}
+
+export class ContestSolutionEditHandler extends ContestDetailBaseHandler {
+    csdoc?: ContestSolutionDoc;
 
     @param('tid', Types.ObjectId)
-    @param('page', Types.PositiveInt, true)
     @param('sid', Types.ObjectId, true)
-    async get(domainId: string, tid: ObjectId, page = 1, sid?: ObjectId) {
-        if (this.tdoc.rule === 'homework') throw new ContestNotFoundError(domainId, tid);
-        const manager = contestSolution.isManager(this.user, this.tdoc);
-        if (!manager && !contest.isDone(this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        let [csdocs, pcount, cscount] = await this.paginate(contestSolution.getMulti(domainId, tid), page, 'solution');
-        if (sid) {
-            const selected = await contestSolution.get(domainId, sid);
-            contestSolution.ensureParent(selected, tid, domainId);
-            csdocs = [selected];
-        }
-        const uids = [this.tdoc.owner];
-        const ids = [];
-        for (const doc of csdocs) {
-            ids.push(doc.docId);
-            uids.push(doc.owner);
-            for (const reply of doc.reply || []) uids.push(reply.owner);
-        }
-        this.response.template = 'contest_solution.html';
+    async prepare(domainId: string, tid: ObjectId, sid?: ObjectId) {
+        ensureContestSolutionFeature(this.tdoc, domainId, tid);
+        if (!contestSolution.isManager(this.user, this.tdoc)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
+        if (!sid) return;
+        this.csdoc = await contestSolution.get(domainId, sid);
+        contestSolution.ensureParent(this.csdoc, tid, domainId);
+    }
+
+    async get() {
+        this.response.template = 'contest_solution_edit.html';
         this.response.body = {
-            tdoc: this.tdoc, tsdoc: this.tsdocAsPublic(), csdocs, page, pcount, cscount,
-            udict: await user.getList(domainId, uids),
-            cssdict: await contestSolution.getListStatus(domainId, ids, this.user._id), sid, canManage: manager,
+            tdoc: this.tdoc,
+            tsdoc: this.tsdocAsPublic(),
+            csdoc: this.csdoc || {},
+            canManage: true,
         };
     }
 
     @param('tid', Types.ObjectId)
+    @param('title', Types.Title)
     @param('content', Types.Content)
-    async postSubmit(domainId: string, tid: ObjectId, content: string) {
-        if (!contestSolution.isManager(this.user, this.tdoc)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
-        const csid = await contestSolution.add(domainId, tid, this.user._id, content);
-        this.back({ csid });
+    async post(domainId: string, tid: ObjectId, title: string, content: string) {
+        const sid = this.csdoc
+            ? (await contestSolution.edit(domainId, this.csdoc.docId, title, content)).docId
+            : await contestSolution.add(domainId, tid, this.user._id, title, content);
+        this.response.body = { sid };
+        this.response.redirect = this.url('contest_solution_detail', { tid, sid });
     }
 
     @param('tid', Types.ObjectId)
-    @param('content', Types.Content)
-    @param('psid', Types.ObjectId)
-    async postEditSolution(domainId: string, tid: ObjectId, content: string, psid: ObjectId) {
-        const doc = await contestSolution.get(domainId, psid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        if (!contestSolution.isManager(this.user, this.tdoc)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
-        this.back({ csdoc: await contestSolution.edit(domainId, psid, content) });
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('psid', Types.ObjectId)
-    async postDeleteSolution(domainId: string, tid: ObjectId, psid: ObjectId) {
-        const doc = await contestSolution.get(domainId, psid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        if (!contestSolution.isManager(this.user, this.tdoc)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
-        await contestSolution.del(domainId, psid);
-        this.back();
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('psid', Types.ObjectId)
-    @param('content', Types.Content)
-    async postReply(domainId: string, tid: ObjectId, psid: ObjectId, content: string) {
-        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        this.checkPerm(PERM.PERM_REPLY_PROBLEM_SOLUTION);
-        const doc = await contestSolution.get(domainId, psid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        await contestSolution.reply(domainId, psid, this.user._id, content);
-        this.back();
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('psid', Types.ObjectId)
-    @param('psrid', Types.ObjectId)
-    @param('content', Types.Content)
-    async postEditReply(domainId: string, tid: ObjectId, psid: ObjectId, psrid: ObjectId, content: string) {
-        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        const [doc, reply] = await contestSolution.getReply(domainId, psid, psrid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        contestSolution.ensureReply(reply, domainId, psid);
-        if (!this.user.own(reply) || !this.user.hasPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION_REPLY_SELF)) {
-            throw new PermissionError(PERM.PERM_EDIT_PROBLEM_SOLUTION_REPLY_SELF);
-        }
-        await contestSolution.editReply(domainId, psid, psrid, content);
-        this.back();
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('psid', Types.ObjectId)
-    @param('psrid', Types.ObjectId)
-    async postDeleteReply(domainId: string, tid: ObjectId, psid: ObjectId, psrid: ObjectId) {
-        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        const [doc, reply] = await contestSolution.getReply(domainId, psid, psrid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        contestSolution.ensureReply(reply, domainId, psid);
-        if (this.user.own(reply)) this.checkPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY_SELF);
-        else this.checkPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION_REPLY);
-        await contestSolution.delReply(domainId, psid, psrid);
-        this.back();
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('psid', Types.ObjectId)
-    async postUpvote(domainId: string, tid: ObjectId, psid: ObjectId) {
-        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        this.checkPerm(PERM.PERM_VOTE_PROBLEM_SOLUTION);
-        const doc = await contestSolution.get(domainId, psid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        const updated = await contestSolution.vote(domainId, psid, this.user._id, 1);
-        this.back({ vote: updated.vote, user_vote: 1 });
-    }
-
-    @param('tid', Types.ObjectId)
-    @param('psid', Types.ObjectId)
-    async postDownvote(domainId: string, tid: ObjectId, psid: ObjectId) {
-        if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        this.checkPerm(PERM.PERM_VOTE_PROBLEM_SOLUTION);
-        const doc = await contestSolution.get(domainId, psid);
-        contestSolution.ensureParent(doc, tid, domainId);
-        const updated = await contestSolution.vote(domainId, psid, this.user._id, -1);
-        this.back({ vote: updated.vote, user_vote: -1 });
+    async postDelete(domainId: string, tid: ObjectId) {
+        if (!this.csdoc) throw new ContestNotFoundError(domainId, tid);
+        await contestSolution.del(domainId, this.csdoc.docId);
+        this.response.redirect = this.url('contest_detail', { tid });
     }
 }
 
-export class ContestSolutionRawHandler extends ContestDetailBaseHandler {
+export class ContestSolutionDetailHandler extends ContestDetailBaseHandler {
+    csdoc: ContestSolutionDoc;
+
     @param('tid', Types.ObjectId)
-    @param('csid', Types.ObjectId)
-    @route('csrid', Types.ObjectId, true)
-    async get(domainId: string, tid: ObjectId, csid: ObjectId, csrid?: ObjectId) {
-        if (this.tdoc.rule === 'homework') throw new ContestNotFoundError(domainId, tid);
+    @param('sid', Types.ObjectId)
+    async prepare(domainId: string, tid: ObjectId, sid: ObjectId) {
+        ensureContestSolutionFeature(this.tdoc, domainId, tid);
         if (!contestSolution.canManageOrDone(this.user, this.tdoc)) throw new ContestNotEndedError(domainId, tid);
-        if (csrid) {
-            const [doc, reply] = await contestSolution.getReply(domainId, csid, csrid);
-            contestSolution.ensureParent(doc, tid, domainId);
-            contestSolution.ensureReply(reply, domainId, csid);
-            this.response.body = reply.content;
-        } else {
-            const doc = await contestSolution.get(domainId, csid);
-            contestSolution.ensureParent(doc, tid, domainId);
-            this.response.body = doc.content;
-        }
-        this.response.type = 'text/markdown';
+        this.csdoc = await contestSolution.get(domainId, sid);
+        contestSolution.ensureParent(this.csdoc, tid, domainId);
+    }
+
+    @param('tid', Types.ObjectId)
+    async get(domainId: string) {
+        this.response.template = 'contest_solution_detail.html';
+        this.response.body = {
+            tdoc: this.tdoc,
+            tsdoc: this.tsdocAsPublic(),
+            csdoc: this.csdoc,
+            canManage: contestSolution.isManager(this.user, this.tdoc),
+            udict: await user.getList(domainId, [this.tdoc.owner, this.csdoc.owner]),
+        };
+    }
+
+    @param('tid', Types.ObjectId)
+    async postDelete(domainId: string, tid: ObjectId) {
+        if (!contestSolution.isManager(this.user, this.tdoc)) throw new PermissionError(PERM.PERM_EDIT_CONTEST);
+        await contestSolution.del(domainId, this.csdoc.docId);
+        this.response.redirect = this.url('contest_detail', { tid });
     }
 }

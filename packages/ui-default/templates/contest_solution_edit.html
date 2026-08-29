@@ -1,0 +1,54 @@
+{% extends "layout/basic.html" %}
+{% block content %}
+{{ set(UiContext, 'tdoc', tdoc) }}
+{{ set(UiContext, 'tsdoc', tsdoc) }}
+<div class="row">
+  <div class="medium-9 columns">
+    <div class="section">
+      <div class="section__header">
+        <h1 class="section__title">{{ _('Edit Solution') if csdoc.docId else _('Create Solution') }}</h1>
+      </div>
+      <div class="section__body">
+        <form method="post">
+          {{ form.form_text({
+            columns:12,
+            label:'Title',
+            name:'title',
+            placeholder:_('title'),
+            value:csdoc.title|default(''),
+            autofocus:true,
+            required:true
+          }) }}
+          {{ form.form_textarea({
+            columns:12,
+            label:'Content',
+            name:'content',
+            value:csdoc.content|default(''),
+            hotkeys:'ctrl+enter:submit',
+            markdown:true,
+            required:true,
+            extra_style:'height: 500px',
+            extra_textarea_class:'auto-resize'
+          }) }}
+          <div class="row"><div class="columns">
+            <button type="submit" class="rounded primary button" data-default-submit>
+              {{ _('Update') if csdoc.docId else _('Create') }} (Ctrl+Enter)
+            </button>
+            {% if csdoc.docId %}
+              <button name="operation" value="delete" type="submit" class="rounded button">
+                {{ _('Delete') }}
+              </button>
+            {% endif %}
+            <button type="button" class="rounded button" onclick="window.history.go(-1)">
+              {{ _('Cancel') }}
+            </button>
+          </div></div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="medium-3 columns">
+    {% include 'components/md_hint.html' %}
+  </div>
+</div>
+{% endblock %}

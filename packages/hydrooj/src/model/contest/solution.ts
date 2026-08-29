@@ -24,12 +24,8 @@ class ContestSolutionModel {
         }
     }
 
-    static ensureReply(reply: any, domainId: string, csid: ObjectId) {
-        if (!reply) throw new SolutionNotFoundError(domainId, csid);
-    }
-
-    static add(domainId: string, tid: ObjectId, owner: number, content: string) {
-        return document.add(domainId, content, owner, TYPE, null, PARENT, tid, { reply: [], vote: 0 });
+    static add(domainId: string, tid: ObjectId, owner: number, title: string, content: string) {
+        return document.add(domainId, content, owner, TYPE, null, PARENT, tid, { title });
     }
 
     static async get(domainId: string, csid: ObjectId) {
@@ -39,11 +35,11 @@ class ContestSolutionModel {
     }
 
     static getMulti(domainId: string, tid: ObjectId) {
-        return document.getMulti(domainId, TYPE, { parentType: PARENT, parentId: tid }).sort({ vote: -1, _id: -1 });
+        return document.getMulti(domainId, TYPE, { parentType: PARENT, parentId: tid }).sort({ _id: -1 });
     }
 
-    static edit(domainId: string, csid: ObjectId, content: string) {
-        return document.set(domainId, TYPE, csid, { content });
+    static edit(domainId: string, csid: ObjectId, title: string, content: string) {
+        return document.set(domainId, TYPE, csid, { title, content });
     }
 
     static async del(domainId: string, csid: ObjectId) {
@@ -55,38 +51,6 @@ class ContestSolutionModel {
 
     static count(domainId: string, tid: ObjectId) {
         return document.count(domainId, TYPE, { parentType: PARENT, parentId: tid });
-    }
-
-    static reply(domainId: string, csid: ObjectId, owner: number, content: string) {
-        return document.push(domainId, TYPE, csid, 'reply', content, owner);
-    }
-
-    static getReply(domainId: string, csid: ObjectId, csrId: ObjectId) {
-        return document.getSub(domainId, TYPE, csid, 'reply', csrId);
-    }
-
-    static editReply(domainId: string, csid: ObjectId, csrId: ObjectId, content: string) {
-        return document.setSub(domainId, TYPE, csid, 'reply', csrId, { content });
-    }
-
-    static delReply(domainId: string, csid: ObjectId, csrId: ObjectId) {
-        return document.deleteSub(domainId, TYPE, csid, 'reply', csrId);
-    }
-
-    static async vote(domainId: string, csid: ObjectId, uid: number, value: number) {
-        const doc = await this.get(domainId, csid);
-        const before = await document.setStatus(domainId, TYPE, csid, uid, { vote: value }, null, 'before');
-        let inc = value;
-        if (before?.vote) inc -= before.vote;
-        return inc ? document.inc(domainId, TYPE, csid, 'vote', inc) : doc;
-    }
-
-    static async getListStatus(domainId: string, csids: ObjectId[], uid: number) {
-        const result: Record<string, { docId: ObjectId, vote: number }> = {};
-        const res = await document.getMultiStatus(domainId, TYPE, { uid, docId: { $in: csids } })
-            .project<any>({ docId: 1, vote: 1 }).toArray();
-        for (const i of res) result[i.docId] = i;
-        return result;
     }
 }
 

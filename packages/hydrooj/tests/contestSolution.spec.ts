@@ -53,8 +53,8 @@ describe('contest solutions', () => {
     it('creates solutions under the contest parent type', async () => {
         calls.length = 0;
         const tid = new ObjectId();
-        await ContestSolutionModel.add('system', tid, 42, 'answer');
-        assert.deepStrictEqual(calls[0], ['add', 'system', 'answer', 42, 33, null, 30, tid, { reply: [], vote: 0 }]);
+        await ContestSolutionModel.add('system', tid, 42, 'Editorial', 'answer');
+        assert.deepStrictEqual(calls[0], ['add', 'system', 'answer', 42, 33, null, 30, tid, { title: 'Editorial' }]);
     });
 
     it('registers contest deletion cleanup', async () => {
@@ -62,7 +62,7 @@ describe('contest solutions', () => {
         solutions.length = 0;
         statuses.length = 0;
         const tid = new ObjectId();
-        const csid = await ContestSolutionModel.add('system', tid, 42, 'answer');
+        const csid = await ContestSolutionModel.add('system', tid, 42, 'Editorial', 'answer');
         statuses.push({ domainId: 'system', docType: documentMock.TYPE_CONTEST_SOLUTION, docId: csid, uid: 42, vote: 1 });
 
         await listeners['contest/del']('system', tid);

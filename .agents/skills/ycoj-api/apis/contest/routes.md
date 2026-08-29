@@ -6,8 +6,10 @@ This is the implementation-backed route index; operation names are request-body 
 |---|---|
 | `GET /contest` | HTML `contest_main.html`; filters `rule`, `group`, `page`, `q`. |
 | `GET/POST /contest/create` | Edit HTML; POST update returns `{tid}` and redirects to detail. |
-| `GET/POST /contest/:tid` | Detail HTML; `attend`, `subscribe`, `earlyEnd` operations. |
-| `GET/POST /contest/:tid/solution[/:sid]` | Contest solution list/detail and solution operations; raw content uses `/solution/:csid/raw`. |
+| `GET/POST /contest/:tid` | Detail HTML with a compact solution table for authorized users; `attend`, `subscribe`, `earlyEnd` operations. |
+| `GET/POST /contest/:tid/solution/create` | Manager create form; POST `{title,content}` redirects to the new solution. |
+| `GET/POST /contest/:tid/solution/:sid` | Solution HTML; manager `delete` operation. |
+| `GET/POST /contest/:tid/solution/:sid/edit` | Manager edit form; POST `{title,content}` or `delete`. |
 | `GET /contest/:tid/problems` | Problem list HTML/PJAX; clarification POST operation. |
 | `GET/POST /contest/:tid/edit` | Edit/delete; same validated fields as create. |
 | `GET/POST /contest/:tid/print`, `/api/printing/team` | Print HTML or `{success,output}`; print-task operations. |

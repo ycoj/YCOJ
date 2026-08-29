@@ -74,11 +74,6 @@ export class ContestDetailBaseHandler extends Handler {
                 checker: () => contest.canShowScoreboard.call(this, this.tdoc, true),
             },
             {
-                name: 'contest_solution',
-                args: { tid, prefix: 'contest_solution' },
-                checker: () => contest.isDone(this.tdoc) || this.user.own(this.tdoc) || this.user.hasPerm(PERM.PERM_EDIT_CONTEST),
-            },
-            {
                 name: 'problem_detail',
                 displayName: `${getAlphabeticId(this.tdoc.pids.indexOf(pdoc.docId))}. ${pdoc.title}`,
                 args: { query: { tid }, pid: pdoc.docId, prefix: 'contest_detail_problem' },

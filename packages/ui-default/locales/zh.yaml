@@ -198,6 +198,7 @@ Confirm deleting the selected roles?: 您确定删除所选角色吗？
 Confirm deleting this comment? Its replies will be deleted as well.: 确认删除这个评论吗？回复会被同时删除。
 Confirm deleting this domain? This action cannot be undone.: '确认删除此域？此操作无法撤销。'
 Confirm deleting this reply?: 确认删除这个回复吗？
+Confirm deleting this solution?: 确认删除这篇题解吗？
 Confirm end contest early? You will not be able to submit after this.: 确认提前结束比赛吗？之后您将无法提交代码。
 Confirm rejudge this problem?: 确定要重测这道题吗？
 Confirm removing the selected users?: 您确定将所选用户移除吗？
@@ -222,6 +223,9 @@ contest_detail_problem_submit: 递交比赛题目
 contest_edit: 编辑比赛
 contest_main: 比赛
 contest_scoreboard: 比赛成绩表
+contest_solution_create: 创建比赛题解
+contest_solution_detail: 比赛题解
+contest_solution_edit: 编辑比赛题解
 Contest: 比赛
 Continue: 继续
 Contributed Problems: 贡献的题目
@@ -257,6 +261,7 @@ Create problem solutions: 创建题解
 Create Problem: 创建题目
 Create problems: 创建题目
 Create Role: 创建角色
+Create Solution: 创建题解
 Create Training Plan: 创建训练计划
 Create training plans: 创建训练计划
 Create: 创建
@@ -373,6 +378,7 @@ Edit problem solutions: 修改题解
 Edit Problem: 编辑题目
 Edit problems: 修改题目
 Edit Profile: 编辑个人信息
+Edit Solution: 编辑题解
 Edit training plans: 修改训练计划
 Edit: 编辑
 Edited at: 修改于

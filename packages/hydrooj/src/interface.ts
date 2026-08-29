@@ -460,9 +460,8 @@ export interface ContestSolutionDoc extends Document {
     docId: ObjectId;
     parentType: document['TYPE_CONTEST'];
     parentId: ObjectId;
+    title: string;
     content: string;
-    vote: number;
-    reply: DiscussionTailReplyDoc[];
 }
 
 export interface TokenDoc {

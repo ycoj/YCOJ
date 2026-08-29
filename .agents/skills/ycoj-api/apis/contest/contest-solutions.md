@@ -1,15 +1,15 @@
 # Contest solutions
 
-Contest solutions are contest-scoped Markdown posts. Contest owners, maintainers, and users with `PERM_EDIT_CONTEST` may create, edit, and delete them at any time. Other users may read, reply, and vote after the contest ends; normal contest visibility and assignment rules still apply. Homework contests do not expose this feature.
+Contest solutions are contest-scoped Markdown articles with a title and body. Contest owners, maintainers, and users with `PERM_EDIT_CONTEST` may create, edit, and delete them at any time. Other users may read them after the contest ends; normal contest visibility and assignment rules still apply. Homework contests do not expose this feature. There is no contest-nav item for solutions.
 
-## GET `/contest/:tid/solution` and `/contest/:tid/solution/:sid`
+## GET `/contest/:tid`
 
-Request: `type Q={tid:ObjectId;page?:PositiveInt;sid?:ObjectId}`. The detail route selects one solution and verifies its contest parent. Response: `type R={tdoc:ContestDoc;tsdoc:ContestStatusDoc|null;csdocs:ContestSolutionDoc[];page:number;pcount:number;cscount:number;udict:Record<number,UserDoc>;cssdict:Record<string,{docId:ObjectId;vote:number}>;sid?:ObjectId;canManage:boolean}`. The page renders `contest_solution.html`; before completion non-managers receive `ContestNotEndedError`.
+When the caller may view solutions (`PERM_EDIT_CONTEST`, contest owner/maintainer, or the contest is done), the contest-detail payload includes `csdocs` (title, `docId`, `owner`), `canManage`, `showContestSolutions: true`, and `udict` entries for each solution author. HTML `contest_detail.html` renders a compact table (title, author, time; one row per solution) under the contest introduction; each title links to that solution's page. Managers also get a create button in the section header. Users without access receive the normal detail payload and do not see the section.
 
-## POST `/contest/:tid/solution`
+## GET/POST `/contest/:tid/solution/create` and `/contest/:tid/solution/:sid/edit`
 
-Operations: `submit` (`content`), `edit_solution` (`psid`, `content`), `delete_solution` (`psid`), `reply` (`psid`, `content`), `edit_reply` (`psid`, `psrid`, `content`), `delete_reply` (`psid`, `psrid`), and `upvote`/`downvote` (`psid`). Submit/edit/delete require contest management; reply/vote operations use the existing solution permissions. Responses are framework back responses; submit includes `{csid:ObjectId}`, votes include `{vote:number,user_vote:1|-1}`.
+Managers only. GET renders `contest_solution_edit.html` with `{ tdoc, tsdoc, csdoc, canManage:true }`; create uses an empty `csdoc`. POST body `{ title:Title, content:Content }` creates or updates the article and redirects to `/contest/:tid/solution/:sid` with `{ sid:ObjectId }`. On the edit route, `operation: "delete"` removes the article and redirects to contest detail.
 
-## GET `/contest/:tid/solution/:csid/raw` and `/contest/:tid/solution/:csid/:csrid/raw`
+## GET/POST `/contest/:tid/solution/:sid`
 
-Returns the selected contest solution or reply as Markdown (`Content-Type: text/markdown`) with the same completion, visibility, homework, and parent-validation rules. Missing or cross-contest solution/reply IDs return not-found errors.
+Request: `type Q={tid:ObjectId;sid:ObjectId}`. Response: `type R={tdoc:ContestDoc;tsdoc:ContestStatusDoc|null;csdoc:ContestSolutionDoc;canManage:boolean;udict:Record<number,UserDoc>}`. HTML `contest_solution_detail.html` shows title and Markdown content. Before completion non-managers receive `ContestNotEndedError`. Missing or cross-contest IDs return not-found errors. POST `operation: "delete"` is manager-only and redirects to contest detail.
