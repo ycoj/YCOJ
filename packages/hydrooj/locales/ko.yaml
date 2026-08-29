@@ -822,3 +822,25 @@ You've already claimed this homework.: 이미 숙제를 받음
 You've already voted.: 이미 투표함
 Your permission: 당신의 권한
 Your role: 당신의 역할
+paste_main: Pastebin
+paste_detail: 붙여넣기 상세
+paste_edit: 붙여넣기 수정
+Pastebin: Pastebin
+Create Paste: 붙여넣기 만들기
+Edit Paste: 붙여넣기 수정
+Paste type: 붙여넣기 유형
+Code: 코드
+Markdown: Markdown
+Language: 언어
+Expiration: 만료
+1 day: 1일
+1 week: 1주
+1 month: 1개월
+Never expire: 만료 없음
+Raw: 원문
+Copy link: 링크 복사
+My Pastes: 내 붙여넣기
+No pastes yet: 붙여넣기가 없습니다
+Expires: 만료
+Optional title: 선택 제목
+Optional Prism language: 선택적 Prism 언어

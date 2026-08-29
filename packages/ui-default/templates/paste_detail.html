@@ -1,0 +1,20 @@
+{% extends "layout/basic.html" %}
+{% block content %}
+<div class="row pastebin-page"><div class="columns">
+  <div class="section">
+    <div class="section__header">
+      <h1 class="section__title">{{ pdoc.title or _('Pastebin') }}</h1>
+      <div class="section__tools">
+        <a href="javascript:;" data-copylink="{{ url('paste_detail', id:pdoc._id) }}" class="button compact"><span class="icon icon-link"></span> {{ _('Copy link') }}</a>
+        <a href="{{ url('paste_raw', id:pdoc._id) }}" class="button compact"><span class="icon icon-code"></span> {{ _('Raw') }}</a>
+        {% if canManage %}<a href="{{ url('paste_edit', id:pdoc._id) }}" class="button compact"><span class="icon icon-edit"></span> {{ _('Edit') }}</a>{% endif %}
+      </div>
+    </div>
+    <div class="section__body">
+      <ul class="supplementary pastebin-meta"><li>{{ _('Paste type') }}: {{ _(pdoc.mode == 'markdown' ? 'Markdown' : 'Code') }}</li>{% if pdoc.language %}<li>{{ _('Language') }}: {{ pdoc.language }}</li>{% endif %}{% if pdoc.expireAt %}<li>{{ _('Expires') }}: {{ datetimeSpan(pdoc.expireAt)|safe }}</li>{% endif %}</ul>
+      {% if pdoc.mode == 'markdown' %}<div class="typo richmedia">{{ pdoc.content|markdown|safe }}</div>
+      {% else %}<pre class="pastebin-code"><code{% if pdoc.language %} class="language-{{ pdoc.language }}"{% endif %}>{{ pdoc.content }}</code></pre>{% endif %}
+    </div>
+  </div>
+</div></div>
+{% endblock %}

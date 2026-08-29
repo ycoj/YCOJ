@@ -1009,3 +1009,25 @@ Auto: 自动
 Subfolder mode: 子文件夹模式
 Non-subfolder mode: 非子文件夹模式
 Detail: 详情
+paste_main: Pastebin
+paste_detail: 粘贴详情
+paste_edit: 编辑粘贴
+Pastebin: Pastebin
+Create Paste: 创建粘贴
+Edit Paste: 编辑粘贴
+Paste type: 粘贴类型
+Code: 代码
+Markdown: Markdown
+Language: 语言
+Expiration: 过期时间
+1 day: 1 天
+1 week: 1 周
+1 month: 1 个月
+Never expire: 永不过期
+Raw: 原始内容
+Copy link: 复制链接
+My Pastes: 我的粘贴
+No pastes yet: 暂无粘贴
+Expires: 过期时间
+Optional title: 可选标题
+Optional Prism language: 可选 Prism 语言

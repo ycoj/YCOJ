@@ -2,6 +2,7 @@
 
 - [Strict home/account endpoint contracts](home.md)
 - [Strict discussion and blog endpoint contracts](discussion-blog.md)
+- [Pastebin endpoint contracts](pastebin.md)
 
 ## Home/account routes
 

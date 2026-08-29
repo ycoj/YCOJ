@@ -1,6 +1,6 @@
 # YCOJ API documents
 
-This is the routing index for the backend contracts present at source revision `9ee423517944` (2026-08-28). It covers all 132 literal HTTP route registrations, five literal connection registrations, and the indirectly registered `/api/:op` HTTP/connection transport. Routes from optional packages or conditional configuration are documented but exist at runtime only when their package or feature is enabled.
+This is the routing index for the backend contracts present at source revision `9ee423517944` (2026-08-28). It covers all 136 literal HTTP route registrations, five literal connection registrations, and the indirectly registered `/api/:op` HTTP/connection transport. Routes from optional packages or conditional configuration are documented but exist at runtime only when their package or feature is enabled.
 
 The default base URL is `https://ycoj.cc/`. Every documented route is relative to that base. Prefix a path with `/d/{domainId}` when selecting a domain by URL rather than host; for example, `/p` in domain `school` becomes `https://ycoj.cc/d/school/p`.
 
@@ -15,7 +15,7 @@ The default base URL is `https://ycoj.cc/`. Every documented route is relative t
 | `/checkin` | [Check-in](checkin/README.md) | Daily check-in mutation |
 | `/login`, `/logout`, `/register*`, `/lostpass*`, `/user/*`, `/oauth/*`, `/contestmode` | [Identity](identity/README.md) | Authentication, account recovery, profiles, OAuth, sudo/TFA/WebAuthn |
 | `/domain/*`, `/ranking`, `/manage/*` | [Domain and management](domain/README.md) | Domain users/roles/groups/joining plus system administration |
-| `/`, `/home/*`, `/discuss*`, `/blog/*` | [Community and home](community/README.md) | Home/account pages, settings/messages, discussions and blogs |
+| `/`, `/home/*`, `/discuss*`, `/blog/*`, `/paste*` | [Community and home](community/README.md) | Home/account pages, settings/messages, discussions, blogs and pastebin |
 | `/file*`, `/storage`, `/judge/*`, `/metrics`, `/center/report`, `/onlyoffice-jwt`, `/heap-snapshot`; runtime connections | [Runtime](runtime/README.md) | File/storage APIs, judge integration, monitoring/add-ons, WebSocket/SSE contracts |
 | `/ui/*`, `/media`, `/markdown`, `/wiki/*`, `/language/*`, `/account/*`, `/lazy/*`, `/resource/*`, `/plugins/*`, `/legacy`, `/set_theme/*` | [UI and utility](ui/README.md) | Navigation/media rendering, UI assets, compatibility/session utilities |
 | `/api/:op`, `/api/:op/conn` | [Operation transport](api/README.md) | Query/Mutation request protocol, projection, connections, registered non-problem operations |

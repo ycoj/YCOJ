@@ -1,0 +1,15 @@
+{% extends "layout/basic.html" %}
+{% import "components/form.html" as form with context %}
+{% block content %}
+<div class="row pastebin-page"><div class="medium-9 columns"><div class="section"><div class="section__header"><h1 class="section__title">{{ _('Edit Paste') }}</h1></div><div class="section__body">
+<form method="post">
+  <input type="hidden" name="operation" value="update">
+  {{ form.form_text({ label:'Title', name:'title', value:pdoc.title, row:true }) }}
+  {{ form.form_radio({ label:'Paste type', name:'mode', value:pdoc.mode, options:[['code','Code'],['markdown','Markdown']], row:true }) }}
+  {{ form.form_text({ label:'Language', name:'language', value:pdoc.language, row:true }) }}
+  {{ form.form_select({ label:'Expiration', name:'expire', value:currentExpire, options:[["day", "1 day"],["week", "1 week"],["month", "1 month"],["never", "Never expire"]], row:true }) }}
+  {{ form.form_textarea({ label:'Content', name:'content', value:pdoc.content, required:true, markdown:pdoc.mode == 'markdown', extra_class:'pastebin-content', nospellcheck:true, columns:12 }) }}
+  <div class="row"><div class="columns"><button name="operation" value="update" type="submit" class="rounded primary button">{{ _('Update') }}</button> <button name="operation" value="delete" type="submit" class="rounded button">{{ _('Delete') }}</button> <a href="{{ url('paste_detail', id:pdoc._id) }}" class="rounded button">{{ _('Cancel') }}</a></div></div>
+</form>
+</div></div></div></div>
+{% endblock %}

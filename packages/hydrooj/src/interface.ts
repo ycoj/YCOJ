@@ -702,6 +702,7 @@ declare module './service/db' {
         schedule: Schedule;
         'contest.balloon': ContestBalloonDoc;
         lock: LockDoc;
+        paste: import('./model/paste').PasteDoc;
     }
 }
 
@@ -730,6 +731,7 @@ export interface Model {
     oauth: typeof import('./model/oauth').default;
     storage: typeof import('./model/storage').default;
     rp: typeof import('./script/rating').RpTypes;
+    paste: typeof import('./model/paste').default;
 }
 
 export interface GeoIP {
