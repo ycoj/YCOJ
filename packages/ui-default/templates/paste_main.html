@@ -10,7 +10,7 @@
           {{ form.form_text({ label:'Title', name:'title', value:'', placeholder:_('Optional title'), row:true }) }}
           {{ form.form_radio({ label:'Paste type', name:'mode', value:'code', options:[['code','Code'],['markdown','Markdown']], row:true }) }}
           {{ form.form_text({ label:'Language', name:'language', value:'', placeholder:_('Optional Prism language'), row:true }) }}
-          {{ form.form_select({ label:'Expiration', name:'expire', value:defaultExpire, options:[["day", "1 day"],["week", "1 week"],["month", "1 month"],["never", "Never expire"]], row:true }) }}
+          {{ form.form_select({ label:'Expiration', name:'expire', value:defaultExpire, options:expiryOptions, row:true }) }}
           {{ form.form_textarea({ label:'Content', name:'content', value:'', required:true, markdown:true, extra_class:'pastebin-content', nospellcheck:true, columns:12 }) }}
           <div class="row"><div class="columns"><button type="submit" class="rounded primary button">{{ _('Create') }}</button></div></div>
         </form>
@@ -25,7 +25,7 @@
         {% else %}
           <ol class="section__list pastebin-list">
           {% for pdoc in pdocs %}
-            <li class="section__list__item"><a href="{{ url('paste_detail', id:pdoc._id) }}">{{ pdoc.title or pdoc._id }}</a><span class="supplementary">{{ pdoc.mode }}{% if pdoc.expireAt %} · {{ datetimeSpan(pdoc.expireAt)|safe }}{% endif %}</span></li>
+            <li class="section__list__item"><a href="{{ url('paste_detail', id:pdoc._id) }}">{{ pdoc.title or pdoc._id }}</a><span class="supplementary">{{ _(pdoc.mode == 'markdown' ? 'Markdown' : 'Code') }}{% if pdoc.expireAt %} · {{ datetimeSpan(pdoc.expireAt)|safe }}{% endif %}</span></li>
           {% endfor %}
           </ol>
           {{ paginator.render(page, ppcount) }}

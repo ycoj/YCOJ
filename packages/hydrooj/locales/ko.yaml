@@ -428,7 +428,7 @@ My Role: 내 역할
 name: 이름
 Name: 이름
 Network error: Network error
-Never expire: 영원히 만료되지 않음
+Never expire: 만료 없음
 New Email: 새 이메일
 New file: 새 파일
 New Password: 새 비밀번호
@@ -829,17 +829,15 @@ Pastebin: Pastebin
 Create Paste: 붙여넣기 만들기
 Edit Paste: 붙여넣기 수정
 Paste type: 붙여넣기 유형
-Code: 코드
 Markdown: Markdown
-Language: 언어
 Expiration: 만료
 1 day: 1일
 1 week: 1주
 1 month: 1개월
-Never expire: 만료 없음
 Raw: 원문
 Copy link: 링크 복사
 My Pastes: 내 붙여넣기
+Pastes per page: 페이지당 붙여넣기 수
 No pastes yet: 붙여넣기가 없습니다
 Expires: 만료
 Optional title: 선택 제목

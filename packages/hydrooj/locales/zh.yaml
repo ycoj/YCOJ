@@ -526,7 +526,7 @@ My status: 我的状态
 name: 名称
 Name: 名称
 Network error: 网络错误
-Never expire: 从不过期
+Never expire: 永不过期
 New Email: 新电子邮件
 New file: 新文件
 New Password: 新密码
@@ -652,6 +652,7 @@ problem.import.input_format: '## 输入格式'
 problem.import.limit_and_hint: '## 限制'
 problem.import.output_format: '## 输出格式'
 problem.import.problem_description: '## 题目描述'
+Pastes per page: 每页展示的粘贴数量
 Problems per page: 每页展示的题目数量
 Problems Sets: 题库
 Problems: 题目
@@ -1016,14 +1017,11 @@ Pastebin: Pastebin
 Create Paste: 创建粘贴
 Edit Paste: 编辑粘贴
 Paste type: 粘贴类型
-Code: 代码
 Markdown: Markdown
-Language: 语言
 Expiration: 过期时间
 1 day: 1 天
 1 week: 1 周
 1 month: 1 个月
-Never expire: 永不过期
 Raw: 原始内容
 Copy link: 复制链接
 My Pastes: 我的粘贴

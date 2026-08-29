@@ -12,6 +12,7 @@ export interface PasteDoc {
     mode: PasteMode;
     language: string;
     content: string;
+    expire: PasteExpire;
     createdAt: Date;
     updatedAt: Date;
     expireAt?: Date;
@@ -35,10 +36,18 @@ export function isExpired(pdoc: Pick<PasteDoc, 'expireAt'>, now = new Date()) {
 class PasteModel {
     static coll = db.collection('paste');
 
-    static async add(owner: number, data: Omit<PasteDoc, '_id' | 'owner' | 'createdAt' | 'updatedAt'>) {
+    static async add(owner: number, data: Omit<PasteDoc, '_id' | 'owner' | 'createdAt' | 'updatedAt' | 'expireAt'>) {
         const now = new Date();
+        const expireAt = resolveExpireAt(data.expire, now);
         for (let attempt = 0; attempt < 8; attempt++) {
-            const pdoc: PasteDoc = { _id: nanoid(12), owner, createdAt: now, updatedAt: now, ...data };
+            const pdoc: PasteDoc = {
+                _id: nanoid(12),
+                owner,
+                createdAt: now,
+                updatedAt: now,
+                ...data,
+                ...(expireAt ? { expireAt } : {}),
+            };
             try {
                 // A duplicate is possible only on the short random id; retry generation.
                 // eslint-disable-next-line no-await-in-loop
@@ -67,12 +76,13 @@ class PasteModel {
         }).sort({ updatedAt: -1 });
     }
 
-    static async edit(id: string, data: Omit<PasteDoc, '_id' | 'owner' | 'createdAt' | 'updatedAt'>) {
-        const { expireAt, ...fields } = data;
+    static async edit(id: string, data: Omit<PasteDoc, '_id' | 'owner' | 'createdAt' | 'updatedAt' | 'expireAt'>) {
+        const now = new Date();
+        const expireAt = resolveExpireAt(data.expire, now);
         return await this.coll.findOneAndUpdate(
             { _id: id },
             {
-                $set: { ...fields, updatedAt: new Date(), ...(expireAt ? { expireAt } : {}) },
+                $set: { ...data, updatedAt: now, ...(expireAt ? { expireAt } : {}) },
                 ...(expireAt ? {} : { $unset: { expireAt: 1 } }),
             },
             { returnDocument: 'after' },

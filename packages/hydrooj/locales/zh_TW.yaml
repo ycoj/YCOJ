@@ -523,7 +523,7 @@ My status: 我的狀態
 name: 名稱
 Name: 名稱
 Network error: 網路錯誤
-Never expire: 從不過期
+Never expire: 永不過期
 New Email: 新電子郵件
 New file: 新檔案
 New Password: 新密碼
@@ -649,6 +649,7 @@ problem.import.input_format: '## 輸入格式'
 problem.import.limit_and_hint: '## 限制'
 problem.import.output_format: '## 輸出格式'
 problem.import.problem_description: '## 題目描述'
+Pastes per page: 每頁展示的貼上數量
 Problems per page: 每頁展示的題目數量
 Problems Sets: 題庫
 Problems: 題目
@@ -1014,14 +1015,11 @@ Pastebin: Pastebin
 Create Paste: 建立貼上
 Edit Paste: 編輯貼上
 Paste type: 貼上類型
-Code: 程式碼
 Markdown: Markdown
-Language: 語言
 Expiration: 到期時間
 1 day: 1 天
 1 week: 1 週
 1 month: 1 個月
-Never expire: 永不過期
 Raw: 原始內容
 Copy link: 複製連結
 My Pastes: 我的貼上
