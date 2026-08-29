@@ -1,0 +1,24 @@
+{% import "components/form.html" as form with context %}
+{% set doc = pdoc|default({}) %}
+{% set title = doc.title|default('') %}
+{% set mode = doc.mode|default('code') %}
+{% set language = doc.language|default(defaultLanguage) %}
+{% set expire = doc.expire|default(defaultExpire) %}
+{% set content = doc.content|default('') %}
+<div class="pastebin-row pastebin-title-row">
+  <div class="pastebin-title-field">
+    {{ form.form_text({ label:'Title', name:'title', value:title, placeholder:_('Optional title'), row:false, columns:12 }) }}
+  </div>
+  <div class="pastebin-mode-field">
+    {{ form.form_radio({ label:'Paste type', name:'mode', value:mode, options:[['code','Code'],['markdown','Markdown']], row:false, columns:12 }) }}
+  </div>
+</div>
+<div class="pastebin-row pastebin-options-row">
+  <div class="pastebin-language-field"{% if mode == 'markdown' %} style="display:none"{% endif %}>
+    {{ form.form_select({ label:'Language', name:'language', value:language, options:languageOptions, row:false, columns:12 }) }}
+  </div>
+  <div class="pastebin-expire-field">
+    {{ form.form_select({ label:'Expiration', name:'expire', value:expire, options:expiryOptions, row:false, columns:12 }) }}
+  </div>
+</div>
+{{ form.form_textarea({ label:'Content', name:'content', value:content, required:true, extra_class:'pastebin-content', nospellcheck:true, columns:12, label_wrap:false }) }}

@@ -1,12 +1,10 @@
-import Schema from 'schemastery';
 import { NotFoundError } from '../error';
 import { PRIV } from '../model/builtin';
-import PasteModel, { PasteDoc, PasteExpire, PasteMode } from '../model/paste';
+import PasteModel, {
+    LANGUAGE_OPTIONS, languageOptionsFor, PasteContent, PasteDoc, PasteExpire, PasteLanguage, PasteMode, PasteTitle,
+    pasteWriteData,
+} from '../model/paste';
 import { Handler, param, Types } from '../service/server';
-
-const PasteContent = Schema.string().min(1).max(65536);
-const PasteTitle = Schema.string().max(64);
-const PasteLanguage = Schema.string().pattern(/^[a-z0-9-]{0,64}$/i);
 
 const EXPIRY_OPTIONS: Record<PasteExpire, string> = {
     day: '1 day',
@@ -15,22 +13,20 @@ const EXPIRY_OPTIONS: Record<PasteExpire, string> = {
     never: 'Never expire',
 };
 
-const LANGUAGE_OPTIONS: Record<string, string> = {
-    cpp: 'C++',
-    python: 'Python',
-    javascript: 'JS',
-};
-
-function languageOptionsFor(language = '') {
-    if (!language || Object.hasOwn(LANGUAGE_OPTIONS, language)) return LANGUAGE_OPTIONS;
-    return { ...LANGUAGE_OPTIONS, [language]: language };
+function pasteFields(target: object, key: string, desc: PropertyDescriptor) {
+    param('expire', Types.Range(Object.keys(EXPIRY_OPTIONS)), true)(target, key, desc);
+    param('content', PasteContent)(target, key, desc);
+    param('language', PasteLanguage, true)(target, key, desc);
+    param('mode', Types.Range(['code', 'markdown']))(target, key, desc);
+    param('title', PasteTitle, true)(target, key, desc);
+    return desc;
 }
 
 class PasteDocHandler extends Handler {
     pdoc?: PasteDoc;
 
     @param('id', Types.ShortString)
-    async prepare(_domainId: string, id: string) {
+    async __prepare(_domainId: string, id: string) {
         this.pdoc = await PasteModel.get(id);
         if (!this.pdoc) throw new NotFoundError(id);
     }
@@ -39,6 +35,7 @@ class PasteDocHandler extends Handler {
 class PasteMainHandler extends Handler {
     @param('page', Types.PositiveInt, true)
     async get(_domainId: string, page = 1) {
+        this.response.addHeader('Cache-Control', 'no-store');
         const [pdocs, ppcount, pcount] = await this.paginate(PasteModel.getMultiByOwner(this.user._id), page, 'paste');
         this.response.template = 'paste_main.html';
         this.response.body = {
@@ -53,20 +50,10 @@ class PasteMainHandler extends Handler {
         };
     }
 
-    @param('title', PasteTitle, true)
-    @param('mode', Types.Range(['code', 'markdown']))
-    @param('language', PasteLanguage, true)
-    @param('content', PasteContent)
-    @param('expire', Types.Range(Object.keys(EXPIRY_OPTIONS)), true)
+    @pasteFields
     async post(_domainId: string, title = '', mode: PasteMode = 'code', language = '', content = '', expire: PasteExpire = 'month') {
         await this.limitRate('add_paste', 3600, 60, '{{user}}');
-        const pdoc = await PasteModel.add(this.user._id, {
-            title,
-            mode,
-            language: mode === 'code' ? language : '',
-            content,
-            expire,
-        });
+        const pdoc = await PasteModel.add(this.user._id, pasteWriteData(title, mode, language, content, expire));
         this.response.body = { id: pdoc._id };
         this.response.redirect = this.url('paste_detail', { id: pdoc._id });
     }
@@ -75,6 +62,7 @@ class PasteMainHandler extends Handler {
 class PasteDetailHandler extends PasteDocHandler {
     @param('id', Types.ShortString)
     async get() {
+        this.response.addHeader('Cache-Control', 'no-store');
         this.response.template = 'paste_detail.html';
         this.response.body = {
             pdoc: this.pdoc,
@@ -86,40 +74,34 @@ class PasteDetailHandler extends PasteDocHandler {
 }
 
 class PasteEditHandler extends PasteDocHandler {
+    async prepare() {
+        if (!this.user.own(this.pdoc)) this.checkPriv(PRIV.PRIV_EDIT_SYSTEM);
+    }
+
     @param('id', Types.ShortString)
     async get() {
-        if (!this.user.own(this.pdoc)) this.checkPriv(PRIV.PRIV_EDIT_SYSTEM);
+        this.response.addHeader('Cache-Control', 'no-store');
         this.response.template = 'paste_edit.html';
         this.response.body = {
             pdoc: this.pdoc,
             expiryOptions: EXPIRY_OPTIONS,
             languageOptions: languageOptionsFor(this.pdoc.language),
+            defaultExpire: 'month',
+            defaultLanguage: 'cpp',
         };
     }
 
     @param('id', Types.ShortString)
-    @param('title', PasteTitle, true)
-    @param('mode', Types.Range(['code', 'markdown']))
-    @param('language', PasteLanguage, true)
-    @param('content', PasteContent)
-    @param('expire', Types.Range(Object.keys(EXPIRY_OPTIONS)), true)
+    @pasteFields
     async postUpdate(
         _domainId: string, id: string, title = '', mode: PasteMode = 'code', language = '', content = '', expire: PasteExpire = 'month',
     ) {
-        if (!this.user.own(this.pdoc)) this.checkPriv(PRIV.PRIV_EDIT_SYSTEM);
-        await PasteModel.edit(id, {
-            title,
-            mode,
-            language: mode === 'code' ? language : '',
-            content,
-            expire,
-        });
+        await PasteModel.edit(id, pasteWriteData(title, mode, language, content, expire));
         this.response.redirect = this.url('paste_detail', { id });
     }
 
     @param('id', Types.ShortString)
     async postDelete(_domainId: string, id: string) {
-        if (!this.user.own(this.pdoc)) this.checkPriv(PRIV.PRIV_EDIT_SYSTEM);
         await PasteModel.del(id);
         this.response.redirect = this.url('paste_main');
     }
@@ -140,7 +122,3 @@ export async function apply(ctx) {
     ctx.Route('paste_detail', '/paste/:id', PasteDetailHandler, PRIV.PRIV_USER_PROFILE);
     ctx.injectUI('UserDropdown', 'paste_main', () => ({ icon: 'code', displayName: 'Pastebin' }), PRIV.PRIV_USER_PROFILE);
 }
-
-export {
-    languageOptionsFor, PasteContent, PasteDetailHandler, PasteDocHandler, PasteEditHandler, PasteMainHandler, PasteRawHandler,
-};

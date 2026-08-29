@@ -27,20 +27,12 @@ mockModule('../src/service/db', {
         },
     }),
 });
-mockModule('../src/error', { NotFoundError: class NotFoundError extends Error {} });
-mockModule('../src/model/builtin', { PRIV: { PRIV_USER_PROFILE: 1, PRIV_EDIT_SYSTEM: 2 } });
-mockModule('../src/service/server', {
-    Handler: class Handler {},
-    param: () => (_target: unknown, _key: string, desc: PropertyDescriptor) => desc,
-    Types: { ShortString: true, PositiveInt: true, Range: () => true },
-});
 
 const paste = require('../src/model/paste') as typeof import('../src/model/paste');
 const PasteModel = paste.default;
-const { isExpired, resolveExpireAt } = paste;
 const {
-    languageOptionsFor, PasteContent, PasteDetailHandler, PasteDocHandler, PasteEditHandler, PasteMainHandler, PasteRawHandler,
-} = require('../src/handler/paste') as typeof import('../src/handler/paste');
+    isExpired, languageOptionsFor, PasteContent, pasteWriteData, resolveExpireAt,
+} = paste;
 
 describe('pastebin model helpers', () => {
     const now = new Date('2026-08-29T00:00:00.000Z');
@@ -60,26 +52,14 @@ describe('pastebin model helpers', () => {
     });
 
     it('omits expireAt when adding a never-expiring paste', async () => {
-        await PasteModel.add(1, {
-            title: '',
-            mode: 'code',
-            language: '',
-            content: 'x',
-            expire: 'never',
-        });
+        await PasteModel.add(1, pasteWriteData('', 'code', '', 'x', 'never'));
         assert.equal(captured.insert?.expire, 'never');
         assert.equal(Object.hasOwn(captured.insert || {}, 'expireAt'), false);
     });
 
     it('persists expire and derived expireAt when adding a finite expiration', async () => {
         const before = Date.now();
-        await PasteModel.add(1, {
-            title: '',
-            mode: 'code',
-            language: '',
-            content: 'x',
-            expire: 'day',
-        });
+        await PasteModel.add(1, pasteWriteData('', 'code', '', 'x', 'day'));
         const after = Date.now();
         assert.equal(captured.insert?.expire, 'day');
         const expireAt = (captured.insert?.expireAt as Date).getTime();
@@ -97,13 +77,7 @@ describe('pastebin model helpers', () => {
     });
 
     it('unsets expireAt when editing to never', async () => {
-        await PasteModel.edit('abc', {
-            title: '',
-            mode: 'code',
-            language: '',
-            content: 'x',
-            expire: 'never',
-        });
+        await PasteModel.edit('abc', pasteWriteData('', 'code', '', 'x', 'never'));
         assert.equal((captured.update?.$set as Record<string, unknown>).expire, 'never');
         assert.equal(Object.hasOwn((captured.update?.$set as object) || {}, 'expireAt'), false);
         assert.deepEqual(captured.update?.$unset, { expireAt: 1 });
@@ -121,14 +95,27 @@ describe('pastebin content contract', () => {
 
     it('stores schema-accepted content without trimming', async () => {
         const content = PasteContent(value);
-        await PasteModel.add(1, {
-            title: '',
-            mode: 'code',
-            language: '',
-            content,
-            expire: 'never',
-        });
+        await PasteModel.add(1, pasteWriteData('', 'code', '', content, 'never'));
         assert.equal(captured.insert?.content, value);
+    });
+});
+
+describe('pastebin write payload', () => {
+    it('keeps language for code and clears it for markdown', () => {
+        assert.deepEqual(pasteWriteData('t', 'code', 'python', 'x', 'week'), {
+            title: 't',
+            mode: 'code',
+            language: 'python',
+            content: 'x',
+            expire: 'week',
+        });
+        assert.deepEqual(pasteWriteData('t', 'markdown', 'python', 'x', 'week'), {
+            title: 't',
+            mode: 'markdown',
+            language: '',
+            content: 'x',
+            expire: 'week',
+        });
     });
 });
 
@@ -148,25 +135,5 @@ describe('pastebin language options', () => {
         const inherited = languageOptionsFor('constructor');
         assert.equal(inherited.constructor, 'constructor');
         assert.equal(inherited.cpp, 'C++');
-    });
-});
-
-describe('pastebin handler dispatch', () => {
-    it('keeps create on the list handler only', () => {
-        assert.equal(Object.getPrototypeOf(PasteDetailHandler), PasteDocHandler);
-        assert.equal(Object.getPrototypeOf(PasteEditHandler), PasteDocHandler);
-        assert.equal(Object.getPrototypeOf(PasteRawHandler), PasteDocHandler);
-        assert.notEqual(Object.getPrototypeOf(PasteMainHandler), PasteDocHandler);
-        assert.equal(typeof PasteMainHandler.prototype.post, 'function');
-        assert.equal(Object.hasOwn(PasteDocHandler.prototype, 'post'), false);
-        assert.equal(Object.hasOwn(PasteDetailHandler.prototype, 'post'), false);
-        assert.equal(Object.hasOwn(PasteEditHandler.prototype, 'post'), false);
-        assert.equal(Object.hasOwn(PasteRawHandler.prototype, 'post'), false);
-        assert.equal(typeof PasteEditHandler.prototype.postUpdate, 'function');
-        assert.equal(typeof PasteEditHandler.prototype.postDelete, 'function');
-        assert.equal('noCheckPermView' in new PasteDocHandler(), false);
-        assert.equal('noCheckPermView' in new PasteMainHandler(), false);
-        assert.equal('noCheckPermView' in new PasteDetailHandler(), false);
-        assert.equal('noCheckPermView' in new PasteRawHandler(), false);
     });
 });

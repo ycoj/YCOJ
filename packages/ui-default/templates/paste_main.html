@@ -1,5 +1,4 @@
 {% extends "layout/basic.html" %}
-{% import "components/form.html" as form with context %}
 {% block content %}
 <div class="row pastebin-page">
   <div class="medium-8 columns">
@@ -7,23 +6,7 @@
       <div class="section__header"><h1 class="section__title">{{ _('Create Paste') }}</h1></div>
       <div class="section__body">
         <form method="post">
-          <div class="pastebin-row pastebin-title-row">
-            <div class="pastebin-title-field">
-              {{ form.form_text({ label:'Title', name:'title', value:'', placeholder:_('Optional title'), row:false, columns:12 }) }}
-            </div>
-            <div class="pastebin-mode-field">
-              {{ form.form_radio({ label:'Paste type', name:'mode', value:'code', options:[['code','Code'],['markdown','Markdown']], row:false, columns:12 }) }}
-            </div>
-          </div>
-          <div class="pastebin-row pastebin-options-row">
-            <div class="pastebin-language-field">
-              {{ form.form_select({ label:'Language', name:'language', value:defaultLanguage, options:languageOptions, row:false, columns:12 }) }}
-            </div>
-            <div class="pastebin-expire-field">
-              {{ form.form_select({ label:'Expiration', name:'expire', value:defaultExpire, options:expiryOptions, row:false, columns:12 }) }}
-            </div>
-          </div>
-          {{ form.form_textarea({ label:'Content', name:'content', value:'', required:true, extra_class:'pastebin-content', nospellcheck:true, columns:12, label_wrap:false }) }}
+          {% include "partials/paste_form.html" %}
           <div class="row"><div class="columns"><button type="submit" class="rounded primary button">{{ _('Share') }}</button></div></div>
         </form>
       </div>

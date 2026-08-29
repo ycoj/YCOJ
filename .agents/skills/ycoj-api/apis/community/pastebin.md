@@ -4,7 +4,7 @@ All pastebin routes require an authenticated account with `PRIV_USER_PROFILE` an
 
 ## `GET /paste`
 
-Description: return the create form and the authenticated user’s own never-expiring or not-yet-expired pastes (`expireAt` missing or in the future). Request `type Query={page?:number}`, example `GET /paste?page=1`. Response `type Response=HTML`, example `…paste_main…`; `page` is a positive integer when supplied. Page size is the `pagination.paste` setting (default 20). The form’s language select offers `cpp`, `python`, and `javascript` (labels C++, Python, JS) and defaults to `cpp`; that control is hidden when the type is markdown.
+Description: return the create form and the authenticated user’s own never-expiring or not-yet-expired pastes (`expireAt` missing or in the future). Request `type Query={page?:number}`, example `GET /paste?page=1`. Response `type Response=HTML`, example `…paste_main…`; `page` is a positive integer when supplied. The response sets `Cache-Control: no-store`. Page size is the `pagination.paste` setting (default 20). The form’s language select offers `cpp`, `python`, and `javascript` (labels C++, Python, JS) and defaults to `cpp`; that control is hidden when the type is markdown.
 
 ## `POST /paste`
 
@@ -18,7 +18,7 @@ Description: create a paste from form fields. This is the only create endpoint; 
 
 ## `GET /paste/{id}`
 
-Description: return a paste detail page. Request `type Path={id:string}`, example `GET /paste/abc123`. Response `type Response=HTML`, example `…paste_detail…`. Markdown is rendered through the sanitized Markdown renderer. Code is escaped in `<pre><code class="language-{language}">` markup when a language is provided. Known form languages are shown as C++, Python, or JS. The page includes copy-link and raw-content links, and an edit link for the owner or a system administrator. This route is GET-only; POST is Method Not Allowed and does not create a paste.
+Description: return a paste detail page. Request `type Path={id:string}`, example `GET /paste/abc123`. Response `type Response=HTML`, example `…paste_detail…`. The response sets `Cache-Control: no-store`. Markdown is rendered through the sanitized Markdown renderer. Code is escaped in `<pre><code class="language-{language}">` markup when a language is provided. Known form languages are shown as C++, Python, or JS. The page includes copy-link and raw-content links, and an edit link for the owner or a system administrator. This route is GET-only; POST is Method Not Allowed and does not create a paste.
 
 ## `GET /paste/{id}/raw`
 
@@ -26,7 +26,7 @@ Description: return the exact stored content. Request `type Path={id:string}`, e
 
 ## `GET /paste/{id}/edit`
 
-Description: return the edit form with the stored `expire` choice selected and the language select defaulting to the stored language (or `cpp` when empty). Request `type Path={id:string}`, example `GET /paste/abc123/edit`. Response `type Response=HTML`, example `…paste_edit…`; only the owner or a system administrator may access it, and other authenticated users are denied. A stored language outside `cpp`/`python`/`javascript` is kept as an extra select option. The language control is hidden when the type is markdown.
+Description: return the edit form with the stored `expire` choice selected and the language select defaulting to the stored language (or `cpp` when empty). Request `type Path={id:string}`, example `GET /paste/abc123/edit`. Response `type Response=HTML`, example `…paste_edit…`; the response sets `Cache-Control: no-store`; only the owner or a system administrator may access it, and other authenticated users are denied. A stored language outside `cpp`/`python`/`javascript` is kept as an extra select option. The language control is hidden when the type is markdown.
 
 ## `POST /paste/{id}/edit`
 

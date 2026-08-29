@@ -17,7 +17,6 @@ interface MonacoOptions {
   value?: string;
   hide?: string[];
   lineNumbers?: 'on' | 'off' | 'relative' | 'interval';
-  engine?: 'monaco' | 'markdown';
 }
 type Options = MonacoOptions;
 
@@ -29,15 +28,12 @@ export default class Editor extends DOMAttachedObject {
   valueCache?: string;
   setMarkdownEditorValue?: (v: string) => void;
   reactRoot?: ReactDOM.Root;
+  monaco?: typeof import('../monaco').default;
   isValid: boolean;
-  destroyed = false;
-  containerEl?: HTMLElement;
 
   constructor($dom, public options: Options = {}) {
     super($dom);
-    if (options.engine === 'markdown') this.initMarkdownEditor();
-    else if (options.engine === 'monaco') this.initMonaco();
-    else if (UserContext.preferredEditorType === 'monaco') this.initMonaco();
+    if (UserContext.preferredEditorType === 'monaco') this.initMonaco();
     else if (options.language && options.language !== 'markdown') this.initMonaco();
     else this.initMarkdownEditor();
   }
@@ -45,21 +41,19 @@ export default class Editor extends DOMAttachedObject {
   async initMonaco() {
     const { load } = await import('vj/components/monaco/loader');
     const {
-      onChange, language = 'markdown',
+      onChange,
       theme = `vs-${getTheme()}`,
       model = `file://model-${Math.random().toString(16)}`,
       autoResize = true, autoLayout = true,
       hide = [], lineNumbers = 'on',
     } = this.options;
-    const { monaco, registerAction } = await load(
-      ['markdown', 'typescript', 'yaml'].includes(language) ? [language] : [],
-    );
-    if (this.destroyed || this.detached) return;
+    const { monaco, registerAction } = await load([this.options.language || 'markdown']);
+    this.monaco = monaco;
+    const language = this.options.language || 'markdown';
     const { $dom } = this;
     const hasFocus = $dom.is(':focus') || $dom.hasClass('autofocus');
     const origin = $dom.get(0);
     const ele = document.createElement('div');
-    this.containerEl = ele;
     $(ele).width('100%').addClass('textbox');
     if (!autoResize && $dom.height()) $(ele).height($dom.height());
     $dom.hide();
@@ -167,11 +161,9 @@ export default class Editor extends DOMAttachedObject {
     const hasFocus = $dom.is(':focus') || $dom.hasClass('autofocus');
     const origin = $dom.get(0);
     const ele = document.createElement('div');
-    this.containerEl = ele;
     const value = $dom.val();
     const { onChange } = this.options;
     const { MdEditor } = await import('./mdeditor');
-    if (this.destroyed || this.detached) return;
 
     const debouncedTrigger = debounce(() => {
       $(document.querySelector('.md-editor-preview')).trigger('vjContentNew');
@@ -265,7 +257,6 @@ export default class Editor extends DOMAttachedObject {
 
     this.valueCache = value;
 
-    if (this.destroyed || this.detached) return;
     this.reactRoot = ReactDOM.createRoot(ele);
     this.reactRoot.render(<EditorComponent />);
     $dom.hide();
@@ -275,16 +266,18 @@ export default class Editor extends DOMAttachedObject {
   }
 
   destroy() {
-    this.destroyed = true;
     this.detach();
-    if (this.reactRoot) {
-      this.reactRoot.unmount();
-      this.reactRoot = undefined;
-    }
-    if (this.editor?.dispose) this.editor.dispose();
-    if (this.model && !this.options.model && !this.model.isDisposed()) this.model.dispose();
-    this.containerEl?.remove();
-    this.$dom.show();
+    if (this.reactRoot) this.reactRoot.unmount();
+    else if (this.editor?.dispose) this.editor.dispose();
+  }
+
+  setLanguage(language: string) {
+    this.options.language = language;
+    if (!this.monaco || !this.model) return;
+    this.monaco.editor.setModelLanguage(this.model, language);
+    this.editor?.updateOptions({
+      unicodeHighlight: { ambiguousCharacters: language !== 'markdown' },
+    });
   }
 
   ensureValid() {

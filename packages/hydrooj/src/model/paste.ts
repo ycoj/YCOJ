@@ -1,9 +1,25 @@
 import { nanoid } from 'nanoid';
+import Schema from 'schemastery';
 import type { Context } from '../context';
 import db from '../service/db';
 
 export type PasteMode = 'code' | 'markdown';
 export type PasteExpire = 'day' | 'week' | 'month' | 'never';
+
+export const PasteContent = Schema.string().min(1).max(65536);
+export const PasteTitle = Schema.string().max(64);
+export const PasteLanguage = Schema.string().pattern(/^[a-z0-9-]{0,64}$/i);
+
+export const LANGUAGE_OPTIONS: Record<string, string> = {
+    cpp: 'C++',
+    python: 'Python',
+    javascript: 'JS',
+};
+
+export function languageOptionsFor(language = '') {
+    if (!language || Object.hasOwn(LANGUAGE_OPTIONS, language)) return LANGUAGE_OPTIONS;
+    return { ...LANGUAGE_OPTIONS, [language]: language };
+}
 
 export interface PasteDoc {
     _id: string;
@@ -16,6 +32,20 @@ export interface PasteDoc {
     createdAt: Date;
     updatedAt: Date;
     expireAt?: Date;
+}
+
+export type PasteWriteData = Omit<PasteDoc, '_id' | 'owner' | 'createdAt' | 'updatedAt' | 'expireAt'>;
+
+export function pasteWriteData(
+    title: string, mode: PasteMode, language: string, content: string, expire: PasteExpire,
+): PasteWriteData {
+    return {
+        title,
+        mode,
+        language: mode === 'code' ? language : '',
+        content,
+        expire,
+    };
 }
 
 const EXPIRE_MS: Record<Exclude<PasteExpire, 'never'>, number> = {
@@ -36,7 +66,7 @@ export function isExpired(pdoc: Pick<PasteDoc, 'expireAt'>, now = new Date()) {
 class PasteModel {
     static coll = db.collection('paste');
 
-    static async add(owner: number, data: Omit<PasteDoc, '_id' | 'owner' | 'createdAt' | 'updatedAt' | 'expireAt'>) {
+    static async add(owner: number, data: PasteWriteData) {
         const now = new Date();
         const expireAt = resolveExpireAt(data.expire, now);
         for (let attempt = 0; attempt < 8; attempt++) {
@@ -76,7 +106,7 @@ class PasteModel {
         }).sort({ updatedAt: -1 });
     }
 
-    static async edit(id: string, data: Omit<PasteDoc, '_id' | 'owner' | 'createdAt' | 'updatedAt' | 'expireAt'>) {
+    static async edit(id: string, data: PasteWriteData) {
         const now = new Date();
         const expireAt = resolveExpireAt(data.expire, now);
         return await this.coll.findOneAndUpdate(
