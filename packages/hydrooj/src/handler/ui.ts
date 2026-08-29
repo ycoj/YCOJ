@@ -20,24 +20,47 @@ export class NavHandler extends Handler {
 export class AvailableLanguageHandler extends Handler {
     @param('pid', Types.ProblemId, true)
     async get(domainId: string, pid?: number | string) {
+        interface AvailableLanguageVersion {
+            display: string;
+            name: string;
+            /** Explicit pretest mapping configured for this language, if any. */
+            pretest?: string | false;
+            /** Whether the language is marked hidden in the language config. */
+            hidden?: boolean;
+            /** Language key to use on the current problem's remote judge provider, if mapped. */
+            validAs?: string;
+        }
         interface AvailableLanguageResponse {
             languages: Record<string, {
                 display: string;
-                versions: {
-                    display: string;
-                    name: string;
-                }[];
+                versions: AvailableLanguageVersion[];
             }>;
         }
 
         const languages: AvailableLanguageResponse['languages'] = {};
         let configLangs: string[] = [];
+        // Only resolvable for a specific problem: validAs is provider-scoped.
+        let remoteProvider: string | undefined;
 
         if (pid) {
             const pdoc = await ProblemModel.get(domainId, pid);
             if (!pdoc) throw new NotFoundError(pid);
             configLangs = (typeof pdoc.config === 'object' && pdoc.config?.langs) || [];
+            if (typeof pdoc.config === 'object' && pdoc.config?.type === 'remote_judge') {
+                remoteProvider = pdoc.config.subType;
+            }
         }
+
+        const buildVersion = (lang: string): AvailableLanguageVersion => {
+            const config = langs[lang];
+            const version: AvailableLanguageVersion = { display: config.display, name: lang };
+            // Keep `false` (explicitly disabled pretest) distinct from "not configured".
+            if (config.pretest !== undefined) version.pretest = config.pretest;
+            if (config.hidden !== undefined) version.hidden = config.hidden;
+            const validAs = remoteProvider ? config.validAs?.[remoteProvider] : undefined;
+            if (validAs !== undefined) version.validAs = validAs;
+            return version;
+        };
 
         const isLangAllowed = (lang: string): boolean => {
             if (!configLangs.length) return true;
@@ -56,7 +79,7 @@ export class AvailableLanguageHandler extends Handler {
             if (!isLangAllowed(lang)) continue;
             languages[lang] = {
                 display: langs[lang].display,
-                versions: [{ display: langs[lang].display, name: lang }],
+                versions: [buildVersion(lang)],
             };
         }
 
@@ -67,10 +90,7 @@ export class AvailableLanguageHandler extends Handler {
             const mainLang = lang.split('.')[0];
             if (!languages[mainLang]) continue;
             if (!isLangAllowed(lang)) continue;
-            languages[mainLang].versions.push({
-                display: langs[lang].display,
-                name: lang,
-            });
+            languages[mainLang].versions.push(buildVersion(lang));
         }
 
         this.response.body = { languages };
