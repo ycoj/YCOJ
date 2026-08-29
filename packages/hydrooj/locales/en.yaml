@@ -120,13 +120,13 @@ user_register: Register
 user_sudo: Entering Sudo Mode
 wiki_about: About
 wiki_help: Help
-paste_main: Pastebin
-paste_detail: Paste Detail
-paste_edit: Edit Paste
-Pastebin: Pastebin
-Create Paste: Create Paste
-Edit Paste: Edit Paste
-Paste type: Paste type
+paste_main: Share Snippets
+paste_detail: Snippet
+paste_edit: Edit Snippet
+Pastebin: Share Snippets
+Create Paste: Share a snippet
+Edit Paste: Edit snippet
+Paste type: Type
 Code: Code
 Markdown: Markdown
 Language: Language
@@ -137,8 +137,8 @@ Expiration: Expiration
 Never expire: Never expire
 Raw: Raw
 Copy link: Copy link
-My Pastes: My Pastes
-No pastes yet: No pastes yet
+My Pastes: Share history
+No pastes yet: No share history yet
 Expires: Expires
 Optional title: Optional title
-Optional Prism language: Optional Prism language
+Pastes per page: Share history per page

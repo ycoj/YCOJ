@@ -15,6 +15,17 @@ const EXPIRY_OPTIONS: Record<PasteExpire, string> = {
     never: 'Never expire',
 };
 
+const LANGUAGE_OPTIONS: Record<string, string> = {
+    cpp: 'C++',
+    python: 'Python',
+    javascript: 'JS',
+};
+
+function languageOptionsFor(language = '') {
+    if (!language || language in LANGUAGE_OPTIONS) return LANGUAGE_OPTIONS;
+    return { ...LANGUAGE_OPTIONS, [language]: language };
+}
+
 class PasteDocHandler extends Handler {
     noCheckPermView = true;
 
@@ -40,7 +51,9 @@ class PasteMainHandler extends Handler {
             pcount,
             page,
             expiryOptions: EXPIRY_OPTIONS,
+            languageOptions: LANGUAGE_OPTIONS,
             defaultExpire: 'month',
+            defaultLanguage: 'cpp',
         };
     }
 
@@ -70,8 +83,9 @@ class PasteDetailHandler extends PasteDocHandler {
         this.response.body = {
             pdoc: this.pdoc,
             canManage: this.user.own(this.pdoc) || this.user.hasPriv(PRIV.PRIV_EDIT_SYSTEM),
+            languageNames: LANGUAGE_OPTIONS,
         };
-        this.UiContext.extraTitleContent = this.pdoc.title || 'Pastebin';
+        this.UiContext.extraTitleContent = this.pdoc.title || this.translate('Pastebin');
     }
 }
 
@@ -80,7 +94,11 @@ class PasteEditHandler extends PasteDocHandler {
     async get() {
         if (!this.user.own(this.pdoc)) this.checkPriv(PRIV.PRIV_EDIT_SYSTEM);
         this.response.template = 'paste_edit.html';
-        this.response.body = { pdoc: this.pdoc, expiryOptions: EXPIRY_OPTIONS };
+        this.response.body = {
+            pdoc: this.pdoc,
+            expiryOptions: EXPIRY_OPTIONS,
+            languageOptions: languageOptionsFor(this.pdoc.language),
+        };
     }
 
     @param('id', Types.ShortString)

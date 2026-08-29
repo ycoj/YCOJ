@@ -3,12 +3,24 @@
 {% block content %}
 <div class="row pastebin-page"><div class="medium-9 columns"><div class="section"><div class="section__header"><h1 class="section__title">{{ _('Edit Paste') }}</h1></div><div class="section__body">
 <form method="post">
-  {{ form.form_text({ label:'Title', name:'title', value:pdoc.title, row:true }) }}
-  {{ form.form_radio({ label:'Paste type', name:'mode', value:pdoc.mode, options:[['code','Code'],['markdown','Markdown']], row:true }) }}
-  {{ form.form_text({ label:'Language', name:'language', value:pdoc.language, row:true }) }}
-  {{ form.form_select({ label:'Expiration', name:'expire', value:pdoc.expire, options:expiryOptions, row:true }) }}
-  {{ form.form_textarea({ label:'Content', name:'content', value:pdoc.content, required:true, markdown:pdoc.mode == 'markdown', extra_class:'pastebin-content', nospellcheck:true, columns:12 }) }}
-  <div class="row"><div class="columns"><button name="operation" value="update" type="submit" class="rounded primary button">{{ _('Update') }}</button> <button name="operation" value="delete" type="submit" class="rounded button">{{ _('Delete') }}</button> <a href="{{ url('paste_detail', id:pdoc._id) }}" class="rounded button">{{ _('Cancel') }}</a></div></div>
+  <div class="pastebin-row pastebin-title-row">
+    <div class="pastebin-title-field">
+      {{ form.form_text({ label:'Title', name:'title', value:pdoc.title, row:false, columns:12 }) }}
+    </div>
+    <div class="pastebin-mode-field">
+      {{ form.form_radio({ label:'Paste type', name:'mode', value:pdoc.mode, options:[['code','Code'],['markdown','Markdown']], row:false, columns:12 }) }}
+    </div>
+  </div>
+  <div class="pastebin-row pastebin-options-row">
+    <div class="pastebin-language-field"{% if pdoc.mode == 'markdown' %} style="display:none"{% endif %}>
+      {{ form.form_select({ label:'Language', name:'language', value:pdoc.language or 'cpp', options:languageOptions, row:false, columns:12 }) }}
+    </div>
+    <div class="pastebin-expire-field">
+      {{ form.form_select({ label:'Expiration', name:'expire', value:pdoc.expire, options:expiryOptions, row:false, columns:12 }) }}
+    </div>
+  </div>
+  {{ form.form_textarea({ label:'Content', name:'content', value:pdoc.content, required:true, extra_class:'pastebin-content', nospellcheck:true, columns:12, label_wrap:false }) }}
+  <div class="row"><div class="columns"><button name="operation" value="update" type="submit" class="rounded primary button">{{ _('Update') }}</button> <button name="operation" value="delete" type="submit" class="rounded button">{{ _('Delete') }}</button> <a href="{{ url('paste_detail', id=pdoc._id) }}" class="rounded button">{{ _('Cancel') }}</a></div></div>
 </form>
 </div></div></div></div>
 {% endblock %}
