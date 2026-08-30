@@ -311,6 +311,11 @@ describe('App', () => {
         const manuallyBanned = await global.Hydro.model.user.coll.findOne({ _id: uid });
         assert.equal(manuallyBanned.priv, 0);
         assert.equal(manuallyBanned.accountExpireRestorePriv, undefined);
+        const bannedLogin = await supertest.agent(require('hydrooj').httpServer).post('/login')
+            .set('Accept', 'application/json')
+            .send({ uname: username, password });
+        assert.equal(bannedLogin.status, 403);
+        assert.equal(bannedLogin.body.error.name, 'BlacklistedError');
 
         const loginExpiredUid = await global.Hydro.model.user.create(
             'login-expire-test@example.com', 'login-expire-test', password, undefined, '127.0.0.1',
@@ -319,11 +324,23 @@ describe('App', () => {
             uid: loginExpiredUid,
             expireAt: new Date(Date.now() - 1000),
         }]);
-        await supertest.agent(require('hydrooj').httpServer).post('/login')
-            .send({ uname: 'login-expire-test', password }).expect(403);
+        const firstExpiredLogin = await supertest.agent(require('hydrooj').httpServer).post('/login')
+            .set('Accept', 'application/json')
+            .send({ uname: 'login-expire-test', password });
+        assert.equal(firstExpiredLogin.status, 403);
+        assert.equal(firstExpiredLogin.body.error.name, 'AccountExpiredError');
+        assert.equal(
+            firstExpiredLogin.body.error.message,
+            'Your account has expired. Please contact your teacher or coach!',
+        );
         const loginExpired = await global.Hydro.model.user.coll.findOne({ _id: loginExpiredUid });
         assert.equal(loginExpired.priv, 0);
         assert.notEqual(loginExpired.accountExpireRestorePriv, undefined);
+        const laterExpiredLogin = await supertest.agent(require('hydrooj').httpServer).post('/login')
+            .set('Accept', 'application/json')
+            .send({ uname: 'login-expire-test', password });
+        assert.equal(laterExpiredLogin.status, 403);
+        assert.equal(laterExpiredLogin.body.error.name, 'AccountExpiredError');
     });
 
     // TODO add more tests

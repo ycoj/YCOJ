@@ -42,6 +42,10 @@ export const RealnameInvalidTransitionError = Err(
 export const UserAlreadyExistError = Err('UserAlreadyExistError', ForbiddenError, 'User {0} already exists.');
 export const InvalidTokenError = Err('InvalidTokenError', ForbiddenError, 'The {0} Token is invalid.');
 export const BlacklistedError = Err('BlacklistedError', ForbiddenError, 'Address or user {0} is blacklisted.');
+export const AccountExpiredError = Err(
+    'AccountExpiredError', ForbiddenError,
+    'Your account has expired. Please contact your teacher or coach!',
+);
 export const VerifyPasswordError = Err('VerifyPasswordError', ForbiddenError, "Passwords don't match.");
 export const OpcountExceededError = Err('OpcountExceededError', ForbiddenError, 'Too frequent operations of {0} (limit: {2} operations in {1} seconds).');
 export const PermissionError = Err('PermissionError', ForbiddenError, function (this: HydroError) {

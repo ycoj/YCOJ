@@ -1045,3 +1045,5 @@ Revoked by administrator: 由管理員撤銷
 This application is not pending review.: 該申請目前不在待審核狀態。
 Verified School: 已認證學校
 Your real-name verification has already been approved.: 你的實名認證已經通過。
+AccountExpiredError: 帳號過期
+Your account has expired. Please contact your teacher or coach!: 您的帳號已過期，請聯繫老師或教練！

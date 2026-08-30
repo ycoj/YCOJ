@@ -1230,3 +1230,5 @@ Your real-name verification was rejected. Please resubmit before the seven-day g
 'You may continue using the site until {0}.': 在 {0} 之前，你可以繼續使用本站。
 The seven-day grace period has ended. Site access is blocked until a super administrator approves your application.: 七天寬限期已結束。在老師審核通過前，你將無法使用本站。
 The seven-day grace period has ended. Please resubmit to continue using this site.: 七天寬限期已結束。請重新提交認證後才能繼續使用本站。
+AccountExpiredError: 帳號過期
+Your account has expired. Please contact your teacher or coach!: 您的帳號已過期，請聯繫老師或教練！

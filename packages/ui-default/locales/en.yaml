@@ -28,6 +28,8 @@ Account expiration has been updated.: Account expiration has been updated.
 Expiration date is required.: Expiration date is required.
 Days to adjust must be a non-zero integer.: Days to adjust must be a non-zero integer.
 Every selected account must already have a finite expiration.: Every selected account must already have a finite expiration.
+AccountExpiredError: Account expired
+Your account has expired. Please contact your teacher or coach!: Your account has expired. Please contact your teacher or coach!
 Set the selected accounts to never expire?: Set the selected accounts to never expire?
 No users found.: No users found.
 Add Provider: Add Provider
