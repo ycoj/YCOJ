@@ -1,7 +1,10 @@
-import { ObjectId } from 'mongodb';
+import { type Filter, ObjectId } from 'mongodb';
 import { Context } from '../context';
+import type { RealnameApplication } from '../interface';
 import {
-    getRealnameStatus, isSuperAdmin, requiresRealname,
+    getRealnameGraceUntil, getRealnameStatus, getRealnameSubmittedAt, isSuperAdmin,
+    isWithinRealnameGrace, type RealnameUserLike,
+    requiresRealname,
 } from '../lib/realname';
 import { PRIV } from '../model/builtin';
 import * as realname from '../model/realname';
@@ -9,6 +12,21 @@ import user from '../model/user';
 import {
     Handler, param, Types,
 } from '../service/server';
+
+async function realnameGrace(udoc: RealnameUserLike, latest: RealnameApplication | null) {
+    let fallbackSubmittedAt = latest?.submittedAt ?? null;
+    if (!getRealnameSubmittedAt(udoc) && udoc._id) {
+        const earliest = await realname.getEarliestByUid(udoc._id);
+        fallbackSubmittedAt = earliest?.submittedAt ?? fallbackSubmittedAt;
+        if (fallbackSubmittedAt) {
+            await user.setById(udoc._id, { realnameSubmittedAt: fallbackSubmittedAt });
+        }
+    }
+    return {
+        inGrace: isWithinRealnameGrace(udoc, new Date(), fallbackSubmittedAt),
+        graceUntil: getRealnameGraceUntil(udoc, fallbackSubmittedAt),
+    };
+}
 
 class HomeRealnameHandler extends Handler {
     noCheckPermView = true;
@@ -27,6 +45,7 @@ class HomeRealnameHandler extends Handler {
             status,
             exempt: isSuperAdmin(this.user),
             application: latest,
+            ...await realnameGrace(this.user, latest),
             realName: this.user.realName || latest?.realName || '',
             school: this.user.realnameSchool || this.user.school || latest?.school || '',
         };
@@ -58,6 +77,7 @@ class HomeRealnameResultHandler extends Handler {
             status,
             exempt: isSuperAdmin(this.user),
             application: latest,
+            ...await realnameGrace(this.user, latest),
         };
     }
 }
@@ -71,8 +91,16 @@ class SystemRealnameHandler extends Handler {
 
     @param('page', Types.PositiveInt, true)
     @param('status', Types.Range(['all', 'pending', 'approved', 'rejected']), true)
-    async get({ }, page = 1, status = 'pending') {
-        const query = status === 'all' ? {} : { status } as { status: 'pending' | 'approved' | 'rejected' };
+    @param('uname', Types.String, true)
+    async get(
+        { }, page = 1,
+        status: 'all' | RealnameApplication['status'] = 'pending', uname = '',
+    ) {
+        const query: Filter<RealnameApplication> = status === 'all' ? {} : { status };
+        uname = uname.trim();
+        if (uname) {
+            query.uid = { $in: await user.getUidsByUnameSubstring(uname) };
+        }
         const [rdocs, numPages, count] = await this.paginate(
             realname.getMulti(query).sort({ submittedAt: -1 }),
             page,
@@ -91,6 +119,7 @@ class SystemRealnameHandler extends Handler {
             numPages,
             count,
             filterStatus: status,
+            filterUname: uname,
         };
     }
 
@@ -133,6 +162,18 @@ export async function apply(ctx: Context) {
         'Notification',
         'Please complete real-name verification before using this site.',
         { type: 'warn' },
-        (h) => requiresRealname(h.user),
+        (h) => requiresRealname(h.user) && !isWithinRealnameGrace(h.user),
+    );
+    ctx.injectUI(
+        'Notification',
+        'Your real-name verification is pending review. You may use the site for seven days after submission.',
+        { type: 'note' },
+        (h) => getRealnameStatus(h.user) === 'pending' && isWithinRealnameGrace(h.user),
+    );
+    ctx.injectUI(
+        'Notification',
+        'Your real-name verification was rejected. Please resubmit before the seven-day grace period ends.',
+        { type: 'warn' },
+        (h) => getRealnameStatus(h.user) === 'rejected' && isWithinRealnameGrace(h.user),
     );
 }

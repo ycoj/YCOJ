@@ -13,7 +13,11 @@
           <div class="realname-result realname-result--pending">
             <span class="realname-status realname-status--pending"><span class="icon icon-schedule"></span>{{ _('Pending') }}</span>
             <h2 class="realname-result__title">{{ _('Your real-name verification is pending review.') }}</h2>
-            <p class="realname-result__desc">{{ _('Please complete real-name verification before using this site.') }}</p>
+            {% if inGrace and graceUntil %}
+              <p class="realname-result__desc">{{ (_('You may continue using the site until {0}.').format(datetimeSpan(graceUntil, false)))|safe }}</p>
+            {% else %}
+              <p class="realname-result__desc">{{ _('The seven-day grace period has ended. Site access is blocked until a super administrator approves your application.') }}</p>
+            {% endif %}
           </div>
         {% elif status == 'approved' %}
           <div class="realname-result realname-result--approved">
@@ -27,6 +31,11 @@
             <h2 class="realname-result__title">{{ _('Your real-name verification was rejected.') }}</h2>
             {% if application and application.rejectReason %}
               <p class="realname-result__desc">{{ _('Rejection Reason') }}: {{ application.rejectReason }}</p>
+            {% endif %}
+            {% if inGrace and graceUntil %}
+              <p class="realname-result__desc">{{ (_('You may continue using the site until {0}.').format(datetimeSpan(graceUntil, false)))|safe }}</p>
+            {% else %}
+              <p class="realname-result__desc">{{ _('The seven-day grace period has ended. Site access is blocked until a super administrator approves your application.') }}</p>
             {% endif %}
           </div>
         {% else %}
@@ -68,8 +77,9 @@
           <a href="{{ url('home_realname') }}" class="rounded primary button">{{ _('Resubmit') }}</a>
         {% elif status == 'pending' %}
           <a href="{{ url('home_realname') }}" class="rounded button">{{ _('Update Verification') }}</a>
-        {% elif status == 'approved' %}
-          <a href="{{ url('homepage') }}" class="rounded primary button">{{ _('Back to homepage') }}</a>
+        {% endif %}
+        {% if status == 'approved' or inGrace %}
+          <a href="{{ url('homepage') }}" class="rounded {{ 'primary' if status == 'approved' or status == 'pending' else '' }} button">{{ _('Back to homepage') }}</a>
         {% endif %}
       </div>
     </div>

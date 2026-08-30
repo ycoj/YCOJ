@@ -256,6 +256,12 @@ class UserModel {
         return initAndCache(udoc, dudoc);
     }
 
+    static async getUidsByUnameSubstring(uname: string): Promise<number[]> {
+        const $regex = escapeRegExp(uname.trim().toLowerCase());
+        const udocs = await coll.find({ unameLower: { $regex } }).project<{ _id: number }>({ _id: 1 }).toArray();
+        return udocs.map(({ _id }) => _id);
+    }
+
     @ArgMethod
     static async getRealByUname(domainId: string, uname: string): Promise<User | null> {
         const unameLower = uname.trim().toLowerCase();

@@ -273,6 +273,7 @@ AccountSetting(
     Setting('setting_storage', 'realName', '', 'text', 'Real Name', null, FLAG_DISABLED | FLAG_HIDDEN | FLAG_PRIVATE),
     Setting('setting_storage', 'realnameSchool', '', 'text', 'Verified School', null, FLAG_DISABLED | FLAG_HIDDEN | FLAG_PRIVATE),
     Setting('setting_storage', 'realnameStatus', 'none', 'text', 'Realname Status', null, FLAG_DISABLED | FLAG_HIDDEN),
+    Setting('setting_storage', 'realnameSubmittedAt', null, 'text', 'Realname Submitted At', null, FLAG_DISABLED | FLAG_HIDDEN),
 );
 
 DomainSetting(
