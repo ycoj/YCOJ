@@ -13,7 +13,7 @@ Description: enroll current user. Request: `type Request={operation:"enroll"}`; 
 Description: delete training and its stored files. Request: `type Request={operation:"delete"}`; `{ "operation":"delete" }`. Response: `type Response={url:string}`; `{ "url":"/training" }` or browser redirect. Requires owner/edit permission.
 
 ## `GET /training/create` / `GET /training/:tid/edit`
-Description: render create/edit form. Request: `type Query={tid?:ObjectId}`; `GET /training/create`. Response: `type Response={page_name:"training_create"|"training_edit";tdoc?:TrainingDoc;dag?:string}`; `{ "page_name":"training_create" }`, HTML `training_edit.html`.
+Description: render create/edit form. Request: `type Query={tid?:ObjectId}`; `GET /training/create`. Response: `type Response={page_name:"training_create"|"training_edit";tdoc?:TrainingDoc;dag?:string;pdict:Record<number,ProblemDoc>}`; `{ "page_name":"training_create","pdict":{} }`, or for an existing training `pdict` contains every problem document referenced by its DAG. HTML `training_edit.html`.
 
 ## `POST /training/create` / `POST /training/:tid/edit`
 Description: validate DAG and create/update training. Request: `type Request={tid?:ObjectId;title:string;content:string;dag:string;pin:number;description:string}`; `{ "title":"DP","content":"...","dag":"[{\"_id\":1,\"title\":\"A\",\"requireNids\":[],\"pids\":[1001]}]","pin":0,"description":"..." }`. Response: `type Response={tid:ObjectId;url?:string}`; `{ "tid":"665f...","url":"/training/665f..." }`.
