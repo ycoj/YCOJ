@@ -721,6 +721,10 @@ declare module './service/db' {
         'contest.balloon': ContestBalloonDoc;
         lock: LockDoc;
         paste: import('./model/paste').PasteDoc;
+        oier: import('./model/oier').OierDoc;
+        'oier.record': import('./model/oier').OierRecordDoc;
+        'oier.school': import('./model/oier').OierSchoolDoc;
+        'oier.contest': import('./model/oier').OierContestDoc;
     }
 }
 
@@ -751,6 +755,7 @@ export interface Model {
     storage: typeof import('./model/storage').default;
     rp: typeof import('./script/rating').RpTypes;
     paste: typeof import('./model/paste').default;
+    oier: typeof import('./model/oier');
 }
 
 export interface GeoIP {

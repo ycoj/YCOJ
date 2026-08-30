@@ -1,0 +1,51 @@
+{% import "components/user.html" as user with context %}
+{% import "components/paginator.html" as paginator with context %}
+{% import "components/nothing.html" as nothing with context %}
+{% extends "manage_base.html" %}
+{% block manage_content %}
+<div class="section">
+  <div class="section__header">
+    <h1 class="section__title">{{ _('manage_award') }}</h1>
+    <div class="section__tools">
+      <form method="get">
+        <input class="inline compact textbox" name="uname" type="search" value="{{ filterUname }}" placeholder="{{ _('Username') }}" autocomplete="off">
+        <button type="submit" class="inline compact primary button"><span class="icon icon-search"></span> {{ _('Search') }}</button>
+      </form>
+    </div>
+  </div>
+  {{ noscript_note.render() }}
+  <div class="section__body no-padding">
+    {% if not odocs.length %}
+      {{ nothing.render('No certified awards.') }}
+    {% else %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>{{ _('Username') }}</th>
+          <th>{{ _('Real Name') }}</th>
+          <th>{{ _('Latest School') }}</th>
+          <th>{{ _('CCF Level') }}</th>
+          <th>{{ _('Awards') }}</th>
+          <th>{{ _('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {%- for odoc in odocs -%}
+        <tr data-uid="{{ odoc.uid }}">
+          <td>{{ user.render_inline(udict[odoc.uid]) }}</td>
+          <td>{{ odoc.name }}</td>
+          <td>{{ odoc.latestSchool }}</td>
+          <td>{{ odoc.ccfLevel }}</td>
+          <td>{{ odoc.recordCount }}</td>
+          <td>
+            <button class="rounded compact button" name="unbind">{{ _('Remove Certification') }}</button>
+          </td>
+        </tr>
+        {%- endfor -%}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {{ paginator.render(page, numPages, 'uname=' + filterUname if filterUname else '') }}
+</div>
+{% endblock %}

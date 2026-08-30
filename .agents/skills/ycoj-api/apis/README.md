@@ -1,6 +1,6 @@
 # YCOJ API documents
 
-This is the routing index for the backend contracts present at source revision `9ee423517944` (2026-08-28). It covers all 137 literal HTTP route registrations, five literal connection registrations, and the indirectly registered `/api/:op` HTTP/connection transport. Routes from optional packages or conditional configuration are documented but exist at runtime only when their package or feature is enabled.
+This is the routing index for the backend contracts present at source revision `9ee423517944` (2026-08-28). It covers all 139 literal HTTP route registrations, five literal connection registrations, and the indirectly registered `/api/:op` HTTP/connection transport. Routes from optional packages or conditional configuration are documented but exist at runtime only when their package or feature is enabled.
 
 The default base URL is `https://ycoj.cc/`. Every documented route is relative to that base. Prefix a path with `/d/{domainId}` when selecting a domain by URL rather than host; for example, `/p` in domain `school` becomes `https://ycoj.cc/d/school/p`.
 
@@ -14,6 +14,7 @@ The default base URL is `https://ycoj.cc/`. Every documented route is relative t
 | `/status`, `/status/*` | [Status](status/README.md) | Judge/system status and updates |
 | `/checkin` | [Check-in](checkin/README.md) | Daily check-in mutation |
 | `/home/realname`, `/home/realname/result`, `/manage/realname` | [Real-name](realname/README.md) | User submission/result plus super-admin review; users who have not submitted, or whose review is still unfinished/rejected after a seven-day grace period, are blocked from other feature HTTP routes except public versioned UI assets (`/lazy/*`, `/resource/*`, `/plugins/*`). WebSocket handshake does not throw `RealnameRequiredError`; `/websocket` rejects subscriptions outside the grace period. |
+| `/home/award`, `/manage/award` | [Award](award/README.md) | Real-name-approved users bind imported CCF/NOI contestant records; system administrators unbind; `importOier` script loads an OIerDb `data/` directory |
 | `/login`, `/logout`, `/register*`, `/lostpass*`, `/user/*`, `/oauth/*`, `/contestmode` | [Identity](identity/README.md) | Authentication, account recovery, profiles, OAuth, sudo/TFA/WebAuthn |
 | `/domain/*`, `/ranking`, `/manage/*` | [Domain and management](domain/README.md) | Domain users/roles/groups/joining plus system administration |
 | `/`, `/home/*`, `/discuss*`, `/blog/*`, `/paste*` | [Community and home](community/README.md) | Home/account pages, settings/messages, discussions, blogs and pastebin |

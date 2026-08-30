@@ -99,7 +99,7 @@ POST `adjust` request `type AdjustExpiration={operation:"adjust";uids:number[];d
 
 POST `clear` request `type ClearExpiration={operation:"clear";uids:number[]}`, example `{"operation":"clear","uids":[12,13]}`. It removes the expiration. If an account was automatically banned by expiration, its saved pre-expiration privileges are restored; manually banned accounts remain banned.
 
-All POST variants reject an empty/nonpositive UID list, a missing account, or any super-administrator target before changing accounts. A successful operation returns `type Redirect={url:string}`, example `{"url":"/manage/user-expiration"}`. Accounts without `accountExpireAt`, including existing and newly registered accounts, never expire. On the first authenticated request, login, or new connection at/after `accountExpireAt`, the server atomically saves the current privileges, sets `PRIV_NONE`, records an expiration ban reason, invalidates user caches, and deletes every token owned by the account. Existing long-lived connections are not proactively closed.
+All POST variants reject an empty/nonpositive UID list, a missing account, or any super-administrator target before changing accounts. A successful operation returns `type Redirect={url:string}`, example `{"url":"/manage/user-expiration"}`. Accounts without `accountExpireAt`, including existing and newly registered accounts, never expire. On the first authenticated request, login, or new connection at/after `accountExpireAt`, the server atomically saves the current privileges, sets `PRIV_NONE`, records an expiration ban reason, invalidates user caches, and deletes every token owned by the account. Login after that point returns `AccountExpiredError` (`403`, message `Your account has expired. Please contact your teacher or coach!`). Existing long-lived connections are not proactively closed.
 
 ## `GET|POST /manage/realname`
 Description: list and review real-name applications. This route requires super-admin privilege (`PRIV_ALL`), not only `PRIV_EDIT_SYSTEM`.
@@ -110,4 +110,11 @@ POST `approve`: `type Approve={operation:"approve";id:string}`, example `{"opera
 
 POST `reject`: `type Reject={operation:"reject";id:string;reason?:string}`, example `{"operation":"reject","id":"66aa66aa66aa66aa66aa66aa","reason":"Name mismatch"}`. Response `Redirect`. The seven-day grace clock from the first `realnameSubmittedAt` is kept; the user remains able to use the site until it expires and may resubmit without starting a new window.
 
-POST `revoke`: `type Revoke={operation:"revoke";id:string;reason?:string}`, example `{"operation":"revoke","id":"66aa66aa66aa66aa66aa66aa"}`. Response `Redirect`. Only approved applications may be revoked; status becomes `rejected`, `realnameSubmittedAt` is kept, and the user is locked immediately if the original seven-day window has elapsed.
+POST `revoke`: `type Revoke={operation:"revoke";id:string;reason?:string}`, example `{"operation":"revoke","id":"66aa66aa66aa66aa66aa66aa"}`. Response `Redirect`. Only approved applications may be revoked; status becomes `rejected`, `realnameSubmittedAt` is kept, and the user is locked immediately if the original seven-day window has elapsed. Certified CCF/NOI awards on that account are unbound; if unbind fails for a reason other than `AwardNotBoundError`, the contestant `uid` is restored when the award document was already cleared, then the real-name status change is rolled back.
+
+## `GET|POST /manage/award`
+Description: list and remove certified CCF/NOI awards. This route requires `PRIV_EDIT_SYSTEM`. See [Award management](../award/manage.md).
+
+GET request type: `type Query={page?:number;uname?:string}`. Example `GET /manage/award?uname=ali`. Response is HTML or `{page_name:"manage_award",odocs,udict,page,numPages,count,filterUname}`.
+
+POST `unbind`: `type Unbind={operation:"unbind";uid:number}`, example `{"operation":"unbind","uid":12}`. Response `Redirect`. Clears the user’s bound contestant and CCF hook.

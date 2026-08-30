@@ -399,6 +399,7 @@ home_messages: 站内消息
 home_preference: 偏好设置
 home_realname: 实名认证
 home_realname_result: 认证结果
+home_award: 奖项认证
 home_security: 安全设置
 Homepage Config: 主页设置
 homepage: 首页
@@ -498,6 +499,7 @@ manage_join_applications: 加域申请
 manage_module: 管理模块
 manage_setting: 系统设置
 manage_realname: 实名认证管理
+manage_award: 奖项认证
 manage_user_import: 导入用户
 manage: 管理
 Manage: 管理
@@ -1047,3 +1049,11 @@ Revoked by administrator: 由管理员撤销
 This application is not pending review.: 该申请当前不在待审核状态。
 Verified School: 已认证学校
 Your real-name verification has already been approved.: 你的实名认证已经通过。
+Award certification requires an approved real-name verification.: 奖项认证需要先通过实名认证。
+This account already has certified awards. Ask an administrator to remove them first.: 该账号已绑定奖项。如需更改请先联系管理员移除。
+These awards are already certified to another account.: 这些奖项已被其他账号认证。
+The selected contestant name does not match your verified real name.: 所选获奖人姓名与你的实名不一致。
+This account has no certified awards.: 该账号没有已认证的奖项。
+'Contestant {0} not found.': 未找到获奖人 {0}。
+AccountExpiredError: 账号过期
+Your account has expired. Please contact your teacher or coach!: 您的账号已过期，请联系老师或教练！

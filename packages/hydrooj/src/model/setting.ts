@@ -274,6 +274,9 @@ AccountSetting(
     Setting('setting_storage', 'realnameSchool', '', 'text', 'Verified School', null, FLAG_DISABLED | FLAG_HIDDEN | FLAG_PRIVATE),
     Setting('setting_storage', 'realnameStatus', 'none', 'text', 'Realname Status', null, FLAG_DISABLED | FLAG_HIDDEN),
     Setting('setting_storage', 'realnameSubmittedAt', null, 'text', 'Realname Submitted At', null, FLAG_DISABLED | FLAG_HIDDEN),
+    Setting('setting_storage', 'oierId', null, 'number', 'OIer id', null, FLAG_DISABLED | FLAG_HIDDEN | FLAG_PRIVATE),
+    Setting('setting_storage', 'oierBoundAt', null, 'text', 'OIer bound at', null, FLAG_DISABLED | FLAG_HIDDEN | FLAG_PRIVATE),
+    Setting('setting_storage', 'ccfLevel', 0, 'number', 'CCF Level', null, FLAG_DISABLED | FLAG_HIDDEN | FLAG_PUBLIC),
 );
 
 DomainSetting(
@@ -381,6 +384,7 @@ SystemSetting(
     Setting('setting_basic', 'pagination.training', 10, 'number', 'pagination.training', 'Trainings per page'),
     Setting('setting_basic', 'pagination.reply', 50, 'number', 'pagination.reply', 'Replies per page'),
     Setting('setting_basic', 'pagination.realname', 50, 'number', 'pagination.realname', 'Real-name applications per page'),
+    Setting('setting_basic', 'pagination.award', 20, 'number', 'pagination.award', 'Award contestants per page'),
     Setting('setting_basic', 'pagination.paste', 20, 'number', 'pagination.paste', 'Pastes per page'),
     Setting('setting_basic', 'hydrooj.homepage', settingFile.homepage.default, 'yaml', 'hydrooj.homepage', 'Homepage config'),
     Setting('setting_basic', 'hydrooj.langs', settingFile.langs.default, 'yaml', 'hydrooj.langs', 'Language config'),

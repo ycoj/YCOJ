@@ -39,9 +39,37 @@ export const RealnameInvalidTransitionError = Err(
     'RealnameInvalidTransitionError', BadRequestError,
     'Invalid real-name application transition.',
 );
+export const AwardRealnameRequiredError = Err(
+    'AwardRealnameRequiredError', ForbiddenError,
+    'Award certification requires an approved real-name verification.',
+);
+export const AwardAlreadyBoundError = Err(
+    'AwardAlreadyBoundError', ForbiddenError,
+    'This account already has certified awards. Ask an administrator to remove them first.',
+);
+export const AwardOierTakenError = Err(
+    'AwardOierTakenError', ForbiddenError,
+    'These awards are already certified to another account.',
+);
+export const AwardNameMismatchError = Err(
+    'AwardNameMismatchError', ForbiddenError,
+    'The selected contestant name does not match your verified real name.',
+);
+export const AwardNotBoundError = Err(
+    'AwardNotBoundError', BadRequestError,
+    'This account has no certified awards.',
+);
+export const AwardOierNotFoundError = Err(
+    'AwardOierNotFoundError', NotFoundError,
+    'Contestant {0} not found.',
+);
 export const UserAlreadyExistError = Err('UserAlreadyExistError', ForbiddenError, 'User {0} already exists.');
 export const InvalidTokenError = Err('InvalidTokenError', ForbiddenError, 'The {0} Token is invalid.');
 export const BlacklistedError = Err('BlacklistedError', ForbiddenError, 'Address or user {0} is blacklisted.');
+export const AccountExpiredError = Err(
+    'AccountExpiredError', ForbiddenError,
+    'Your account has expired. Please contact your teacher or coach!',
+);
 export const VerifyPasswordError = Err('VerifyPasswordError', ForbiddenError, "Passwords don't match.");
 export const OpcountExceededError = Err('OpcountExceededError', ForbiddenError, 'Too frequent operations of {0} (limit: {2} operations in {1} seconds).');
 export const PermissionError = Err('PermissionError', ForbiddenError, function (this: HydroError) {
