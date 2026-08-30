@@ -6,6 +6,7 @@ import {
     Authenticator, BaseUserDict, FileInfo, GDoc,
     OwnerInfo, Udict, Udoc, VUdoc,
 } from '../interface';
+import { ACCOUNT_EXPIRE_BAN_REASON } from '../lib/accountExpiration';
 import avatar from '../lib/avatar';
 import pwhash from '../lib/hash.hydro';
 import bus from '../service/bus';
@@ -475,7 +476,7 @@ class UserModel {
     static async setPriv(uid: number, priv: number): Promise<Udoc> {
         const res = await coll.findOneAndUpdate(
             { _id: uid },
-            { $set: { priv } },
+            { $set: { priv }, $unset: { accountExpireRestorePriv: '' } },
             { returnDocument: 'after' },
         );
         deleteUserCache(res);
@@ -499,9 +500,70 @@ class UserModel {
     @ArgMethod
     static ban(uid: number, reason = '') {
         return Promise.all([
-            UserModel.setById(uid, { priv: PRIV.PRIV_NONE, banReason: reason }),
+            UserModel.setById(uid, { priv: PRIV.PRIV_NONE, banReason: reason }, { accountExpireRestorePriv: '' }),
             token.delByUid(uid),
         ]);
+    }
+
+    static async enforceAccountExpiration(uid: number, now = new Date()): Promise<boolean> {
+        if (uid <= 0) return false;
+        const res = await coll.findOneAndUpdate(
+            {
+                _id: uid,
+                accountExpireAt: { $lte: now },
+                accountExpireRestorePriv: { $exists: false },
+                priv: { $nin: [PRIV.PRIV_NONE, PRIV.PRIV_ALL] },
+            },
+            [{
+                $set: {
+                    accountExpireRestorePriv: '$priv',
+                    priv: PRIV.PRIV_NONE,
+                    banReason: ACCOUNT_EXPIRE_BAN_REASON,
+                },
+            }],
+            { returnDocument: 'after' },
+        );
+        if (res) {
+            deleteUserCache(res);
+            await token.delByUid(uid);
+            return true;
+        }
+        return !!await coll.findOne({
+            _id: uid,
+            accountExpireAt: { $lte: now },
+            priv: { $ne: PRIV.PRIV_ALL },
+        }, { projection: { _id: 1 } });
+    }
+
+    static async updateAccountExpirations(entries: Array<{ uid: number, expireAt: Date | null }>, now = new Date()) {
+        if (!entries.length) return;
+        const udocs = await coll.find({ _id: { $in: entries.map((entry) => entry.uid) } })
+            .project({ _id: 1, uname: 1, mail: 1 }).toArray();
+        await coll.bulkWrite(entries.map(({ uid, expireAt }) => {
+            if (expireAt && expireAt.getTime() <= now.getTime()) {
+                return {
+                    updateOne: {
+                        filter: { _id: uid },
+                        update: { $set: { accountExpireAt: expireAt } },
+                    },
+                };
+            }
+            const hasRestorePriv = { $ne: [{ $type: '$accountExpireRestorePriv' }, 'missing'] };
+            return {
+                updateOne: {
+                    filter: { _id: uid },
+                    update: [{
+                        $set: {
+                            accountExpireAt: expireAt || '$$REMOVE',
+                            priv: { $cond: [hasRestorePriv, '$accountExpireRestorePriv', '$priv'] },
+                            banReason: { $cond: [hasRestorePriv, '$$REMOVE', '$banReason'] },
+                            accountExpireRestorePriv: '$$REMOVE',
+                        },
+                    }],
+                },
+            };
+        }));
+        for (const udoc of udocs) deleteUserCache(udoc as Udoc);
     }
 
     static async listGroup(domainId: string, uid?: number, names?: string[], search?: string, limit?: number) {

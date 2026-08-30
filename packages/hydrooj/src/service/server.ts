@@ -11,8 +11,8 @@ import {
 import { errorMessage, Time } from '@hydrooj/utils';
 import { Context } from '../context';
 import { PermissionError, PrivilegeError, RealnameRequiredError } from '../error';
-import { getRealnameStatus, shouldBlockUnverifiedAccess } from '../lib/realname';
 import type { DomainDoc } from '../interface';
+import { getRealnameStatus, shouldBlockUnverifiedAccess } from '../lib/realname';
 import { Logger } from '../logger';
 import { PERM, PRIV } from '../model/builtin';
 import * as opcount from '../model/opcount';

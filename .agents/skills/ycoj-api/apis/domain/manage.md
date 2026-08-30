@@ -81,6 +81,26 @@ Description: render/import users. GET `type Query={}`, example `GET /manage/user
 ## `GET|POST /manage/userpriv`
 Description: inspect/set global privilege bits. GET `type Query={extraIgnore?:number[]}`, example `GET /manage/userpriv?extraIgnore=1`, response `HTML`. POST `type Input={uid:number;priv:number;system:boolean}`, example `{"uid":12,"priv":4,"system":false}`, response `Redirect`, example `{"url":"/manage/userpriv"}`; uid/int and unsigned privilege validation applies.
 
+Manually changing a user's privileges cancels any saved automatic-expiration restoration state. A later expiration extension therefore never reverses an explicit administrator ban.
+
+## `GET|POST /manage/user-expiration`
+
+Default header: `Accept: application/json`; requests and logical redirect responses are JSON. Browser requests without JSON content negotiation render HTML or return HTTP 302. Every method requires `PRIV_EDIT_SYSTEM` and sudo confirmation.
+
+GET lists real accounts (virtual users are excluded) in ascending UID order, 100 per page. Request `type Query={page?:number;q?:string}`, example `GET /manage/user-expiration?page=2&q=alice`. `page` is a positive integer. `q` performs exact numeric UID matching plus case-insensitive username/email prefix matching. Response `type Response={udocs:Array<{_id:number;uname:string;mail:string;avatar?:string;priv:number;accountExpireDate:string;accountExpired:boolean;accountAutoExpired:boolean;accountExpirationProtected:boolean}>;page:number;numPages:number;count:number;q:string}`, example:
+
+```json
+{"udocs":[{"_id":12,"uname":"alice","mail":"alice@example.test","accountExpireDate":"2026-09-01","accountExpired":false,"accountAutoExpired":false,"accountExpirationProtected":false}],"page":1,"numPages":1,"count":1,"q":"alice"}
+```
+
+POST `set` request `type SetExpiration={operation:"set";uids:number[];expireDate:string}`, example `{"operation":"set","uids":[12,13],"expireDate":"2026-09-01"}`. `expireDate` is strict `YYYY-MM-DD`; the selected day remains usable and expiration begins at the following midnight in the acting administrator's configured timezone. Past dates are accepted and trigger banning only when the target next accesses the service.
+
+POST `adjust` request `type AdjustExpiration={operation:"adjust";uids:number[];days:number}`, example `{"operation":"adjust","uids":[12,13],"days":30}`. `days` is a nonzero integer and is applied as calendar days in the acting administrator's timezone. Every selected account must already have a finite expiration; otherwise the whole request fails validation.
+
+POST `clear` request `type ClearExpiration={operation:"clear";uids:number[]}`, example `{"operation":"clear","uids":[12,13]}`. It removes the expiration. If an account was automatically banned by expiration, its saved pre-expiration privileges are restored; manually banned accounts remain banned.
+
+All POST variants reject an empty/nonpositive UID list, a missing account, or any super-administrator target before changing accounts. A successful operation returns `type Redirect={url:string}`, example `{"url":"/manage/user-expiration"}`. Accounts without `accountExpireAt`, including existing and newly registered accounts, never expire. On the first authenticated request, login, or new connection at/after `accountExpireAt`, the server atomically saves the current privileges, sets `PRIV_NONE`, records an expiration ban reason, invalidates user caches, and deletes every token owned by the account. Existing long-lived connections are not proactively closed.
+
 ## `GET|POST /manage/realname`
 Description: list and review real-name applications. This route requires super-admin privilege (`PRIV_ALL`), not only `PRIV_EDIT_SYSTEM`.
 

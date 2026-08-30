@@ -569,6 +569,27 @@ Lost Password: 忘记密码
 Lucky: 试试手气
 manage_config: 配置管理
 manage_ai_provider: AI 提供商
+manage_user_expiration: 账号有效期
+Account Expiration: 账号有效期
+Set Account Expiration: 设置账号截止日期
+Adjust Account Expiration: 调整账号截止日期
+Expiration Date: 截止日期
+Days to Adjust: 调整天数
+Use a positive number to extend or a negative number to shorten.: 正数表示延长，负数表示缩短。
+Search by UID, username, or email: 按 UID、用户名或邮箱搜索
+Protected: 受保护
+Expired and automatically banned: 已过期并自动封禁
+Expired; ban pending next access: 已过期，等待下次访问时封禁
+Banned: 已封禁
+Active: 正常
+Set Expiration: 设置截止日期
+Adjust Days: 延长或缩短
+Set to Never Expire: 设为无限期
+Account expiration has been updated.: 账号有效期已更新。
+Expiration date is required.: 必须填写截止日期。
+Days to adjust must be a non-zero integer.: 调整天数必须是非零整数。
+Set the selected accounts to never expire?: 确认将选中的账号设为无限期？
+No users found.: 未找到用户。
 Add Provider: 添加提供商
 Add model: 添加模型
 Remove provider: 删除提供商

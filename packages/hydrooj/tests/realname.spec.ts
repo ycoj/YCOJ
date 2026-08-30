@@ -130,9 +130,9 @@ describe('realname field validation', () => {
     });
 
     it('rejects too-short or too-long values', () => {
-        assert.throws(() => parseRealnameFields('A', 'School Name'), (e: any) => e.field === 'realName');
-        assert.throws(() => parseRealnameFields('张三', 'X'), (e: any) => e.field === 'school');
-        assert.throws(() => parseRealnameFields('张'.repeat(65), 'School Name'), (e: any) => e.field === 'realName');
-        assert.throws(() => parseRealnameFields('张三', '学'.repeat(129)), (e: any) => e.field === 'school');
+        assert.throws(() => parseRealnameFields('A', 'School Name'), (e: any) => e.params[0] === 'realName');
+        assert.throws(() => parseRealnameFields('张三', 'X'), (e: any) => e.params[0] === 'school');
+        assert.throws(() => parseRealnameFields('张'.repeat(65), 'School Name'), (e: any) => e.params[0] === 'realName');
+        assert.throws(() => parseRealnameFields('张三', '学'.repeat(129)), (e: any) => e.params[0] === 'school');
     });
 });

@@ -567,6 +567,27 @@ Lost Password: 忘記密碼
 Lucky: 試試手氣
 manage_config: 配置管理
 manage_ai_provider: AI 提供者
+manage_user_expiration: 帳號有效期
+Account Expiration: 帳號有效期
+Set Account Expiration: 設定帳號截止日期
+Adjust Account Expiration: 調整帳號截止日期
+Expiration Date: 截止日期
+Days to Adjust: 調整天數
+Use a positive number to extend or a negative number to shorten.: 正數表示延長，負數表示縮短。
+Search by UID, username, or email: 按 UID、使用者名稱或信箱搜尋
+Protected: 受保護
+Expired and automatically banned: 已過期並自動封禁
+Expired; ban pending next access: 已過期，等待下次存取時封禁
+Banned: 已封禁
+Active: 正常
+Set Expiration: 設定截止日期
+Adjust Days: 延長或縮短
+Set to Never Expire: 設為無限期
+Account expiration has been updated.: 帳號有效期已更新。
+Expiration date is required.: 必須填寫截止日期。
+Days to adjust must be a non-zero integer.: 調整天數必須是非零整數。
+Set the selected accounts to never expire?: 確認將選取的帳號設為無限期？
+No users found.: 找不到使用者。
 Add Provider: 新增提供者
 Add model: 新增模型
 Remove provider: 移除提供者

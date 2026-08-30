@@ -1,4 +1,4 @@
-import { PRIV } from '../model/builtin';
+import { PRIV } from '@hydrooj/common';
 import { ValidationError } from '../error';
 
 export const REALNAME_STATUSES = ['pending', 'approved', 'rejected'] as const;
@@ -15,7 +15,18 @@ export interface RealnameUserLike {
     school?: string;
 }
 
-export type RealnameHandlerLike = { skipRealnameCheck?: boolean } & object;
+export type RealnameHandlerLike = { constructor?: { name?: string }, skipRealnameCheck?: boolean } & object;
+
+const REALNAME_ALLOWED_HANDLERS = new Set([
+    'UserLoginHandler',
+    'UserLogoutHandler',
+    'UserRegisterHandler',
+    'HomeRealnameHandler',
+    'HomeRealnameResultHandler',
+    'HomeSecurityHandler',
+    'NavHandler',
+    'SetThemeHandler',
+]);
 
 export function isSuperAdmin(user?: RealnameUserLike | null) {
     return !!user && user.priv === PRIV.PRIV_ALL;
@@ -47,8 +58,16 @@ export function requiresRealname(user?: RealnameUserLike | null) {
     return isLoggedIn(user) && !isRealnameVerified(user);
 }
 
+export function nextRealnameRoute(user?: RealnameUserLike | null) {
+    return getRealnameStatus(user) === 'none' ? 'home_realname' : 'home_realname_result';
+}
+
+export function handlerAllowsUnverified(handler?: RealnameHandlerLike | null) {
+    return !!handler?.skipRealnameCheck || REALNAME_ALLOWED_HANDLERS.has(handler?.constructor?.name || '');
+}
+
 export function shouldBlockUnverifiedAccess(user?: RealnameUserLike | null, handler?: RealnameHandlerLike | null) {
-    return requiresRealname(user) && !handler?.skipRealnameCheck;
+    return requiresRealname(user) && !handlerAllowsUnverified(handler);
 }
 
 export const REALNAME_TRANSITIONS: Record<RealnameUserStatus, Partial<Record<RealnameReviewAction | 'submit', RealnameStatus>>> = {
@@ -57,6 +76,18 @@ export const REALNAME_TRANSITIONS: Record<RealnameUserStatus, Partial<Record<Rea
     approved: { revoke: 'rejected' },
     rejected: { submit: 'pending' },
 };
+
+export function canTransition(status: RealnameUserStatus, action: RealnameReviewAction | 'submit') {
+    return !!REALNAME_TRANSITIONS[status]?.[action];
+}
+
+export function canSubmitApplication(status: RealnameUserStatus) {
+    return canTransition(status, 'submit');
+}
+
+export function reviewStatusFor(action: RealnameReviewAction): RealnameStatus {
+    return action === 'approve' ? 'approved' : 'rejected';
+}
 
 export function normalizeRealnameField(value: string) {
     return (value || '').replace(/\s+/g, ' ').trim();

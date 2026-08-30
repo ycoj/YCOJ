@@ -12,10 +12,11 @@ import {
     UserNotFoundError, ValidationError, VerifyPasswordError,
 } from '../error';
 import { TokenDoc, Udoc, User } from '../interface';
+import { ACCOUNT_EXPIRE_BAN_REASON, isAccountExpired } from '../lib/accountExpiration';
 import avatar from '../lib/avatar';
 import { CHECKIN_TIMEZONE, toCheckinRecord } from '../lib/checkin';
-import { getRealnameStatus, requiresRealname } from '../lib/realname';
 import { sendMail } from '../lib/mail';
+import { getRealnameStatus, requiresRealname } from '../lib/realname';
 import { verifyTFA } from '../lib/verifyTFA';
 import BlackListModel from '../model/blacklist';
 import { PERM, PRIV, STATUS } from '../model/builtin';
@@ -34,6 +35,10 @@ import {
 } from '../service/server';
 
 async function successfulAuth(this: Handler, udoc: User, redirect = '') {
+    if (udoc._id !== 0 && isAccountExpired(udoc._udoc.accountExpireAt)
+        && await user.enforceAccountExpiration(udoc._id)) {
+        throw new BlacklistedError(udoc.uname, ACCOUNT_EXPIRE_BAN_REASON);
+    }
     if (udoc._id !== 0) {
         await this.ctx.serial('auth/before-login', this, udoc);
         await user.setById(udoc._id, { loginat: new Date(), loginip: this.request.ip });
