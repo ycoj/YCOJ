@@ -1,3 +1,7 @@
+// Side-effect: register contest/del solution cleanup. builtinModel only loads contest/index.ts,
+// so CLI and other scripts that call contest.del would otherwise leave orphaned solution docs.
+import './solution';
+
 import { Filter, ObjectId } from 'mongodb';
 import { getAlphabeticId, sleep } from '@hydrooj/utils/lib/utils';
 import { Context } from '../../context';
@@ -18,9 +22,6 @@ import RecordModel from '../record';
 import UserModel, { User } from '../user';
 import { buildContestRule, isDone, isExtended, isLocked, isNew, isNotStarted, isOngoing, isUpcoming, PrintTaskStatus } from './common';
 import { RULES } from './rules';
-// Side-effect: register contest/del solution cleanup. builtinModel only loads contest/index.ts,
-// so CLI and other scripts that call contest.del would otherwise leave orphaned solution docs.
-import './solution';
 
 export * from './common';
 export { RULES } from './rules';

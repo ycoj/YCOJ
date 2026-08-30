@@ -1,0 +1,119 @@
+{% import "components/user.html" as user with context %}
+{% import "components/paginator.html" as paginator with context %}
+{% import "components/nothing.html" as nothing with context %}
+{% extends "manage_base.html" %}
+{% block manage_content %}
+<div style="display: none" class="dialog__body--set-expiration">
+  <div>
+    <div class="row"><div class="columns"><h1>{{ _('Set Account Expiration') }}</h1></div></div>
+    {{ form.form_text({
+      columns:12,
+      label:'Expiration Date',
+      name:'expireDate',
+      placeholder:'YYYY-MM-DD',
+      date:true,
+      autofocus:true
+    }) }}
+  </div>
+</div>
+<div style="display: none" class="dialog__body--adjust-expiration">
+  <div>
+    <div class="row"><div class="columns"><h1>{{ _('Adjust Account Expiration') }}</h1></div></div>
+    {{ form.form_text({
+      columns:12,
+      label:'Days to Adjust',
+      name:'days',
+      type:'number',
+      placeholder:_('Use a positive number to extend or a negative number to shorten.'),
+      autofocus:true
+    }) }}
+  </div>
+</div>
+<div class="section">
+  <div class="section__header">
+    <h1 class="section__title">{{ _('Account Expiration') }}</h1>
+    <div class="section__tools">
+      <form method="get">
+        <input type="text" class="inline compact textbox" name="q" value="{{ q }}" placeholder="{{ _('Search by UID, username, or email') }}">
+        <button type="submit" class="primary compact button"><span class="icon icon-search"></span> {{ _('Search') }}</button>
+      </form>
+    </div>
+  </div>
+  {{ noscript_note.render() }}
+  <div class="section__body no-padding account-expiration-users">
+    {% if not udocs.length %}
+      {{ nothing.render('No users found.') }}
+    {% else %}
+    <table class="data-table">
+      <colgroup>
+        <col class="col--checkbox">
+        <col class="col--uid">
+        <col class="col--user">
+        <col class="col--mail">
+        <col class="col--expiration">
+        <col class="col--status">
+        <col class="col--actions">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="col--checkbox"><label class="compact checkbox"><input type="checkbox" data-checkbox-toggle="user"></label></th>
+          <th class="col--uid">{{ _('User ID') }}</th>
+          <th class="col--user">{{ _('Username') }}</th>
+          <th class="col--mail">{{ _('Email') }}</th>
+          <th class="col--expiration">{{ _('Expiration Date') }}</th>
+          <th class="col--status">{{ _('Status') }}</th>
+          <th class="col--actions">{{ _('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {%- for udoc in udocs -%}
+        <tr data-uid="{{ udoc._id }}" data-expire-date="{{ udoc.accountExpireDate }}">
+          <td class="col--checkbox"><label class="compact checkbox">
+            <input type="checkbox" data-checkbox-group="user" data-checkbox-range{% if udoc.accountExpirationProtected %} disabled{% endif %}>
+          </label></td>
+          <td class="col--uid">{{ udoc._id }}</td>
+          <td class="col--user">{{ user.render_inline(udoc, badge=false) }}</td>
+          <td class="col--mail">{{ udoc.mail }}</td>
+          <td class="col--expiration">
+            {% if udoc.accountExpireDate %}{{ udoc.accountExpireDate }}{% else %}{{ _('Never expire') }}{% endif %}
+          </td>
+          <td class="col--status">
+            {% if udoc.accountExpirationProtected %}
+              <span class="text-gray">{{ _('Protected') }}</span>
+            {% elif udoc.accountAutoExpired %}
+              <span class="text-red">{{ _('Expired and automatically banned') }}</span>
+            {% elif udoc.priv == 0 %}
+              <span class="text-red">{{ _('Banned') }}</span>
+            {% elif udoc.accountExpired %}
+              <span class="text-orange">{{ _('Expired; ban pending next access') }}</span>
+            {% else %}
+              {{ _('Active') }}
+            {% endif %}
+          </td>
+          <td class="col--actions">
+            {% if not udoc.accountExpirationProtected %}
+            <button class="compact button" name="edit_expiration" data-tooltip="{{ _('Set Account Expiration') }}">
+              <span class="icon icon-calendar"></span>
+            </button>
+            {% endif %}
+          </td>
+        </tr>
+        {%- endfor -%}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% if udocs.length %}
+  <div class="section__body account-expiration-actions">
+    <button class="primary rounded button" name="set_expiration"><span class="icon icon-calendar"></span> {{ _('Set Expiration') }}</button>
+    <button class="rounded button" name="adjust_expiration"><span class="icon icon-edit"></span> {{ _('Adjust Days') }}</button>
+    <button class="rounded button" name="clear_expiration"><span class="icon icon-refresh"></span> {{ _('Set to Never Expire') }}</button>
+  </div>
+  {% endif %}
+  {% if numPages > 1 %}
+  <div class="section__body">
+    {{ paginator.render(page, numPages, add_qs=utils.buildQueryString(q=q)) }}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

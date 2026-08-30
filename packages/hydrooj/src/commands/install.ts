@@ -5,7 +5,7 @@ import { BlobReader, ZipReader } from '@zip.js/zip.js';
 import { CAC } from 'cac';
 import fs from 'fs-extra';
 import superagent from 'superagent';
-import tar from 'tar';
+import { x as extractTar } from 'tar';
 import { extractZip, Logger } from '@hydrooj/utils';
 import { version } from 'hydrooj/package.json';
 import { hydroPath } from '../options';
@@ -25,7 +25,7 @@ function downloadAndExtractTgz(url: string, dest: string) {
     return new Promise((resolve, reject) => {
         superagent.get(url)
             .set('User-Agent', userAgent)
-            .pipe(tar.x({
+            .pipe(extractTar({
                 C: dest,
                 strip: 1,
             }))

@@ -1,3 +1,5 @@
+/// <reference types="webpack-env" />
+
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 
 const types = require.context('@types/node/', true, /\.d\.ts$/, 'lazy-once');

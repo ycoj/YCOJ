@@ -37,6 +37,7 @@ const compilerOptionsBase = {
     experimentalDecorators: true,
     // emitDecoratorMetadata: true,
     incremental: true,
+    skipLibCheck: true,
     types: ['node'],
 };
 const baseOutDir = path.resolve(__dirname, '../.cache/ts-out');
