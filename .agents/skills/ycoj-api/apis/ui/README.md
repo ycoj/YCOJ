@@ -6,7 +6,7 @@
 
 | Route / methods | Request format/example | Response / access |
 | --- | --- | --- |
-| `/ui/nav` GET | active domain inferred from host | JSON navigation configuration, e.g. `{main:[…],user:[…]}`; visibility-filtered. |
+| `/ui/nav` GET | active domain inferred from host | JSON `{navItems:[…],user:{…,realnameStatus,modType}}`; visibility-filtered. |
 | `/ui/languages` GET | `?pid?:problemId` | JSON language map/array available in domain (and problem-specific restrictions), e.g. `{"cpp":"C++17"}`. |
 | `/ui/media` POST | `{uids?:int[],pids?:int[],cids?:ObjectId[],hids?:ObjectId[]}` | JSON rich-media records used by the UI; only visible entities are returned. |
 | `/media` POST | `{domainId?:string,items:Array<{type:"user"|"problem"|"contest"|"homework",id:string,domainId?:string}>}` | JSON `string[]` of rendered HTML snippets, e.g. `["<a …>alice</a>"]`; inaccessible/unknown items become `""`. |
