@@ -14,8 +14,8 @@ import {
 import { TokenDoc, Udoc, User } from '../interface';
 import avatar from '../lib/avatar';
 import { CHECKIN_TIMEZONE, toCheckinRecord } from '../lib/checkin';
-import { getRealnameStatus, requiresRealname } from '../lib/realname';
 import { sendMail } from '../lib/mail';
+import { hasRealnameAccess, nextRealnameRoute } from '../lib/realname';
 import { verifyTFA } from '../lib/verifyTFA';
 import BlackListModel from '../model/blacklist';
 import { PERM, PRIV, STATUS } from '../model/builtin';
@@ -49,10 +49,10 @@ async function successfulAuth(this: Handler, udoc: User, redirect = '') {
     if (udoc._id !== 0) {
         await oplog.log(this, 'user.loginSuccess', { uid: udoc._id });
         await this.ctx.serial('auth/login', this, udoc);
-        this.response.redirect = requiresRealname(udoc)
-            ? this.url(getRealnameStatus(udoc) === 'none' ? 'home_realname' : 'home_realname_result')
-            : (redirect || ((this.request.referer || '/login').endsWith('/login')
-                ? this.url('homepage') : this.request.referer));
+        this.response.redirect = hasRealnameAccess(udoc)
+            ? (redirect || ((this.request.referer || '/login').endsWith('/login')
+                ? this.url('homepage') : this.request.referer))
+            : this.url(nextRealnameRoute(udoc));
     }
 }
 

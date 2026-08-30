@@ -86,8 +86,8 @@ Description: list and review real-name applications. This route requires super-a
 
 GET request type: `type Query={page?:number;status?:"all"|"pending"|"approved"|"rejected"}`. Example `GET /manage/realname?status=pending`. Response `HTML`. Default status filter is `pending`.
 
-POST `approve`: `type Approve={operation:"approve";id:string}`, example `{"operation":"approve","id":"66aa66aa66aa66aa66aa66aa"}`. Response `Redirect`. Only pending applications may be approved; the user’s `realnameStatus` becomes `approved` and they regain site access.
+POST `approve`: `type Approve={operation:"approve";id:string}`, example `{"operation":"approve","id":"66aa66aa66aa66aa66aa66aa"}`. Response `Redirect`. Only pending applications may be approved; the user’s `realnameStatus` becomes `approved` and they keep site access after the grace period.
 
-POST `reject`: `type Reject={operation:"reject";id:string;reason?:string}`, example `{"operation":"reject","id":"66aa66aa66aa66aa66aa66aa","reason":"Name mismatch"}`. Response `Redirect`. The user remains locked and may resubmit.
+POST `reject`: `type Reject={operation:"reject";id:string;reason?:string}`, example `{"operation":"reject","id":"66aa66aa66aa66aa66aa66aa","reason":"Name mismatch"}`. Response `Redirect`. The seven-day grace clock from the first `realnameSubmittedAt` is kept; the user remains able to use the site until it expires and may resubmit without starting a new window.
 
-POST `revoke`: `type Revoke={operation:"revoke";id:string;reason?:string}`, example `{"operation":"revoke","id":"66aa66aa66aa66aa66aa66aa"}`. Response `Redirect`. Only approved applications may be revoked; status becomes `rejected` and the user is locked again.
+POST `revoke`: `type Revoke={operation:"revoke";id:string;reason?:string}`, example `{"operation":"revoke","id":"66aa66aa66aa66aa66aa66aa"}`. Response `Redirect`. Only approved applications may be revoked; status becomes `rejected`, `realnameSubmittedAt` is kept, and the user is locked immediately if the original seven-day window has elapsed.

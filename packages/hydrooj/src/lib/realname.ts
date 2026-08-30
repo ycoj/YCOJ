@@ -1,10 +1,12 @@
-import { PRIV } from '../model/builtin';
+import { PRIV } from '@hydrooj/common';
 import { ValidationError } from '../error';
 
 export const REALNAME_STATUSES = ['pending', 'approved', 'rejected'] as const;
 export type RealnameStatus = typeof REALNAME_STATUSES[number];
 export type RealnameUserStatus = RealnameStatus | 'none';
 export type RealnameReviewAction = 'approve' | 'reject' | 'revoke';
+
+export const REALNAME_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface RealnameUserLike {
     _id?: number;
@@ -13,6 +15,7 @@ export interface RealnameUserLike {
     realName?: string;
     realnameSchool?: string;
     school?: string;
+    realnameSubmittedAt?: Date | string | number | null;
 }
 
 export type RealnameHandlerLike = { skipRealnameCheck?: boolean } & object;
@@ -35,6 +38,42 @@ export function getRealnameStatus(user?: RealnameUserLike | null): RealnameUserS
     return 'none';
 }
 
+export function asDate(value: unknown): Date | null {
+    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+    if (typeof value === 'string' || typeof value === 'number') {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+    return null;
+}
+
+export function getRealnameSubmittedAt(
+    user?: RealnameUserLike | null,
+    fallbackSubmittedAt?: Date | string | number | null,
+): Date | null {
+    return asDate(user?.realnameSubmittedAt) ?? asDate(fallbackSubmittedAt);
+}
+
+export function getRealnameGraceUntil(
+    user?: RealnameUserLike | null,
+    fallbackSubmittedAt?: Date | string | number | null,
+): Date | null {
+    const submittedAt = getRealnameSubmittedAt(user, fallbackSubmittedAt);
+    if (!submittedAt) return null;
+    return new Date(submittedAt.getTime() + REALNAME_GRACE_MS);
+}
+
+export function isWithinRealnameGrace(
+    user?: RealnameUserLike | null,
+    now: Date = new Date(),
+    fallbackSubmittedAt?: Date | string | number | null,
+) {
+    const status = getRealnameStatus(user);
+    if (status !== 'pending' && status !== 'rejected') return false;
+    const graceUntil = getRealnameGraceUntil(user, fallbackSubmittedAt);
+    return !!graceUntil && now.getTime() < graceUntil.getTime();
+}
+
 export function isRealnameExempt(user?: RealnameUserLike | null) {
     return isSuperAdmin(user) || isJudgeServiceAccount(user);
 }
@@ -43,12 +82,28 @@ export function isRealnameVerified(user?: RealnameUserLike | null) {
     return isRealnameExempt(user) || getRealnameStatus(user) === 'approved';
 }
 
+export function hasRealnameAccess(user?: RealnameUserLike | null, now: Date = new Date()) {
+    return isRealnameVerified(user) || isWithinRealnameGrace(user, now);
+}
+
 export function requiresRealname(user?: RealnameUserLike | null) {
     return isLoggedIn(user) && !isRealnameVerified(user);
 }
 
-export function shouldBlockUnverifiedAccess(user?: RealnameUserLike | null, handler?: RealnameHandlerLike | null) {
-    return requiresRealname(user) && !handler?.skipRealnameCheck;
+export function handlerAllowsUnverified(handler?: RealnameHandlerLike | null) {
+    return !!handler?.skipRealnameCheck;
+}
+
+export function shouldBlockUnverifiedAccess(
+    user?: RealnameUserLike | null,
+    handler?: RealnameHandlerLike | null,
+    now: Date = new Date(),
+) {
+    return isLoggedIn(user) && !hasRealnameAccess(user, now) && !handlerAllowsUnverified(handler);
+}
+
+export function nextRealnameRoute(user?: RealnameUserLike | null) {
+    return getRealnameStatus(user) === 'none' ? 'home_realname' : 'home_realname_result';
 }
 
 export const REALNAME_TRANSITIONS: Record<RealnameUserStatus, Partial<Record<RealnameReviewAction | 'submit', RealnameStatus>>> = {
@@ -57,6 +112,26 @@ export const REALNAME_TRANSITIONS: Record<RealnameUserStatus, Partial<Record<Rea
     approved: { revoke: 'rejected' },
     rejected: { submit: 'pending' },
 };
+
+export function canTransition(status: RealnameUserStatus, action: RealnameReviewAction | 'submit') {
+    return !!REALNAME_TRANSITIONS[status][action];
+}
+
+export function canSubmitApplication(status: RealnameUserStatus) {
+    return canTransition(status, 'submit');
+}
+
+export function reviewStatusFor(action: RealnameReviewAction): RealnameStatus {
+    switch (action) {
+        case 'approve': return 'approved';
+        case 'reject': return 'rejected';
+        case 'revoke': return 'rejected';
+        default: {
+            const exhaustive: never = action;
+            return exhaustive;
+        }
+    }
+}
 
 export function normalizeRealnameField(value: string) {
     return (value || '').replace(/\s+/g, ' ').trim();

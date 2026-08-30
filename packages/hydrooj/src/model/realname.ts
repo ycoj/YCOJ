@@ -5,7 +5,7 @@ import {
 } from '../error';
 import type { RealnameApplication, RealnameStatus } from '../interface';
 import {
-    parseRealnameFields, REALNAME_TRANSITIONS, RealnameReviewAction, RealnameUserStatus,
+    asDate, parseRealnameFields, REALNAME_TRANSITIONS, RealnameReviewAction, RealnameUserStatus,
 } from '../lib/realname';
 import db from '../service/db';
 import user from './user';
@@ -18,12 +18,23 @@ declare module '../service/db' {
 
 let coll = db.collection('realname');
 
-async function syncUser(uid: number, status: RealnameStatus, fields: { realName: string, school: string }) {
+async function syncUser(
+    uid: number,
+    status: RealnameStatus,
+    fields: { realName: string, school: string },
+    extra: { realnameSubmittedAt?: Date } = {},
+) {
     await user.setById(uid, {
         realnameStatus: status,
         realName: fields.realName,
         realnameSchool: fields.school,
+        ...extra,
     });
+}
+
+async function firstSubmittedAt(uid: number, fallback: Date) {
+    const earliest = await getEarliestByUid(uid);
+    return earliest?.submittedAt || fallback;
 }
 
 export function getMulti(query: Filter<RealnameApplication> = {}) {
@@ -38,6 +49,10 @@ export function getLatestByUid(uid: number) {
     return coll.find({ uid }).sort({ submittedAt: -1 }).limit(1).next();
 }
 
+export function getEarliestByUid(uid: number) {
+    return coll.find({ uid }).sort({ submittedAt: 1 }).limit(1).next();
+}
+
 export async function submit(uid: number, realName: string, school: string) {
     const fields = parseRealnameFields(realName, school);
     const latest = await getLatestByUid(uid);
@@ -46,6 +61,7 @@ export async function submit(uid: number, realName: string, school: string) {
     if (!nextStatus) throw new RealnameAlreadyApprovedError();
 
     const now = new Date();
+    const submittedAt = await firstSubmittedAt(uid, now);
     if (status === 'pending' && latest) {
         await coll.updateOne({ _id: latest._id }, {
             $set: {
@@ -54,7 +70,7 @@ export async function submit(uid: number, realName: string, school: string) {
                 updatedAt: now,
             },
         });
-        await syncUser(uid, 'pending', fields);
+        await syncUser(uid, 'pending', fields, { realnameSubmittedAt: submittedAt });
         return {
             ...latest,
             realName: fields.realName,
@@ -72,7 +88,7 @@ export async function submit(uid: number, realName: string, school: string) {
         updatedAt: now,
     };
     const { insertedId } = await coll.insertOne(doc as RealnameApplication);
-    await syncUser(uid, 'pending', fields);
+    await syncUser(uid, 'pending', fields, { realnameSubmittedAt: submittedAt });
     return { _id: insertedId, ...doc };
 }
 
@@ -91,7 +107,8 @@ export async function review(id: ObjectId, reviewer: number, action: RealnameRev
     };
     const result = await coll.updateOne({ _id: id, status: doc.status }, { $set });
     if (!result.modifiedCount) throw new RealnameInvalidTransitionError();
-    await syncUser(doc.uid, status, { realName: doc.realName, school: doc.school });
+    const fields = { realName: doc.realName, school: doc.school };
+    await syncUser(doc.uid, status, fields);
     return { ...doc, ...$set };
 }
 
@@ -102,10 +119,22 @@ export async function apply(ctx: Context) {
         { key: { uid: 1, submittedAt: -1 }, name: 'uid_submitted' },
         { key: { status: 1, submittedAt: -1 }, name: 'status_submitted' },
     );
+    const stale = await ctx.db.collection('user').find({
+        realnameStatus: { $in: ['pending', 'approved', 'rejected'] },
+    }).project({ _id: 1, realnameSubmittedAt: 1 }).toArray();
+    await Promise.all(stale.map(async (udoc) => {
+        const earliest = await getEarliestByUid(udoc._id);
+        if (!earliest?.submittedAt) return;
+        const current = asDate(udoc.realnameSubmittedAt);
+        if (!current || current.getTime() > earliest.submittedAt.getTime()) {
+            await user.setById(udoc._id, { realnameSubmittedAt: earliest.submittedAt });
+        }
+    }));
 }
 
 global.Hydro.model.realname = {
     get,
+    getEarliestByUid,
     getLatestByUid,
     getMulti,
     review,

@@ -10,7 +10,7 @@
         {% if exempt %}
           <blockquote class="note">{{ _('You are a super administrator and do not need real-name verification.') }}</blockquote>
         {% else %}
-          <p>{{ _('Please enter your legal name and school. A super administrator will review your application. You cannot use any site features until it is approved.') }}</p>
+          <p>{{ _('Please enter your legal name and school. After you submit, you may use the site for seven days while a super administrator reviews your application. If review is still pending or not approved after seven days, access will be blocked.') }}</p>
           {% if status == 'rejected' and application %}
             <blockquote class="red">
               {{ _('Your real-name verification was rejected.') }}
@@ -18,6 +18,9 @@
                 <br>{{ _('Rejection Reason') }}: {{ application.rejectReason }}
               {% endif %}
             </blockquote>
+          {% endif %}
+          {% if inGrace and graceUntil %}
+            <blockquote class="note">{{ (_('You may continue using the site until {0}.').format(datetimeSpan(graceUntil, false)))|safe }}</blockquote>
           {% endif %}
           <form method="post">
             {{ form.form_text({
@@ -54,7 +57,7 @@
         <h1 class="section__title">{{ _('Help') }}</h1>
       </div>
       <div class="section__body typo">
-        <p>{{ _('After submission, a super administrator will review your real name and school.') }}</p>
+        <p>{{ _('After submission, you may use the site for seven days while a super administrator reviews your application.') }}</p>
         <p>{{ _('You may update a pending application if you entered something incorrectly.') }}</p>
         <p>{{ _('Rejected applications can be corrected and submitted again.') }}</p>
       </div>

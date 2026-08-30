@@ -1031,12 +1031,15 @@ Expires: 到期時間
 Optional title: 可選標題
 Invalid real-name application transition.: 實名認證申請狀態流轉無效。
 Please complete real-name verification before using this site.: 請先完成實名認證後再使用本站功能。
+Your real-name verification is pending review. You may use the site for seven days after submission.: 你的實名認證正在等待老師審核。提交後七天內你可以繼續使用本站。
+Your real-name verification was rejected. Please resubmit before the seven-day grace period ends.: 你的實名認證未通過。請在七天寬限期內重新提交。
 Real Name: 真實姓名
 Real-name Verification: 實名認證
 'Real-name application {0} not found.': 實名認證申請 {0} 不存在。
 Real-name applications per page: 每頁展示的實名認證申請數量
 Real-name verification is required before using this site.: 使用本站前必須完成實名認證。
 Realname Status: 實名認證狀態
+Realname Submitted At: 實名認證提交時間
 Revoked by administrator: 由管理員撤銷
 This application is not pending review.: 該申請目前不在待審核狀態。
 Verified School: 已認證學校
