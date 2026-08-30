@@ -7,16 +7,13 @@
   <div class="section__header">
     <h1 class="section__title">{{ _('manage_realname') }}</h1>
     <div class="section__tools">
-      <form method="get" class="realname-filter">
-        <label>
-          {{ _('By Status') }}
-          <select class="compact select" name="status" onchange="this.form.submit()">
-            <option value="pending" {% if filterStatus == 'pending' %}selected{% endif %}>{{ _('Pending') }}</option>
-            <option value="approved" {% if filterStatus == 'approved' %}selected{% endif %}>{{ _('Approved') }}</option>
-            <option value="rejected" {% if filterStatus == 'rejected' %}selected{% endif %}>{{ _('Rejected') }}</option>
-            <option value="all" {% if filterStatus == 'all' %}selected{% endif %}>{{ _('All') }}</option>
-          </select>
-        </label>
+      <form method="get">
+        <select class="inline compact select" name="status" onchange="this.form.submit()">
+          <option value="pending" {% if filterStatus == 'pending' %}selected{% endif %}>{{ _('Pending') }}</option>
+          <option value="approved" {% if filterStatus == 'approved' %}selected{% endif %}>{{ _('Approved') }}</option>
+          <option value="rejected" {% if filterStatus == 'rejected' %}selected{% endif %}>{{ _('Rejected') }}</option>
+          <option value="all" {% if filterStatus == 'all' %}selected{% endif %}>{{ _('All') }}</option>
+        </select>
       </form>
     </div>
   </div>
@@ -27,7 +24,6 @@
     {% else %}
     <table class="data-table">
       <colgroup>
-        <col class="col--uid">
         <col class="col--user">
         <col class="col--realname">
         <col class="col--school">
@@ -37,7 +33,6 @@
       </colgroup>
       <thead>
         <tr>
-          <th class="col--uid">{{ _('User ID') }}</th>
           <th class="col--user">{{ _('Username') }}</th>
           <th class="col--realname">{{ _('Real Name') }}</th>
           <th class="col--school">{{ _('School') }}</th>
@@ -49,26 +44,31 @@
       <tbody>
         {%- for rdoc in rdocs -%}
         <tr data-id="{{ rdoc._id }}" data-status="{{ rdoc.status }}">
-          <td class="col--uid">{{ rdoc.uid }}</td>
           <td class="col--user">{{ user.render_inline(udict[rdoc.uid]) }}</td>
           <td class="col--realname">{{ rdoc.realName }}</td>
           <td class="col--school">{{ rdoc.school }}</td>
           <td class="col--status">
-            <span class="realname-status realname-status--{{ rdoc.status }}">
-              {{ _('Pending') if rdoc.status == 'pending' else _('Approved') if rdoc.status == 'approved' else _('Rejected') }}
-            </span>
+            {% if rdoc.status == 'pending' %}
+              <span class="realname-status realname-status--pending"><span class="icon icon-schedule"></span>{{ _('Pending') }}</span>
+            {% elif rdoc.status == 'approved' %}
+              <span class="realname-status realname-status--approved"><span class="icon icon-check"></span>{{ _('Approved') }}</span>
+            {% else %}
+              <span class="realname-status realname-status--rejected"><span class="icon icon-close"></span>{{ _('Rejected') }}</span>
+            {% endif %}
             {% if rdoc.status == 'rejected' and rdoc.rejectReason %}
               <div class="help-text">{{ rdoc.rejectReason }}</div>
             {% endif %}
           </td>
           <td class="col--time">{{ datetimeSpan(rdoc.submittedAt)|safe }}</td>
           <td class="col--actions">
-            {% if rdoc.status == 'pending' %}
-              <button class="rounded compact primary button" name="approve">{{ _('Approve') }}</button>
-              <button class="rounded compact button" name="reject">{{ _('Reject') }}</button>
-            {% elif rdoc.status == 'approved' %}
-              <button class="rounded compact button" name="revoke">{{ _('Revoke') }}</button>
-            {% endif %}
+            <div class="realname-actions">
+              {% if rdoc.status == 'pending' %}
+                <button class="rounded compact primary button" name="approve">{{ _('Approve') }}</button>
+                <button class="rounded compact button" name="reject">{{ _('Reject') }}</button>
+              {% elif rdoc.status == 'approved' %}
+                <button class="rounded compact button" name="revoke">{{ _('Revoke') }}</button>
+              {% endif %}
+            </div>
           </td>
         </tr>
         {%- endfor -%}

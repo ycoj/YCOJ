@@ -118,7 +118,7 @@ blockquote
     &:before
       content: 'WARNING:'
       color: red
-  
+
   &.red
     border-color: red
     background: #F8F8F8
@@ -133,6 +133,10 @@ blockquote
     border-color: blue
     background: #F8F8F8
     color: lighten($text-1-color, 10%)
+
+html[lang="zh"] blockquote.warn:before,
+html[lang="zh_TW"] blockquote.warn:before
+  content: '警告：'
 
 acronym, abbr
   border-bottom: 1px dotted

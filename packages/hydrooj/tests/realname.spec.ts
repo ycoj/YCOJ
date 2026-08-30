@@ -90,6 +90,7 @@ describe('realname access gate', () => {
     it('honors skipRealnameCheck on unknown handlers', () => {
         assert.equal(shouldBlockUnverifiedAccess(user, handler('SomethingElse', true)), false);
         assert.equal(shouldBlockUnverifiedAccess(user, handler('SomethingElse')), true);
+        assert.equal(shouldBlockUnverifiedAccess(user, handler('WebsocketEventsConnectionManager', true)), false);
         assert.equal(handlerAllowsUnverified(handler('HomeRealname')), true);
     });
 });

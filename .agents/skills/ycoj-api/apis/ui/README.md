@@ -22,7 +22,7 @@
 
 | Route | Request | Response |
 | --- | --- | --- |
-| `/lazy/:version/:name`, `/resource/:version/:name` | Version and validated filename, e.g. `/lazy/abc123/main.js`. | UI-default constant/resource bytes with handler-selected content type and cache policy; public. |
-| `/plugins/:version/:name` | Version and validated filename, e.g. `/plugins/abc123/chunk.js`. | UI-next plugin constant/resource bytes; public. |
+| `/lazy/:version/:name`, `/resource/:version/:name` | Version and validated filename, e.g. `/lazy/abc123/main.js`. | UI-default constant/resource bytes with handler-selected content type and cache policy; public, including unverified users (no `RealnameRequiredError`). |
+| `/plugins/:version/:name` | Version and validated filename, e.g. `/plugins/abc123/chunk.js`. | UI-next plugin constant/resource bytes; public, including unverified users (no `RealnameRequiredError`). |
 
 These asset paths are build/runtime dependent: a version/name that is not present returns the server's normal not-found response, and are not an upload API.

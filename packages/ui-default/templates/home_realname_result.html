@@ -11,19 +11,19 @@
           <blockquote class="note">{{ _('You are a super administrator and do not need real-name verification.') }}</blockquote>
         {% elif status == 'pending' %}
           <div class="realname-result realname-result--pending">
-            <div class="realname-result__badge">{{ _('Pending') }}</div>
+            <span class="realname-status realname-status--pending"><span class="icon icon-schedule"></span>{{ _('Pending') }}</span>
             <h2 class="realname-result__title">{{ _('Your real-name verification is pending review.') }}</h2>
             <p class="realname-result__desc">{{ _('Please complete real-name verification before using this site.') }}</p>
           </div>
         {% elif status == 'approved' %}
           <div class="realname-result realname-result--approved">
-            <div class="realname-result__badge">{{ _('Approved') }}</div>
+            <span class="realname-status realname-status--approved"><span class="icon icon-check"></span>{{ _('Approved') }}</span>
             <h2 class="realname-result__title">{{ _('Your real-name verification has been approved.') }}</h2>
             <p class="realname-result__desc">{{ _('You can now use the site normally.') }}</p>
           </div>
         {% elif status == 'rejected' %}
           <div class="realname-result realname-result--rejected">
-            <div class="realname-result__badge">{{ _('Rejected') }}</div>
+            <span class="realname-status realname-status--rejected"><span class="icon icon-close"></span>{{ _('Rejected') }}</span>
             <h2 class="realname-result__title">{{ _('Your real-name verification was rejected.') }}</h2>
             {% if application and application.rejectReason %}
               <p class="realname-result__desc">{{ _('Rejection Reason') }}: {{ application.rejectReason }}</p>

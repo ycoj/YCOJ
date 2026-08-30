@@ -1172,3 +1172,37 @@ Your browser does not support WebAuthn or you are not in secure context.: 您的
 Your Device: 你的设备
 Your permission: 您的权限
 Your role: 您的角色
+Actions: 操作
+After submission, a super administrator will review your real name and school.: 提交后，老师将审核你的真实姓名与学校。
+Approve: 通过
+Approved: 已通过
+Back to homepage: 返回首页
+Confirm approving this application?: 确认通过该申请？
+Confirm rejecting this application?: 确认拒绝该申请？
+Confirm revoking this approved application? The user will lose access until they pass review again.: 确认撤销该已通过的申请？用户将失去站点使用权，直至再次通过审核。
+'Full official school name. 2–128 characters.': 请填写学校全称，2–128 个字符。
+No real-name applications.: 暂无实名认证申请。
+Optional rejection reason: 拒绝原因（可选）
+Pending: 待审核
+Please complete real-name verification before using this site.: 请先完成实名认证后再使用本站功能。
+Please enter your legal name and school. A super administrator will review your application. You cannot use any site features until it is approved.: 请填写你的真实姓名与学校。老师审核通过前，你将无法使用本站的任何实际功能。
+Real Name: 真实姓名
+Real-name Verification: 实名认证
+Reject: 拒绝
+Rejected: 已拒绝
+Rejected applications can be corrected and submitted again.: 被拒绝的申请可以修改后再次提交。
+Rejection Reason: 拒绝原因
+Resubmit: 重新提交
+Reviewed At: 审核时间
+Revoke: 撤销
+Submit Verification: 提交认证
+Submitted At: 提交时间
+Update Verification: 更新认证
+'Use your legal name. 2–64 characters.': 请填写法定姓名，2–64 个字符。
+Verification Result: 认证结果
+You are a super administrator and do not need real-name verification.: 你是老师，无需进行实名认证。
+You can now use the site normally.: 你现在可以正常使用本站功能。
+You may update a pending application if you entered something incorrectly.: 若填写有误，可在审核前更新已提交的申请。
+Your real-name verification has been approved.: 你的实名认证已通过。
+Your real-name verification is pending review.: 你的实名认证正在等待老师审核。
+Your real-name verification was rejected.: 你的实名认证未通过。

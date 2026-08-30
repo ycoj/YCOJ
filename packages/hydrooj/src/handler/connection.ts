@@ -12,6 +12,7 @@ const logger = new Logger('connection');
 
 class WebsocketEventsConnectionManagerHandler extends ConnectionHandler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
     category = '#gateway';
     private id = Math.random().toString(16).substring(2);
     private privileged = false;
