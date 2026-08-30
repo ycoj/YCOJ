@@ -1020,6 +1020,7 @@ Edit Paste: 編輯分享
 Paste type: 類型
 Markdown: Markdown
 Expiration: 到期時間
+Every selected account must already have a finite expiration.: 所選帳號必須已有截止日期，才能延長或縮短。
 1 day: 1 天
 1 week: 1 週
 1 month: 1 個月

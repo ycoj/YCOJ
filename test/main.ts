@@ -262,6 +262,7 @@ describe('App', () => {
         const unlimitedAdjustment = await adminAgent.post('/manage/user-expiration').set('Accept', 'application/json')
             .send({ operation: 'adjust', uids: [uid, finiteUid], days: 1 });
         assert.ok(unlimitedAdjustment.status >= 400);
+        assert.equal(unlimitedAdjustment.body.error.name, 'AccountExpirationRequiredError');
         assert.equal((await global.Hydro.model.user.coll.findOne({ _id: uid })).accountExpireAt, undefined);
         assert.equal(
             (await global.Hydro.model.user.coll.findOne({ _id: finiteUid })).accountExpireAt.toISOString(),

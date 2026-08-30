@@ -57,6 +57,12 @@ const page = new NamedPage('manage_user_expiration', () => {
   $('[name="adjust_expiration"]').click(async () => {
     const uids = selectedUsers();
     if (!uids.length) return;
+    const missingExpireDate = $('.account-expiration-users tbody [type="checkbox"]:checked').closest('tr').toArray()
+      .some((row) => !$(row).attr('data-expire-date'));
+    if (missingExpireDate) {
+      Notification.error(i18n('Every selected account must already have a finite expiration.'));
+      return;
+    }
     adjustDialog.clear();
     if (await adjustDialog.open() !== 'ok') return;
     const days = adjustDialog.$dom.find('[name="days"]').val();

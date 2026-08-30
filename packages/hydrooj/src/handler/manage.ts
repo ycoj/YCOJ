@@ -5,7 +5,7 @@ import { escapeRegExp, omit } from 'lodash';
 import { Filter } from 'mongodb';
 import Schema from 'schemastery';
 import {
-    CannotEditSuperAdminError, NotLaunchedByPM2Error, UserNotFoundError, ValidationError,
+    AccountExpirationRequiredError, CannotEditSuperAdminError, NotLaunchedByPM2Error, UserNotFoundError, ValidationError,
 } from '../error';
 import { Udoc } from '../interface';
 import {
@@ -488,7 +488,7 @@ class SystemUserExpirationHandler extends SystemHandler {
     async postAdjust({ }, uids: number[], days: number) {
         if (!days) throw new ValidationError('days');
         const udocs = await this.loadTargetUsers(uids);
-        if (udocs.some((udoc) => !udoc.accountExpireAt)) throw new ValidationError('uids');
+        if (udocs.some((udoc) => !udoc.accountExpireAt)) throw new AccountExpirationRequiredError();
         await user.updateAccountExpirations(udocs.map((udoc) => ({
             uid: udoc._id,
             expireAt: adjustAccountExpireAt(udoc.accountExpireAt, days, this.user.timeZone),

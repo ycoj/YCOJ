@@ -588,6 +588,7 @@ Set to Never Expire: 设为无限期
 Account expiration has been updated.: 账号有效期已更新。
 Expiration date is required.: 必须填写截止日期。
 Days to adjust must be a non-zero integer.: 调整天数必须是非零整数。
+Every selected account must already have a finite expiration.: 所选账号必须已有截止日期，才能延长或缩短。
 Set the selected accounts to never expire?: 确认将选中的账号设为无限期？
 No users found.: 未找到用户。
 Add Provider: 添加提供商

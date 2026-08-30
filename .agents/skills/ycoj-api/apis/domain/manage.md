@@ -95,7 +95,7 @@ GET lists real accounts (virtual users are excluded) in ascending UID order, 100
 
 POST `set` request `type SetExpiration={operation:"set";uids:number[];expireDate:string}`, example `{"operation":"set","uids":[12,13],"expireDate":"2026-09-01"}`. `expireDate` is strict `YYYY-MM-DD`; the selected day remains usable and expiration begins at the following midnight in the acting administrator's configured timezone. Past dates are accepted and trigger banning only when the target next accesses the service.
 
-POST `adjust` request `type AdjustExpiration={operation:"adjust";uids:number[];days:number}`, example `{"operation":"adjust","uids":[12,13],"days":30}`. `days` is a nonzero integer and is applied as calendar days in the acting administrator's timezone. Every selected account must already have a finite expiration; otherwise the whole request fails validation.
+POST `adjust` request `type AdjustExpiration={operation:"adjust";uids:number[];days:number}`, example `{"operation":"adjust","uids":[12,13],"days":30}`. `days` is a nonzero integer and is applied as calendar days in the acting administrator's timezone. Every selected account must already have a finite expiration; otherwise the whole request fails with `AccountExpirationRequiredError` (`400`, message `Every selected account must already have a finite expiration.`).
 
 POST `clear` request `type ClearExpiration={operation:"clear";uids:number[]}`, example `{"operation":"clear","uids":[12,13]}`. It removes the expiration. If an account was automatically banned by expiration, its saved pre-expiration privileges are restored; manually banned accounts remain banned.
 
