@@ -1,7 +1,7 @@
 import { Filter, ObjectId } from 'mongodb';
 import { Context } from '../context';
 import {
-    RealnameAlreadyApprovedError, RealnameApplicationNotFoundError, RealnameInvalidTransitionError,
+    AwardNotBoundError, RealnameAlreadyApprovedError, RealnameApplicationNotFoundError, RealnameInvalidTransitionError,
     ValidationError,
 } from '../error';
 import type { RealnameApplication, RealnameStatus } from '../interface';
@@ -10,6 +10,7 @@ import {
     RealnameReviewAction, RealnameUserStatus,
 } from '../lib/realname';
 import db from '../service/db';
+import * as oier from './oier';
 import user from './user';
 
 declare module '../service/db' {
@@ -126,6 +127,13 @@ export async function review(id: ObjectId, reviewer: number, action: RealnameRev
     if (!result.modifiedCount) throw new RealnameInvalidTransitionError();
     const fields = { realName: doc.realName, school: doc.school };
     await syncUser(doc.uid, status, fields);
+    if (action === 'revoke') {
+        try {
+            await oier.unbindByUid(doc.uid);
+        } catch (e) {
+            if (!(e instanceof AwardNotBoundError)) throw e;
+        }
+    }
     return { ...doc, ...$set };
 }
 

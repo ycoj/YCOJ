@@ -50,6 +50,9 @@ Description: submit or update the caller’s real-name application. GET `type Qu
 ## `GET /home/realname/result`
 Description: show the caller’s latest verification status and remaining grace, if any. Request `type Query={}`, example `GET /home/realname/result`. Response `HTML`, or redirect to `/home/realname` when no application exists. Requires profile privilege.
 
+## `GET|POST /home/award`
+Description: bind imported CCF/NOI awards to the caller after real-name approval. GET `type Query={others?:boolean;page?:number}`, example `GET /home/award?others=1`. Response `HTML`. POST `type Input={oierId:number}`, example `{"oierId":12}`, response `Redirect`, example `{"url":"/home/award"}`. Requires profile privilege and an approved real name. See [Award certification](../award/user.md).
+
 ## `GET|POST /home/messages`
 Description: view/manage private messages. GET `type Query={}`, response `HTML`. POST `type Input={operation?:string;messageId?:string;content?:string}`, example `{"operation":"delete","messageId":"66aa66aa66aa66aa66aa66aa"}`, response `Redirect`, example `{"url":"/home/messages"}`. Requires profile privilege.
 

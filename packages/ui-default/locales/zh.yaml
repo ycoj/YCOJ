@@ -1236,3 +1236,28 @@ The seven-day grace period has ended. Site access is blocked until a super admin
 The seven-day grace period has ended. Please resubmit to continue using this site.: 七天宽限期已结束。请重新提交认证后才能继续使用本站。
 AccountExpiredError: 账号过期
 Your account has expired. Please contact your teacher or coach!: 您的账号已过期，请联系老师或教练！
+Award Certification: 奖项认证
+Award certification requires an approved real-name verification.: 奖项认证需要先通过实名认证。
+These awards are bound to your verified name. Contact an administrator if they need to be removed.: 这些奖项已绑定到你的实名身份。如需移除请联系管理员。
+CCF Level: CCF 等级
+Latest School: 最近就读学校
+'Matching contestants named {0} from {1}.': 正在匹配姓名为 {0}、学校为 {1} 的获奖人。
+your verified school: 你的已认证学校
+Show same-name contestants from other schools: 显示其他学校的同名选手
+No matching contestants were found in the award database.: 奖项库中没有找到匹配的获奖人。
+Already certified: 已被认证
+Bind Awards: 绑定奖项
+Remove Certification: 移除认证
+No certified awards.: 暂无认证奖项。
+No certified awards yet.: 尚未认证奖项。
+Confirm removing this award certification?: 确认移除该账号的奖项认证？
+Award: 奖项
+Province: 省份
+Grade: 年级
+Schools: 就读学校
+This account already has certified awards. Ask an administrator to remove them first.: 该账号已绑定奖项。如需更改请先联系管理员移除。
+These awards are already certified to another account.: 这些奖项已被其他账号认证。
+The selected contestant name does not match your verified real name.: 所选获奖人姓名与你的实名不一致。
+This account has no certified awards.: 该账号没有已认证的奖项。
+'Contestant {0} not found.': 未找到获奖人 {0}。
+

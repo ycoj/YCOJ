@@ -395,6 +395,7 @@ home_messages: 站內訊息
 home_preference: 偏好設定
 home_realname: 實名認證
 home_realname_result: 認證結果
+home_award: 獎項認證
 home_security: 安全設定
 Homepage Config: 主頁設定
 homepage: 首頁
@@ -495,6 +496,7 @@ manage_join_applications: 加域申請
 manage_module: 管理模組
 manage_setting: 系統設定
 manage_realname: 實名認證管理
+manage_award: 獎項認證
 manage_user_import: 匯入使用者
 manage: 管理
 Manage: 管理
@@ -1045,5 +1047,11 @@ Revoked by administrator: 由管理員撤銷
 This application is not pending review.: 該申請目前不在待審核狀態。
 Verified School: 已認證學校
 Your real-name verification has already been approved.: 你的實名認證已經通過。
+Award certification requires an approved real-name verification.: 獎項認證需要先通過實名認證。
+This account already has certified awards. Ask an administrator to remove them first.: 該帳號已綁定獎項。如需更改請先聯繫管理員移除。
+These awards are already certified to another account.: 這些獎項已被其他帳號認證。
+The selected contestant name does not match your verified real name.: 所選獲獎人姓名與你的實名不一致。
+This account has no certified awards.: 該帳號沒有已認證的獎項。
+'Contestant {0} not found.': 未找到獲獎人 {0}。
 AccountExpiredError: 帳號過期
 Your account has expired. Please contact your teacher or coach!: 您的帳號已過期，請聯繫老師或教練！

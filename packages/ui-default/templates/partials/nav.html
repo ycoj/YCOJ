@@ -1,3 +1,4 @@
+{% import "components/user.html" as user_link with context %}
 {%- macro nav_item(item) -%}
 <li class="nav__list-item">
   <a href="{{ url(item.name, item.args, query=item.args.query(handler) if typeof(item.args.query) == 'function' else item.args.query or {}) }}" class="nav__item{% if page_name.startsWith(item.args.prefix) %} nav--active{% endif %}">
@@ -57,7 +58,7 @@
       </li>
     {% endif %}
       <li class="nav__list-item" data-dropdown-pos="bottom right" data-dropdown-custom-class="nav__dropdown" data-dropdown-target="#menu-nav-user" data-dropdown-disabledconstrainToWindow data-dropdown-trigger-desktop-only>
-        <a href="{{ url('user_detail', uid=handler.user._id) }}" class="nav__item">{{ handler.user.uname }} <span class="icon icon-expand_more nojs--hide"></span></a>
+        <a href="{{ url('user_detail', uid=handler.user._id) }}" class="nav__item">{{ handler.user.uname }} {{ user_link.ccf_hook(handler.user.ccfLevel) }} <span class="icon icon-expand_more nojs--hide"></span></a>
         <ol class="dropdown-target menu" id="menu-nav-user">
           <li class="menu__item">
             <a href="{{ url('user_detail', uid=handler.user._id) }}" class="menu__link">

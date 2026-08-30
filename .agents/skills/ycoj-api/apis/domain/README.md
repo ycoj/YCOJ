@@ -29,5 +29,6 @@ These are HTML/PJAX management pages, not REST resources. `GET` renders the name
 | `/manage/userpriv` GET, POST | View/set system user privilege bits. `GET ?extraIgnore[]=int`; `POST {uid:int,priv:uint,system:boolean}`. | HTML/redirect; system administrator (sudo restrictions apply). |
 | `/manage/user-expiration` GET, POST | Search/paginate real accounts and batch set, adjust, or clear inclusive expiration dates. | HTML/redirect; `PRIV_EDIT_SYSTEM` and sudo. Expired accounts are banned on their next authenticated access. |
 | `/manage/realname` GET, POST | List/review the latest real-name application per user. `GET ?page=1&status=pending&uname=ali` (optional case-insensitive username substring filter); POST `{operation:"approve"\|"reject"\|"revoke",id:ObjectId,reason?:string}`. | HTML/JSON page data or redirect; super administrator (`PRIV_ALL`) only. |
+| `/manage/award` GET, POST | List users with certified CCF/NOI awards. `GET ?page=1&uname=ali`; POST `{operation:"unbind",uid:number}`. | HTML/redirect; `PRIV_EDIT_SYSTEM`. |
 
 For all pages above, authenticate with `Cookie: sid=<token>` or `Authorization: Bearer <token>`. `PRIV_EDIT_SYSTEM` means global system administration; `PERM_EDIT_DOMAIN` is checked against the active domain.

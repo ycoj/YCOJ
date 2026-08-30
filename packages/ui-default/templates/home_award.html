@@ -1,0 +1,80 @@
+{% extends "layout/home_base.html" %}
+{% import "components/paginator.html" as paginator with context %}
+{% import "components/nothing.html" as nothing with context %}
+{% block home_content %}
+<div class="section" data-heading-extract-to="#menu-item-home_award">
+  <div class="section__header">
+    <h1 class="section__title">{{ _('Award Certification') }}</h1>
+  </div>
+  <div class="section__body typo">
+    {% if not verified %}
+      <blockquote class="warn">{{ _('Award certification requires an approved real-name verification.') }}</blockquote>
+      <p><a href="{{ url('home_realname') }}" class="rounded primary button">{{ _('Real-name Verification') }}</a></p>
+    {% elif bound %}
+      <blockquote class="note">{{ _('These awards are bound to your verified name. Contact an administrator if they need to be removed.') }}</blockquote>
+      <p>{{ _('CCF Level') }}: <strong>{{ bound.ccfLevel }}</strong>
+        · {{ _('School') }}: {{ bound.schools|join(' / ') }}
+        · {{ _('Latest School') }}: {{ bound.latestSchool }}</p>
+    {% else %}
+      <p>{{ _('Matching contestants named {0} from {1}.').format(realName, school or _('your verified school')) }}</p>
+      <form method="get" class="award-others-toggle">
+        <label class="compact checkbox">
+          <input type="checkbox" name="others" value="1" class="checkbox" {% if showingOthers %}checked{% endif %} onchange="this.form.submit()">
+          {{ _('Show same-name contestants from other schools') }}
+        </label>
+      </form>
+    {% endif %}
+  </div>
+  {% if verified and bound %}
+    <div class="section__body no-padding">
+      {% include "partials/award_records.html" %}
+    </div>
+  {% elif verified and not bound %}
+    <div class="section__body no-padding">
+      {% if not oiers.length %}
+        {{ nothing.render('No matching contestants were found in the award database.') }}
+      {% else %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{{ _('Name') }}</th>
+            <th>{{ _('Latest School') }}</th>
+            <th>{{ _('Schools') }}</th>
+            <th>{{ _('CCF Level') }}</th>
+            <th>{{ _('Awards') }}</th>
+            <th>{{ _('Contests') }}</th>
+            <th>{{ _('Actions') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {%- for row in oiers -%}
+          <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.latestSchool }}</td>
+            <td>{{ row.schools|join(' / ') }}</td>
+            <td>{{ row.ccfLevel }}</td>
+            <td>{{ row.recordCount }}</td>
+            <td>
+              {% set preview = previews[row._id] or [] %}
+              {% for rec in preview.slice(0, 3) %}{{ rec.contestName }} {{ rec.award }}{% if not loop.last %} · {% endif %}{% endfor %}
+            </td>
+            <td>
+              {% if row.uid %}
+                <span class="help-text">{{ _('Already certified') }}</span>
+              {% else %}
+                <form method="post">
+                  <input type="hidden" name="oierId" value="{{ row._id }}">
+                  <button type="submit" class="rounded compact primary button">{{ _('Bind Awards') }}</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+          {%- endfor -%}
+        </tbody>
+      </table>
+      {{ paginator.render(page, numPages, 'others=1' if showingOthers else '') }}
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

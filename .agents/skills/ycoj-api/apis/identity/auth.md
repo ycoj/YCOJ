@@ -68,7 +68,7 @@ Use to remove the signed-in account. `type DeleteInput={password:string}`, examp
 
 ### `GET /user/:uid`
 
-Use to display a profile. `type UserPath={uid:number}`, example `GET /user/12`. Response `HTML` (`user_detail.html`), example `…alice…`; domain visibility is checked.
+Use to display a profile. `type UserPath={uid:number}`, example `GET /user/12`. Response `HTML` (`user_detail.html`), example `…alice…`; domain visibility is checked. When the viewed user has bound CCF/NOI awards, the page includes an Awards tab of those records; the owner also sees the tab while unbound. Usernames include a CCF hook when `ccfLevel` is 3–10. See [Award certification](../award/user.md).
 
 ### `GET /oauth/:type/login`
 
