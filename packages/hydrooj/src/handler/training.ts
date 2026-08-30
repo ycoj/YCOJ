@@ -200,7 +200,12 @@ class TrainingEditHandler extends Handler {
 
     async get() {
         this.response.template = 'training_edit.html';
-        this.response.body = { page_name: this.tdoc ? 'training_edit' : 'training_create' };
+        this.response.body = {
+            page_name: this.tdoc ? 'training_edit' : 'training_create',
+            pdict: this.tdoc
+                ? await problem.getList(this.tdoc.domainId, training.getPids(this.tdoc.dag), true, false)
+                : {},
+        };
         if (this.tdoc) {
             this.response.body.tdoc = this.tdoc;
             this.response.body.dag = JSON.stringify(this.tdoc.dag, null, 2);
