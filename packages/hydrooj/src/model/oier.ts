@@ -3,10 +3,11 @@ import { Collection, Filter, ObjectId } from 'mongodb';
 import type { Context } from '../context';
 import {
     AwardAlreadyBoundError, AwardNameMismatchError, AwardNotBoundError, AwardOierNotFoundError,
-    AwardOierTakenError, AwardRealnameRequiredError,
+    AwardOierTakenError, AwardRealnameRequiredError, ValidationError,
 } from '../error';
 import {
-    buildSchoolAliasIndex, checkBind, schoolsMatch, type BindReject, type ParseResult, type SchoolAliasIndex,
+    buildSchoolAliasIndex, checkBind, schoolsMatchCanonical, type BindReject, type ParseResult,
+    type SchoolAliasIndex,
 } from '../lib/oier';
 import { isRealnameVerified } from '../lib/realname';
 import db from '../service/db';
@@ -106,24 +107,95 @@ async function insertBatches<T extends { _id: any }>(
     }
 }
 
-function extraColl<T>(name: string): Collection<T> {
-    return db.db.collection<T>(name);
+function isMissingCollection(e: unknown) {
+    const err = e as { code?: number, codeName?: string } | null;
+    return err?.code === 26 || err?.codeName === 'NamespaceNotFound';
 }
 
-async function cloneInto<T extends { _id: any }>(
-    from: { find: () => { toArray: () => Promise<T[]> }, deleteMany: (q: object) => Promise<unknown> },
-    to: { deleteMany: (q: object) => Promise<unknown>, insertMany: (docs: any[], opts?: { ordered?: boolean }) => Promise<unknown> },
-) {
-    const docs = await from.find().toArray();
-    await to.deleteMany({});
-    await insertBatches(to, docs);
-}
-
-async function discardColl(target: { drop: () => Promise<unknown>, deleteMany: (q: object) => Promise<unknown> }) {
+async function dropCollectionByName(name: string) {
     try {
-        await target.drop();
-    } catch {
-        await target.deleteMany({}).catch(() => undefined);
+        await db.db.collection(name).drop();
+    } catch (e) {
+        if (!isMissingCollection(e)) throw e;
+    }
+}
+
+async function collectionExists(name: string) {
+    const found = await db.db.listCollections({ name }, { nameOnly: true }).toArray();
+    return found.length > 0;
+}
+
+async function renameCollection(from: string, to: string) {
+    await db.db.renameCollection(from, to, { dropTarget: true });
+}
+
+interface SwapJob<T extends { _id: any }> {
+    dest: Collection<T>;
+    docs: T[];
+    liveName: string;
+    stagingName: string;
+    previousName: string;
+}
+
+async function ensureAwardIndexes(target: {
+    oier: Collection<OierDoc>;
+    record: Collection<OierRecordDoc>;
+    school: Collection<OierSchoolDoc>;
+    contest: Collection<OierContestDoc>;
+}) {
+    await db.ensureIndexes(
+        target.oier,
+        { key: { name: 1 }, name: 'name' },
+        { key: { uid: 1 }, name: 'uid', unique: true, sparse: true },
+    );
+    await db.ensureIndexes(
+        target.record,
+        { key: { oierId: 1, year: -1 }, name: 'oier_year' },
+        { key: { fingerprint: 1 }, name: 'fingerprint' },
+    );
+    await db.ensureIndexes(
+        target.school,
+        { key: { name: 1 }, name: 'name' },
+    );
+    await db.ensureIndexes(
+        target.contest,
+        { key: { name: 1 }, name: 'name', unique: true },
+    );
+}
+
+async function createAwardIndexesAlways(target: {
+    oier: Collection<OierDoc>;
+    record: Collection<OierRecordDoc>;
+    school: Collection<OierSchoolDoc>;
+    contest: Collection<OierContestDoc>;
+}) {
+    await target.oier.createIndexes([
+        { key: { name: 1 }, name: 'name' },
+        { key: { uid: 1 }, name: 'uid', unique: true, sparse: true },
+    ]);
+    await target.record.createIndexes([
+        { key: { oierId: 1, year: -1 }, name: 'oier_year' },
+        { key: { fingerprint: 1 }, name: 'fingerprint' },
+    ]);
+    await target.school.createIndexes([
+        { key: { name: 1 }, name: 'name' },
+    ]);
+    await target.contest.createIndexes([
+        { key: { name: 1 }, name: 'name', unique: true },
+    ]);
+}
+
+function assertReplaceable(parsed: ParseResult) {
+    const contestNames = new Set<string>();
+    for (const contest of parsed.contests) {
+        if (!contest.name) continue;
+        if (contestNames.has(contest.name)) throw new ValidationError('contests', contest.name, 'Duplicate contest name');
+        contestNames.add(contest.name);
+    }
+    const oierIds = new Set<number>();
+    for (const oier of parsed.oiers) {
+        if (oierIds.has(oier.id)) throw new ValidationError('oiers', oier.id, 'Duplicate contestant id');
+        oierIds.add(oier.id);
     }
 }
 
@@ -192,62 +264,105 @@ async function snapshotBindings(): Promise<BindingSnapshot[]> {
     return result;
 }
 
-async function restoreUserBindings(snapshots: BindingSnapshot[]) {
-    for (const snap of snapshots) {
-        await user.setById(snap.uid, { ccfLevel: 0 }, { oierId: '', oierBoundAt: '' });
+function rematchErrorMessage(e: unknown) {
+    return e instanceof Error ? e.message : String(e);
+}
+
+async function rematchOne(snap: BindingSnapshot, report?: (data: any) => void): Promise<boolean> {
+    if (!snap.fingerprints.length || !snap.realName) return false;
+    const hits = await recordColl.find({ fingerprint: { $in: snap.fingerprints } }).toArray();
+    const counts = new Map<number, number>();
+    for (const hit of hits) counts.set(hit.oierId, (counts.get(hit.oierId) || 0) + 1);
+    const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    for (const [oierId] of ranked) {
+        const oier = await get(oierId);
+        if (!oier || oier.uid) continue;
+        try {
+            await bind(snap.uid, oierId, snap.realName, snap.school);
+            return true;
+        } catch (e) {
+            report?.({ message: `Skipped contestant ${oierId} for uid ${snap.uid}: ${rematchErrorMessage(e)}` });
+        }
     }
-    for (const snap of snapshots) {
-        await user.setById(snap.uid, {
-            oierId: snap.oierId,
-            ccfLevel: snap.ccfLevel,
-            ...(snap.oierBoundAt ? { oierBoundAt: snap.oierBoundAt } : {}),
-        });
-    }
+    return false;
 }
 
 async function rematchBindings(snapshots: BindingSnapshot[], report?: (data: any) => void) {
     if (!snapshots.length) return { restored: 0, dropped: 0 };
     for (const snap of snapshots) {
-        await user.setById(snap.uid, { ccfLevel: 0 }, { oierId: '', oierBoundAt: '' });
+        try {
+            await user.setById(snap.uid, { ccfLevel: 0 }, { oierId: '', oierBoundAt: '' });
+        } catch (e) {
+            report?.({ message: `Failed to clear uid ${snap.uid} before rematch: ${rematchErrorMessage(e)}` });
+        }
     }
     let restored = 0;
     let dropped = 0;
     for (const snap of snapshots) {
-        if (!snap.fingerprints.length || !snap.realName) {
+        try {
+            if (await rematchOne(snap, report)) restored++;
+            else dropped++;
+        } catch (e) {
             dropped++;
-            continue;
+            report?.({ message: `Dropped uid ${snap.uid} during rematch: ${rematchErrorMessage(e)}` });
         }
-        const hits = await recordColl.find({ fingerprint: { $in: snap.fingerprints } }).toArray();
-        const counts = new Map<number, number>();
-        for (const hit of hits) counts.set(hit.oierId, (counts.get(hit.oierId) || 0) + 1);
-        const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
-        let matched = false;
-        for (const [oierId] of ranked) {
-            const oier = await get(oierId);
-            if (!oier || oier.uid) continue;
-            try {
-                await bind(snap.uid, oierId, snap.realName, snap.school);
-                restored++;
-                matched = true;
-                break;
-            } catch (e) {
-                if (
-                    e instanceof AwardNameMismatchError
-                    || e instanceof AwardRealnameRequiredError
-                    || e instanceof AwardAlreadyBoundError
-                    || e instanceof AwardOierTakenError
-                    || e instanceof AwardOierNotFoundError
-                ) continue;
-                throw e;
-            }
-        }
-        if (!matched) dropped++;
     }
     report?.({ message: `Restored ${restored} award binding(s), dropped ${dropped}.` });
     return { restored, dropped };
 }
 
+function swapJobs<T extends { _id: any }>(dest: Collection<T>, docs: T[]): SwapJob<T> {
+    const liveName = dest.collectionName;
+    return {
+        dest,
+        docs,
+        liveName,
+        stagingName: `${liveName}.importing`,
+        previousName: `${liveName}.previous`,
+    };
+}
+
+async function writeStaging(jobs: SwapJob<any>[]) {
+    for (const job of jobs) {
+        await dropCollectionByName(job.stagingName);
+        if (job.docs.length) await insertBatches(db.db.collection(job.stagingName), job.docs);
+        else await db.db.createCollection(job.stagingName);
+    }
+}
+
+async function rollbackSwap(jobs: SwapJob<any>[], swapped: SwapJob<any>[]) {
+    for (const job of [...swapped].reverse()) {
+        if (await collectionExists(job.liveName)) {
+            await dropCollectionByName(job.stagingName);
+            await renameCollection(job.liveName, job.stagingName);
+        }
+        if (await collectionExists(job.previousName)) {
+            await renameCollection(job.previousName, job.liveName);
+        }
+    }
+    for (const job of jobs) await dropCollectionByName(job.stagingName);
+}
+
+async function swapStagingToLive(jobs: SwapJob<any>[]) {
+    const swapped: SwapJob<any>[] = [];
+    try {
+        for (const job of jobs) {
+            if (await collectionExists(job.liveName)) {
+                await renameCollection(job.liveName, job.previousName);
+            }
+            swapped.push(job);
+            if (await collectionExists(job.stagingName)) {
+                await renameCollection(job.stagingName, job.liveName);
+            }
+        }
+    } catch (e) {
+        await rollbackSwap(jobs, swapped);
+        throw e;
+    }
+}
+
 export async function replaceAll(parsed: ParseResult, report?: (data: any) => void, dryrun = false) {
+    assertReplaceable(parsed);
     const snapshots = dryrun ? [] : await snapshotBindings();
     report?.({ message: `Parsed ${parsed.oiers.length} contestants, ${parsed.schools.length} schools, ${parsed.warnings.length} warning(s).` });
     if (dryrun) return { oiers: parsed.oiers.length, warnings: parsed.warnings.length, dryrun: true };
@@ -290,47 +405,33 @@ export async function replaceAll(parsed: ParseResult, report?: (data: any) => vo
         fullScore: c.fullScore,
         ...(c.capacity !== undefined ? { capacity: c.capacity } : {}),
     }));
-    const live = [
-        { dest: schoolColl, docs: schools, staging: extraColl<OierSchoolDoc>('oier.school.importing'), previous: extraColl<OierSchoolDoc>('oier.school.previous') },
-        { dest: contestColl, docs: contests, staging: extraColl<OierContestDoc>('oier.contest.importing'), previous: extraColl<OierContestDoc>('oier.contest.previous') },
-        { dest: coll, docs: oiers, staging: extraColl<OierDoc>('oier.importing'), previous: extraColl<OierDoc>('oier.previous') },
-        { dest: recordColl, docs: records, staging: extraColl<OierRecordDoc>('oier.record.importing'), previous: extraColl<OierRecordDoc>('oier.record.previous') },
+    const jobs = [
+        swapJobs(schoolColl, schools),
+        swapJobs(contestColl, contests),
+        swapJobs(coll, oiers),
+        swapJobs(recordColl, records),
     ];
     try {
-        for (const item of live) {
-            await item.staging.deleteMany({});
-            await insertBatches(item.staging, item.docs);
-        }
-        for (const item of live) await cloneInto(item.dest, item.previous);
+        await writeStaging(jobs);
+        await createAwardIndexesAlways({
+            school: db.db.collection(jobs[0].stagingName),
+            contest: db.db.collection(jobs[1].stagingName),
+            oier: db.db.collection(jobs[2].stagingName),
+            record: db.db.collection(jobs[3].stagingName),
+        });
     } catch (e) {
-        for (const item of live) {
-            await discardColl(item.staging);
-            await discardColl(item.previous);
-        }
+        for (const job of jobs) await dropCollectionByName(job.stagingName);
         throw e;
     }
+    await swapStagingToLive(jobs);
+    invalidateSchoolCache();
+    report?.({ message: `Wrote ${oiers.length} contestants and ${records.length} records.` });
     try {
-        for (const item of live) {
-            await item.dest.deleteMany({});
-            await cloneInto(item.staging, item.dest);
-        }
-        invalidateSchoolCache();
-        report?.({ message: `Wrote ${oiers.length} contestants and ${records.length} records.` });
         await rematchBindings(snapshots, report);
-        for (const item of live) {
-            await discardColl(item.staging);
-            await discardColl(item.previous);
-        }
     } catch (e) {
-        for (const item of live) {
-            await item.dest.deleteMany({}).catch(() => undefined);
-            await cloneInto(item.previous, item.dest).catch(() => undefined);
-        }
-        await restoreUserBindings(snapshots).catch(() => undefined);
-        invalidateSchoolCache();
-        for (const item of live) await discardColl(item.staging);
-        throw e;
+        report?.({ message: `Binding rematch failed: ${rematchErrorMessage(e)}` });
     }
+    for (const job of jobs) await dropCollectionByName(job.previousName);
     return {
         oiers: oiers.length,
         records: records.length,
@@ -375,12 +476,26 @@ export async function bind(uid: number, oierId: number, realName: string, school
     });
 }
 
+export async function restoreUidIfUnbound(oierId: number, uid: number) {
+    await coll.updateOne({ _id: oierId, uid: { $exists: false } }, { $set: { uid } });
+}
+
 export async function unbindByUid(uid: number) {
     return withUidLock(uid, async () => {
         const udoc = await user.coll.findOne({ _id: uid }, { projection: { oierId: 1 } });
         if (!udoc?.oierId) throw new AwardNotBoundError();
-        await coll.updateOne({ _id: udoc.oierId, uid }, { $unset: { uid: '' } });
-        await user.setById(uid, { ccfLevel: 0 }, { oierId: '', oierBoundAt: '' });
+        const oierId = udoc.oierId;
+        const released = await coll.findOneAndUpdate(
+            { _id: oierId, uid },
+            { $unset: { uid: '' } },
+            { returnDocument: 'before' },
+        );
+        try {
+            await user.setById(uid, { ccfLevel: 0 }, { oierId: '', oierBoundAt: '' });
+        } catch (e) {
+            if (released) await restoreUidIfUnbound(oierId, uid);
+            throw e;
+        }
     });
 }
 
@@ -395,8 +510,8 @@ export interface CandidateQuery {
 export async function findCandidates(query: CandidateQuery) {
     const index = await getSchoolAliasIndex();
     const all = await coll.find({ name: query.name }).sort({ ccfLevel: -1, _id: 1 }).toArray();
-    const preferred = all.filter((o) => schoolsMatch(o.latestSchool, query.school, index));
-    const rest = all.filter((o) => !schoolsMatch(o.latestSchool, query.school, index));
+    const preferred = all.filter((o) => schoolsMatchCanonical(o, query.school, index));
+    const rest = all.filter((o) => !schoolsMatchCanonical(o, query.school, index));
     const showingOthers = query.others || !preferred.length;
     const list = showingOthers ? [...preferred, ...rest] : preferred;
     const start = (query.page - 1) * query.pageSize;
@@ -426,24 +541,12 @@ export async function apply(ctx: Context) {
     recordColl = ctx.db.collection('oier.record');
     schoolColl = ctx.db.collection('oier.school');
     contestColl = ctx.db.collection('oier.contest');
-    await ctx.db.ensureIndexes(
-        coll,
-        { key: { name: 1 }, name: 'name' },
-        { key: { uid: 1 }, name: 'uid', unique: true, sparse: true },
-    );
-    await ctx.db.ensureIndexes(
-        recordColl,
-        { key: { oierId: 1, year: -1 }, name: 'oier_year' },
-        { key: { fingerprint: 1 }, name: 'fingerprint' },
-    );
-    await ctx.db.ensureIndexes(
-        schoolColl,
-        { key: { name: 1 }, name: 'name' },
-    );
-    await ctx.db.ensureIndexes(
-        contestColl,
-        { key: { name: 1 }, name: 'name', unique: true },
-    );
+    await ensureAwardIndexes({
+        oier: coll,
+        record: recordColl,
+        school: schoolColl,
+        contest: contestColl,
+    });
     await ctx.db.ensureIndexes(
         user.coll,
         { key: { oierId: 1 }, name: 'oierId', unique: true, sparse: true },
@@ -461,6 +564,7 @@ global.Hydro.model.oier = {
     invalidateSchoolCache,
     paginateBound,
     replaceAll,
+    restoreUidIfUnbound,
     unbindByUid,
     apply,
 };

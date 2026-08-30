@@ -128,6 +128,7 @@ export async function review(id: ObjectId, reviewer: number, action: RealnameRev
     const fields = { realName: doc.realName, school: doc.school };
     await syncUser(doc.uid, status, fields);
     if (action === 'revoke') {
+        const bound = await oier.getByUid(doc.uid);
         await unbindAwardsOrRollback(doc.uid, async () => {
             await coll.updateOne({ _id: id }, {
                 $set: {
@@ -139,7 +140,9 @@ export async function review(id: ObjectId, reviewer: number, action: RealnameRev
                 },
             });
             await syncUser(doc.uid, doc.status, fields);
-        }, oier.unbindByUid);
+        }, oier.unbindByUid, async () => {
+            if (bound) await oier.restoreUidIfUnbound(bound._id, doc.uid);
+        });
     }
     return { ...doc, ...$set };
 }

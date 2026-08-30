@@ -1,4 +1,4 @@
-import { canonicalSchoolName, type SchoolAliasIndex } from './schoolMatch';
+import { resolvedSchoolName, type SchoolAliasIndex } from './schoolMatch';
 
 export type BindReject = 'missing' | 'already' | 'mismatch' | 'taken';
 
@@ -9,7 +9,7 @@ export interface BindOier {
     latestSchool?: string;
 }
 
-const EMPTY_SCHOOL_INDEX: SchoolAliasIndex = { canonicalByAlias: new Map() };
+const EMPTY_SCHOOL_INDEX: SchoolAliasIndex = { canonicalByAlias: new Map(), canonicalNames: [] };
 
 function schoolNamesOf(oier: BindOier): string[] {
     const names = [...(oier.schools || [])];
@@ -22,9 +22,9 @@ export function schoolsMatchCanonical(
     school: string,
     index: SchoolAliasIndex = EMPTY_SCHOOL_INDEX,
 ): boolean {
-    const want = canonicalSchoolName(school, index);
+    const want = resolvedSchoolName(school, index);
     if (!want) return false;
-    return schoolNamesOf(oier).some((name) => name && canonicalSchoolName(name, index) === want);
+    return schoolNamesOf(oier).some((name) => name && resolvedSchoolName(name, index) === want);
 }
 
 export function checkBind(

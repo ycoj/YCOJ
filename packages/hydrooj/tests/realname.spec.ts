@@ -231,4 +231,30 @@ describe('revoke award unbind', () => {
         });
         assert.equal(rolled, false);
     });
+
+    it('restores awards before rolling back real-name persistence', async () => {
+        const order: string[] = [];
+        await assert.rejects(
+            () => unbindAwardsOrRollback(
+                1,
+                async () => { order.push('rollback'); },
+                async () => { throw new Error('unbind failed'); },
+                async () => { order.push('restore'); },
+            ),
+        );
+        assert.deepEqual(order, ['restore', 'rollback']);
+    });
+
+    it('rolls back real-name persistence even if award restore fails', async () => {
+        let rolled = false;
+        await assert.rejects(
+            () => unbindAwardsOrRollback(
+                1,
+                async () => { rolled = true; },
+                async () => { throw new Error('unbind failed'); },
+                async () => { throw new Error('restore failed'); },
+            ),
+        );
+        assert.equal(rolled, true);
+    });
 });

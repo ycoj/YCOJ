@@ -8,7 +8,8 @@ export { ccfHookSrc, ccfHookTier } from './hook';
 export { attemptMerge, recordFingerprint } from './merge';
 export { loadOierDataDir, parseOierData } from './parse';
 export {
-    buildSchoolAliasIndex, canonicalSchoolName, normalizeSchoolName, schoolsMatch,
+    buildSchoolAliasIndex, canonicalSchoolName, normalizeSchoolName, resolvedSchoolName, schoolsMatch,
+    uniqueContainmentCanonical,
 } from './schoolMatch';
 export type { SchoolAliasIndex } from './schoolMatch';
 export type {

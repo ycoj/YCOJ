@@ -103,6 +103,23 @@ describe('oier parser', () => {
         assert.ok(parsed.warnings.some((w) => w.message.includes('格式错误')));
     });
 
+    it('keeps one contest when contests.json repeats a name', () => {
+        const parsed = parseOierData({
+            schoolTxt,
+            contestsJson: JSON.stringify([
+                {
+                    name: 'NOI2019', type: 'NOI', year: 2019, fall_semester: false, full_score: 600,
+                },
+                {
+                    name: 'NOI2019', type: 'NOI', year: 2019, fall_semester: false, full_score: 600,
+                },
+            ]),
+            rawTxt: '',
+        });
+        assert.equal(parsed.contests.length, 1);
+        assert.ok(parsed.warnings.some((w) => w.message.includes('重复的比赛名')));
+    });
+
     it('does not merge a one-year 初一/高一 jump in either input order', () => {
         const jumpContests = JSON.stringify([
             {
@@ -186,6 +203,30 @@ describe('school match and bind checks', () => {
         assert.equal(schoolsMatch('湖南师大附中', '湖南师范大学附属中学', index), true);
         assert.equal(schoolsMatch('师大附中', '湖南师范大学附属中学', index), true);
         assert.equal(schoolsMatch('长沙市雅礼中学', '湖南师范大学附属中学', index), false);
+    });
+
+    it('does not treat a shared four-character suffix as the same school', () => {
+        const index = buildSchoolAliasIndex([
+            { name: '长沙市第一中学', aliases: [] },
+            { name: '北京市第一中学', aliases: [] },
+        ]);
+        assert.equal(schoolsMatch('第一中学', '长沙市第一中学', index), false);
+        assert.equal(schoolsMatch('第一中学', '北京市第一中学', index), false);
+        assert.equal(schoolsMatch('长沙市第一中学', '长沙市第一中学', index), true);
+        assert.equal(schoolsMatch('长沙市第一中学', '北京市第一中学', index), false);
+        assert.equal(checkBind({
+            name: '张三', schools: ['长沙市第一中学'], latestSchool: '长沙市第一中学',
+        }, '张三', '第一中学', null, index), 'mismatch');
+    });
+
+    it('matches a unique official name that contains the query', () => {
+        const index = buildSchoolAliasIndex([
+            { name: '长沙市雅礼中学', aliases: ['雅礼'] },
+        ]);
+        assert.equal(schoolsMatch('雅礼中学', '长沙市雅礼中学', index), true);
+        assert.equal(checkBind({
+            name: '张三', schools: ['长沙市雅礼中学'], latestSchool: '长沙市雅礼中学',
+        }, '张三', '雅礼中学', null, index), null);
     });
 
     it('rejects bind when the name differs, the school differs, or the slot is taken', () => {

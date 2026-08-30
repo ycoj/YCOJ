@@ -190,12 +190,17 @@ export async function unbindAwardsOrRollback(
     uid: number,
     rollback: () => Promise<void>,
     unbindByUid: (uid: number) => Promise<unknown>,
+    restoreAwards: () => Promise<void> = async () => undefined,
 ) {
     try {
         await unbindByUid(uid);
     } catch (e) {
         if (e instanceof AwardNotBoundError) return;
-        await rollback();
+        try {
+            await restoreAwards();
+        } finally {
+            await rollback();
+        }
         throw e;
     }
 }

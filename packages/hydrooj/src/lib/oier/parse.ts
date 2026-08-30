@@ -99,6 +99,7 @@ function parseContests(json: string, warnings: ParseWarning[]): OierContestState
         }
         if (names.has(settings.name)) {
             warnings.push({ file: 'contests.json', line: 0, message: `重复的比赛名：'${settings.name}'` });
+            continue;
         }
         names.add(settings.name);
         contests.push({

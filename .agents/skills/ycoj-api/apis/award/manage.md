@@ -12,4 +12,4 @@ Description: list accounts that currently have certified awards. Request `type Q
 
 ## POST `unbind`
 
-Description: remove a user’s award certification. Request `type Unbind={operation:"unbind";uid:number}`, example `{"operation":"unbind","uid":12}`. Response `Redirect`, example `{"url":"/manage/award"}`. Clears `user.oierId`, `user.oierBoundAt`, and sets `user.ccfLevel` to 0; also unsets `oier.uid`. Unknown or unbound users return `AwardNotBoundError` (400). The profile Awards tab posts the same operation to this URL when the viewer has `PRIV_EDIT_SYSTEM`.
+Description: remove a user’s award certification. Request `type Unbind={operation:"unbind";uid:number}`, example `{"operation":"unbind","uid":12}`. Response `Redirect`, example `{"url":"/manage/award"}`. Clears `user.oierId`, `user.oierBoundAt`, and sets `user.ccfLevel` to 0; also unsets `oier.uid`. If clearing the user fields fails after `oier.uid` was removed, that `uid` is put back on the contestant. Unknown or unbound users return `AwardNotBoundError` (400). The profile Awards tab posts the same operation to this URL when the viewer has `PRIV_EDIT_SYSTEM`.
