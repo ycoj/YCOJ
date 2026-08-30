@@ -8,6 +8,7 @@ import type {
     FileInfo, RecordJudgeInfo, RecordPayload, SubtaskResult,
 } from '@hydrooj/common/types';
 import type { Context } from './context';
+import type { RealnameStatus } from './lib/realname';
 import type { PrintTaskStatus } from './model/contest';
 import type { DocStatusType } from './model/document';
 import type { OauthMap } from './model/oauth';
@@ -95,6 +96,8 @@ export interface Udoc extends Record<string, any> {
     loginat: Date;
     ip: string[];
     loginip: string;
+    accountExpireAt?: Date;
+    accountExpireRestorePriv?: number;
 }
 
 export interface VUdoc {
@@ -200,7 +203,6 @@ export interface CheckinRecord {
     };
 }
 
-import type { RealnameStatus } from './lib/realname';
 export type { RealnameStatus } from './lib/realname';
 
 export interface RealnameApplication {

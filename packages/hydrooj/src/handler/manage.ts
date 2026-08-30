@@ -1,11 +1,16 @@
 import { exec } from 'child_process';
 import { inspect } from 'util';
 import * as yaml from 'js-yaml';
-import { omit } from 'lodash';
+import { escapeRegExp, omit } from 'lodash';
+import { Filter } from 'mongodb';
 import Schema from 'schemastery';
 import {
-    CannotEditSuperAdminError, NotLaunchedByPM2Error, UserNotFoundError, ValidationError,
+    AccountExpirationRequiredError, CannotEditSuperAdminError, NotLaunchedByPM2Error, UserNotFoundError, ValidationError,
 } from '../error';
+import { Udoc } from '../interface';
+import {
+    accountExpireAtFromDate, accountExpireDate, adjustAccountExpireAt, isAccountExpired,
+} from '../lib/accountExpiration';
 import {
     AI_PROVIDER_CONFIG_KEY, createAiProviderConfigDraft, getAiProviderConfig, normalizeAiProviderConfig, redactAiProviderConfig,
 } from '../lib/ai/config';
@@ -410,6 +415,96 @@ class SystemUserPrivHandler extends SystemHandler {
     }
 }
 
+class SystemUserExpirationHandler extends SystemHandler {
+    async loadTargetUsers(uids: number[]) {
+        const ids = Array.from(new Set(uids));
+        if (!ids.length || ids.some((uid) => uid <= 0)) throw new ValidationError('uids');
+        const udocs = await user.getMulti({ _id: { $in: ids } }).toArray();
+        const found = new Set(udocs.map((udoc) => udoc._id));
+        const missing = ids.find((uid) => !found.has(uid));
+        if (missing !== undefined) throw new UserNotFoundError(missing);
+        if (udocs.some((udoc) => udoc.priv === PRIV.PRIV_ALL)) throw new CannotEditSuperAdminError();
+        return udocs;
+    }
+
+    @requireSudo
+    @param('page', Types.PositiveInt, true)
+    @param('q', Types.String, true)
+    async get({ }, page = 1, q = '') {
+        q = q.trim();
+        const query: Filter<Udoc> = { _id: { $gt: 0 } };
+        if (q) {
+            const prefix = { $regex: `^${escapeRegExp(q.toLowerCase())}` };
+            query.$or = [
+                ...(Number.isSafeInteger(+q) ? [{ _id: +q }] : []),
+                { unameLower: prefix },
+                { mailLower: prefix },
+            ];
+        }
+        const fields: (keyof Udoc)[] = [
+            '_id', 'uname', 'mail', 'avatar', 'priv', 'accountExpireAt', 'accountExpireRestorePriv',
+        ];
+        const [udocs, numPages, count] = await this.paginate(user.getMulti(query, fields).sort({ _id: 1 }), page, 100);
+        const now = new Date();
+        const timeZone = this.user.timeZone;
+        this.response.body = {
+            udocs: udocs.map((udoc) => ({
+                _id: udoc._id,
+                uname: udoc.uname,
+                mail: udoc.mail,
+                avatar: udoc.avatar,
+                priv: udoc.priv,
+                accountExpireDate: udoc.accountExpireAt ? accountExpireDate(udoc.accountExpireAt, timeZone) : '',
+                accountExpired: isAccountExpired(udoc.accountExpireAt, now),
+                accountAutoExpired: udoc.accountExpireRestorePriv !== undefined,
+                accountExpirationProtected: udoc.priv === PRIV.PRIV_ALL,
+            })),
+            page,
+            numPages,
+            count,
+            q,
+        };
+        this.response.template = 'manage_user_expiration.html';
+    }
+
+    @requireSudo
+    @param('uids', Types.NumericArray)
+    @param('expireDate', Types.Date)
+    async postSet({ }, uids: number[], expireDate: string) {
+        const udocs = await this.loadTargetUsers(uids);
+        let expireAt: Date;
+        try {
+            expireAt = accountExpireAtFromDate(expireDate, this.user.timeZone);
+        } catch {
+            throw new ValidationError('expireDate');
+        }
+        await user.updateAccountExpirations(udocs.map((udoc) => ({ uid: udoc._id, expireAt })));
+        this.back();
+    }
+
+    @requireSudo
+    @param('uids', Types.NumericArray)
+    @param('days', Types.Int)
+    async postAdjust({ }, uids: number[], days: number) {
+        if (!days) throw new ValidationError('days');
+        const udocs = await this.loadTargetUsers(uids);
+        if (udocs.some((udoc) => !udoc.accountExpireAt)) throw new AccountExpirationRequiredError();
+        await user.updateAccountExpirations(udocs.map((udoc) => ({
+            uid: udoc._id,
+            expireAt: adjustAccountExpireAt(udoc.accountExpireAt, days, this.user.timeZone),
+        })));
+        this.back();
+    }
+
+    @requireSudo
+    @param('uids', Types.NumericArray)
+    async postClear({ }, uids: number[]) {
+        const udocs = await this.loadTargetUsers(uids);
+        await user.updateAccountExpirations(udocs.map((udoc) => ({ uid: udoc._id, expireAt: null })));
+        this.back();
+    }
+}
+
 export const inject = ['setting', 'check'];
 export async function apply(ctx) {
     ctx.Route('manage', '/manage', SystemMainHandler);
@@ -420,5 +515,6 @@ export async function apply(ctx) {
     ctx.Route('manage_config', '/manage/config', SystemConfigHandler);
     ctx.Route('manage_user_import', '/manage/userimport', SystemUserImportHandler);
     ctx.Route('manage_user_priv', '/manage/userpriv', SystemUserPrivHandler);
+    ctx.Route('manage_user_expiration', '/manage/user-expiration', SystemUserExpirationHandler);
     ctx.Connection('manage_check', '/manage/check-conn', SystemCheckConnHandler);
 }

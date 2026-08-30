@@ -89,6 +89,10 @@ export const HackRejudgeFailedError = Err('HackRejudgeFailedError', BadRequestEr
 export const CannotDeleteSystemDomainError = Err('CannotDeleteSystemDomainError', BadRequestError, 'You are not allowed to delete system domain.');
 export const OnlyOwnerCanDeleteDomainError = Err('OnlyOwnerCanDeleteDomainError', BadRequestError, 'You are not the owner of this domain.');
 export const CannotEditSuperAdminError = Err('CannotEditSuperAdminError', BadRequestError, 'You are not allowed to edit super admin in web.');
+export const AccountExpirationRequiredError = Err(
+    'AccountExpirationRequiredError', BadRequestError,
+    'Every selected account must already have a finite expiration.',
+);
 export const ProblemConfigError = Err('ProblemConfigError', BadRequestError, 'Invalid problem config.');
 export const ProblemIsReferencedError = Err('ProblemIsReferencedError', BadRequestError, 'Cannot {0} of a referenced problem.');
 export const AuthOperationError = Err('AuthOperationError', BadRequestError, '{0} is already {1}.');

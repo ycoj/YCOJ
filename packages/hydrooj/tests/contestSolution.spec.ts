@@ -12,15 +12,33 @@ const documentMock = {
     add: async (...args: any[]) => {
         calls.push(['add', ...args]);
         const docId = args[4] || new ObjectId();
-        solutions.push({ domainId: args[0], content: args[1], owner: args[2], docType: args[3], docId, parentType: args[5], parentId: args[6], ...args[7] });
+        solutions.push({
+            domainId: args[0],
+            content: args[1],
+            owner: args[2],
+            docType: args[3],
+            docId,
+            parentType: args[5],
+            parentId: args[6],
+            ...args[7],
+        });
         return docId;
     },
-    get: async (domainId: string, docType: number, docId: ObjectId) => solutions.find((doc) => doc.domainId === domainId && doc.docType === docType && doc.docId.toString() === docId.toString()) || null,
+    get: async (domainId: string, docType: number, docId: ObjectId) => solutions.find((doc) => (
+        doc.domainId === domainId
+        && doc.docType === docType
+        && doc.docId.toString() === docId.toString()
+    )) || null,
     getMulti: (domainId: string, docType: number, query: any = {}) => {
         const cursor = {
             sort: () => cursor,
             project: () => ({
-                toArray: async () => solutions.filter((doc) => doc.domainId === domainId && doc.docType === docType && doc.parentType === query.parentType && doc.parentId.toString() === query.parentId.toString()).map((doc) => ({ docId: doc.docId })),
+                toArray: async () => solutions.filter((doc) => (
+                    doc.domainId === domainId
+                    && doc.docType === docType
+                    && doc.parentType === query.parentType
+                    && doc.parentId.toString() === query.parentId.toString()
+                )).map((doc) => ({ docId: doc.docId })),
             }),
         };
         return cursor;
@@ -30,14 +48,18 @@ const documentMock = {
         calls.push(['deleteMulti', domainId, docType, query]);
         const ids = query.docId.$in.map((id: ObjectId) => id.toString());
         for (let i = solutions.length - 1; i >= 0; i--) {
-            if (solutions[i].domainId === domainId && solutions[i].docType === docType && ids.includes(solutions[i].docId.toString())) solutions.splice(i, 1);
+            if (solutions[i].domainId === domainId
+                && solutions[i].docType === docType
+                && ids.includes(solutions[i].docId.toString())) solutions.splice(i, 1);
         }
     },
     deleteMultiStatus: async (domainId: string, docType: number, query: any) => {
         calls.push(['deleteMultiStatus', domainId, docType, query]);
         const ids = query.docId.$in.map((id: ObjectId) => id.toString());
         for (let i = statuses.length - 1; i >= 0; i--) {
-            if (statuses[i].domainId === domainId && statuses[i].docType === docType && ids.includes(statuses[i].docId.toString())) statuses.splice(i, 1);
+            if (statuses[i].domainId === domainId
+                && statuses[i].docType === docType
+                && ids.includes(statuses[i].docId.toString())) statuses.splice(i, 1);
         }
     },
 };
