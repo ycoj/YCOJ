@@ -2,10 +2,12 @@ import { Filter, ObjectId } from 'mongodb';
 import { Context } from '../context';
 import {
     RealnameAlreadyApprovedError, RealnameApplicationNotFoundError, RealnameInvalidTransitionError,
+    ValidationError,
 } from '../error';
 import type { RealnameApplication, RealnameStatus } from '../interface';
 import {
-    asDate, parseRealnameFields, REALNAME_TRANSITIONS, RealnameReviewAction, RealnameUserStatus,
+    asDate, buildLatestRealnameListPipeline, parseRealnameFields, REALNAME_TRANSITIONS,
+    RealnameReviewAction, RealnameUserStatus,
 } from '../lib/realname';
 import db from '../service/db';
 import user from './user';
@@ -51,6 +53,21 @@ export function getLatestByUid(uid: number) {
 
 export function getEarliestByUid(uid: number) {
     return coll.find({ uid, submittedAt: { $exists: true, $ne: null } }).sort({ submittedAt: 1 }).limit(1).next();
+}
+
+export async function paginateLatestByUid(
+    filter: { uid?: Filter<RealnameApplication>['uid']; status?: RealnameApplication['status'] },
+    page: number,
+    pageSize: number,
+): Promise<[RealnameApplication[], number, number]> {
+    if (page <= 0) throw new ValidationError('page');
+    const pipeline = buildLatestRealnameListPipeline(filter, page, pageSize);
+    const [result] = await coll.aggregate<{
+        count: { n: number }[];
+        docs: RealnameApplication[];
+    }>(pipeline, { allowDiskUse: true }).toArray();
+    const count = result?.count[0]?.n || 0;
+    return [result?.docs || [], Math.floor((count + pageSize - 1) / pageSize), count];
 }
 
 export async function submit(uid: number, realName: string, school: string) {
@@ -147,6 +164,7 @@ global.Hydro.model.realname = {
     getEarliestByUid,
     getLatestByUid,
     getMulti,
+    paginateLatestByUid,
     review,
     submit,
     apply,

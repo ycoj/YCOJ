@@ -137,6 +137,43 @@ export function normalizeRealnameField(value: string) {
     return (value || '').replace(/\s+/g, ' ').trim();
 }
 
+export function buildLatestRealnameListPipeline(
+    filter: { uid?: unknown; status?: RealnameStatus },
+    page: number,
+    pageSize: number,
+) {
+    const pipeline: Record<string, unknown>[] = [];
+    if (filter.uid !== undefined) pipeline.push({ $match: { uid: filter.uid } });
+    pipeline.push(
+        {
+            $group: {
+                _id: '$uid',
+                doc: {
+                    $top: {
+                        sortBy: { submittedAt: -1, _id: -1 },
+                        output: '$$ROOT',
+                    },
+                },
+            },
+        },
+        { $replaceRoot: { newRoot: '$doc' } },
+    );
+    if (filter.status) pipeline.push({ $match: { status: filter.status } });
+    pipeline.push(
+        { $sort: { submittedAt: -1, _id: -1 } },
+        {
+            $facet: {
+                count: [{ $count: 'n' }],
+                docs: [
+                    { $skip: (page - 1) * pageSize },
+                    { $limit: pageSize },
+                ],
+            },
+        },
+    );
+    return pipeline;
+}
+
 export function parseRealnameFields(realName: string, school: string) {
     const name = normalizeRealnameField(realName);
     const schoolName = normalizeRealnameField(school);

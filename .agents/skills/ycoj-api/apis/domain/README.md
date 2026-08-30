@@ -27,6 +27,6 @@ These are HTML/PJAX management pages, not REST resources. `GET` renders the name
 | `/manage/config/schema.json` GET | Machine-readable JSON Schema of settings. | JSON Schema; `PRIV_EDIT_SYSTEM`. |
 | `/manage/userimport` GET, POST | Parse/import user data. `POST {users:string,draft:boolean}`. | HTML/redirect; system administrator. |
 | `/manage/userpriv` GET, POST | View/set system user privilege bits. `GET ?extraIgnore[]=int`; `POST {uid:int,priv:uint,system:boolean}`. | HTML/redirect; system administrator (sudo restrictions apply). |
-| `/manage/realname` GET, POST | List/review real-name applications. `GET ?page=1&status=pending&uname=ali` (optional case-insensitive username substring filter); POST `{operation:"approve"\|"reject"\|"revoke",id:ObjectId,reason?:string}`. | HTML/JSON page data or redirect; super administrator (`PRIV_ALL`) only. |
+| `/manage/realname` GET, POST | List/review the latest real-name application per user. `GET ?page=1&status=pending&uname=ali` (optional case-insensitive username substring filter); POST `{operation:"approve"\|"reject"\|"revoke",id:ObjectId,reason?:string}`. | HTML/JSON page data or redirect; super administrator (`PRIV_ALL`) only. |
 
 For all pages above, authenticate with `Cookie: sid=<token>` or `Authorization: Bearer <token>`. `PRIV_EDIT_SYSTEM` means global system administration; `PERM_EDIT_DOMAIN` is checked against the active domain.

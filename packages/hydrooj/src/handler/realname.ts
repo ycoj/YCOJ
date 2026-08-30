@@ -96,15 +96,16 @@ class SystemRealnameHandler extends Handler {
         { }, page = 1,
         status: 'all' | RealnameApplication['status'] = 'pending', uname = '',
     ) {
-        const query: Filter<RealnameApplication> = status === 'all' ? {} : { status };
+        const query: { uid?: Filter<RealnameApplication>['uid']; status?: RealnameApplication['status'] } = {};
+        if (status !== 'all') query.status = status;
         uname = uname.trim();
         if (uname) {
             query.uid = { $in: await user.getUidsByUnameSubstring(uname) };
         }
-        const [rdocs, numPages, count] = await this.paginate(
-            realname.getMulti(query).sort({ submittedAt: -1 }),
+        const [rdocs, numPages, count] = await realname.paginateLatestByUid(
+            query,
             page,
-            'realname',
+            this.ctx.setting.get('pagination.realname') || 20,
         );
         const udict = await user.getList(this.args.domainId, rdocs.map((doc) => [
             doc.uid,

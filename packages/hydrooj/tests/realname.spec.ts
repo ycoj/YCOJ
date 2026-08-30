@@ -1,10 +1,10 @@
 import assert from 'assert';
 import { describe, it } from 'node:test';
 import {
-    canSubmitApplication, canTransition, getRealnameGraceUntil, getRealnameStatus, getRealnameSubmittedAt,
-    handlerAllowsUnverified, hasRealnameAccess, isRealnameExempt, isRealnameVerified,
-    isWithinRealnameGrace, nextRealnameRoute, parseRealnameFields, REALNAME_GRACE_MS,
-    requiresRealname, reviewStatusFor, shouldBlockUnverifiedAccess,
+    buildLatestRealnameListPipeline, canSubmitApplication, canTransition, getRealnameGraceUntil,
+    getRealnameStatus, getRealnameSubmittedAt, handlerAllowsUnverified, hasRealnameAccess,
+    isRealnameExempt, isRealnameVerified, isWithinRealnameGrace, nextRealnameRoute, parseRealnameFields,
+    REALNAME_GRACE_MS, requiresRealname, reviewStatusFor, shouldBlockUnverifiedAccess,
 } from '../src/lib/realname';
 
 const PRIV_USER_PROFILE = 1 << 2;
@@ -168,6 +168,30 @@ describe('realname application transitions', () => {
         assert.equal(reviewStatusFor('approve'), 'approved');
         assert.equal(reviewStatusFor('reject'), 'rejected');
         assert.equal(reviewStatusFor('revoke'), 'rejected');
+    });
+});
+
+describe('realname admin list query', () => {
+    it('keeps one row per user and applies status after selecting the latest application', () => {
+        const pipeline = buildLatestRealnameListPipeline(
+            { uid: { $in: [2] }, status: 'pending' },
+            1,
+            50,
+        ) as any[];
+        assert.deepEqual(pipeline.map((stage) => Object.keys(stage)[0]), [
+            '$match', '$group', '$replaceRoot', '$match', '$sort', '$facet',
+        ]);
+        assert.deepEqual(pipeline[0], { $match: { uid: { $in: [2] } } });
+        assert.equal(pipeline[1].$group._id, '$uid');
+        assert.deepEqual(pipeline[1].$group.doc.$top.sortBy, { submittedAt: -1, _id: -1 });
+        assert.deepEqual(pipeline[3], { $match: { status: 'pending' } });
+    });
+
+    it('lists each user once when status is all, including after revoke and resubmit', () => {
+        const pipeline = buildLatestRealnameListPipeline({}, 2, 20) as any[];
+        assert.equal(pipeline.some((stage) => stage.$match && 'status' in stage.$match), false);
+        assert.equal(pipeline[0].$group._id, '$uid');
+        assert.deepEqual(pipeline.at(-1).$facet.docs, [{ $skip: 20 }, { $limit: 20 }]);
     });
 });
 
