@@ -6,7 +6,7 @@ import Schema from 'schemastery';
 import { randomstring } from '@hydrooj/utils';
 import type { Context } from '../context';
 import {
-    AuthOperationError, BadRequestError, BlacklistedError, BuiltinLoginError,
+    AccountExpiredError, AuthOperationError, BadRequestError, BlacklistedError, BuiltinLoginError,
     ForbiddenError, InvalidTokenError, NotFoundError,
     SystemError, UserAlreadyExistError, UserFacingError,
     UserNotFoundError, ValidationError, VerifyPasswordError,
@@ -37,7 +37,7 @@ import {
 async function successfulAuth(this: Handler, udoc: User, redirect = '') {
     if (udoc._id !== 0 && isAccountExpired(udoc._udoc.accountExpireAt)
         && await user.enforceAccountExpiration(udoc._id)) {
-        throw new BlacklistedError(udoc.uname, ACCOUNT_EXPIRE_BAN_REASON);
+        throw new AccountExpiredError();
     }
     if (udoc._id !== 0) {
         await this.ctx.serial('auth/before-login', this, udoc);
@@ -114,7 +114,12 @@ class UserLoginHandler extends Handler {
             } else throw new ValidationError('2FA', 'Authn');
         }
         await udoc.checkPassword(password);
-        if (!udoc.hasPriv(PRIV.PRIV_USER_PROFILE)) throw new BlacklistedError(uname, udoc.banReason);
+        if (!udoc.hasPriv(PRIV.PRIV_USER_PROFILE)) {
+            if (isAccountExpired(udoc._udoc.accountExpireAt) || udoc.banReason === ACCOUNT_EXPIRE_BAN_REASON) {
+                throw new AccountExpiredError();
+            }
+            throw new BlacklistedError(uname, udoc.banReason);
+        }
         await successfulAuth.call(this, udoc, redirect);
         this.session.save = rememberme;
     }
