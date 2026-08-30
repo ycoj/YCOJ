@@ -1196,6 +1196,7 @@ Your permission: 您的权限
 Your role: 您的角色
 Actions: 操作
 After submission, a super administrator will review your real name and school.: 提交后，老师将审核你的真实姓名与学校。
+After submission, you may use the site for seven days while a super administrator reviews your application.: 提交后七天内，你可以在老师审核期间继续使用本站。
 Approve: 通过
 Approved: 已通过
 Back to homepage: 返回首页
@@ -1207,7 +1208,7 @@ No real-name applications.: 暂无实名认证申请。
 Optional rejection reason: 拒绝原因（可选）
 Pending: 待审核
 Please complete real-name verification before using this site.: 请先完成实名认证后再使用本站功能。
-Please enter your legal name and school. A super administrator will review your application. You cannot use any site features until it is approved.: 请填写你的真实姓名与学校。老师审核通过前，你将无法使用本站的任何实际功能。
+Please enter your legal name and school. After you submit, you may use the site for seven days while a super administrator reviews your application. If review is still pending or not approved after seven days, access will be blocked.: 请填写你的真实姓名与学校。提交后七天内可暂时使用本站；若七天后仍未完成审核或审核未通过，将无法继续使用本站。
 Real Name: 真实姓名
 Real-name Verification: 实名认证
 Reject: 拒绝
@@ -1227,4 +1228,9 @@ You can now use the site normally.: 你现在可以正常使用本站功能。
 You may update a pending application if you entered something incorrectly.: 若填写有误，可在审核前更新已提交的申请。
 Your real-name verification has been approved.: 你的实名认证已通过。
 Your real-name verification is pending review.: 你的实名认证正在等待老师审核。
+Your real-name verification is pending review. You may use the site for seven days after submission.: 你的实名认证正在等待老师审核。提交后七天内你可以继续使用本站。
 Your real-name verification was rejected.: 你的实名认证未通过。
+Your real-name verification was rejected. Please resubmit before the seven-day grace period ends.: 你的实名认证未通过。请在七天宽限期内重新提交。
+'You may continue using the site until {0}.': 在 {0} 之前，你可以继续使用本站。
+The seven-day grace period has ended. Site access is blocked until a super administrator approves your application.: 七天宽限期已结束。在老师审核通过前，你将无法使用本站。
+The seven-day grace period has ended. Please resubmit to continue using this site.: 七天宽限期已结束。请重新提交认证后才能继续使用本站。

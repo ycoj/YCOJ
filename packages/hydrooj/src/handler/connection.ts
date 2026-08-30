@@ -1,6 +1,6 @@
 import { Context } from '../context';
 import { ForbiddenError } from '../error';
-import { isRealnameVerified } from '../lib/realname';
+import { hasRealnameAccess } from '../lib/realname';
 import { PRIV } from '../model/builtin';
 import SystemModel from '../model/system';
 import TokenModel from '../model/token';
@@ -79,7 +79,7 @@ class WebsocketEventsConnectionManagerHandler extends ConnectionHandler {
         const user = op === 'resume' ? null : await UserModel.getById('system', session?.uid || 0);
         for (const channel of payload.channels || []) {
             try {
-                if (!this.privileged && user?.hasPriv(PRIV.PRIV_USER_PROFILE) && !isRealnameVerified(user)) {
+                if (!this.privileged && user?.hasPriv(PRIV.PRIV_USER_PROFILE) && !hasRealnameAccess(user)) {
                     reject.push(channel);
                     continue;
                 }

@@ -12,7 +12,7 @@ import { errorMessage, Time } from '@hydrooj/utils';
 import { Context } from '../context';
 import { PermissionError, PrivilegeError, RealnameRequiredError } from '../error';
 import type { DomainDoc } from '../interface';
-import { getRealnameStatus, shouldBlockUnverifiedAccess } from '../lib/realname';
+import { nextRealnameRoute, shouldBlockUnverifiedAccess } from '../lib/realname';
 import { Logger } from '../logger';
 import { PERM, PRIV } from '../model/builtin';
 import * as opcount from '../model/opcount';
@@ -223,7 +223,7 @@ export async function apply(ctx: Context) {
                         },
                     });
                 } else if (error instanceof RealnameRequiredError) {
-                    this.response.redirect = this.url(getRealnameStatus(this.user) === 'none' ? 'home_realname' : 'home_realname_result');
+                    this.response.redirect = this.url(nextRealnameRoute(this.user));
                 } else if (!this.user._dudoc.join && error instanceof PermissionError) {
                     this.response.redirect = this.url('domain_join', {
                         domainId: 'system',

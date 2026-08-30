@@ -1,8 +1,9 @@
 import assert from 'assert';
 import { describe, it } from 'node:test';
 import {
-    canSubmitApplication, canTransition, getRealnameStatus, handlerAllowsUnverified,
-    isRealnameExempt, isRealnameVerified, nextRealnameRoute, parseRealnameFields,
+    canSubmitApplication, canTransition, getRealnameGraceUntil, getRealnameStatus, getRealnameSubmittedAt,
+    handlerAllowsUnverified, hasRealnameAccess, isRealnameExempt, isRealnameVerified,
+    isWithinRealnameGrace, nextRealnameRoute, parseRealnameFields, REALNAME_GRACE_MS,
     requiresRealname, reviewStatusFor, shouldBlockUnverifiedAccess,
 } from '../src/lib/realname';
 
@@ -13,11 +14,19 @@ const PRIV_JUDGE = 1 << 9;
 const PRIV_ALL = -1;
 const PRIV_DEFAULT = PRIV_USER_PROFILE + PRIV_CREATE_FILE + PRIV_SEND_MESSAGE;
 
+const now = new Date('2026-08-30T12:00:00.000Z');
+const withinGrace = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+const expired = new Date(now.getTime() - REALNAME_GRACE_MS - 1);
+
 const guest = { _id: 0, priv: 0 };
 const user = { _id: 2, priv: PRIV_DEFAULT, realnameStatus: 'none' };
 const pending = { ...user, realnameStatus: 'pending' };
+const pendingInGrace = { ...pending, realnameSubmittedAt: withinGrace };
+const pendingExpired = { ...pending, realnameSubmittedAt: expired };
 const approved = { ...user, realnameStatus: 'approved' };
 const rejected = { ...user, realnameStatus: 'rejected' };
+const rejectedInGrace = { ...rejected, realnameSubmittedAt: withinGrace };
+const rejectedExpired = { ...rejected, realnameSubmittedAt: expired };
 const superAdmin = { _id: 3, priv: PRIV_ALL, realnameStatus: 'none' };
 const judge = {
     _id: 4,
@@ -54,6 +63,7 @@ describe('realname status helpers', () => {
     it('requires verification only for logged-in unverified users', () => {
         assert.equal(requiresRealname(user), true);
         assert.equal(requiresRealname(pending), true);
+        assert.equal(requiresRealname(pendingInGrace), true);
         assert.equal(requiresRealname(rejected), true);
         assert.equal(requiresRealname(approved), false);
         assert.equal(requiresRealname(superAdmin), false);
@@ -71,11 +81,50 @@ describe('realname status helpers', () => {
 
 describe('realname access gate', () => {
     it('blocks unverified users from ordinary handlers', () => {
-        assert.equal(shouldBlockUnverifiedAccess(user, handler('Home')), true);
-        assert.equal(shouldBlockUnverifiedAccess(pending, handler('ProblemMain')), true);
-        assert.equal(shouldBlockUnverifiedAccess(approved, handler('Home')), false);
-        assert.equal(shouldBlockUnverifiedAccess(superAdmin, handler('Home')), false);
-        assert.equal(shouldBlockUnverifiedAccess(guest, handler('Home')), false);
+        assert.equal(shouldBlockUnverifiedAccess(user, handler('Home'), now), true);
+        assert.equal(shouldBlockUnverifiedAccess(pending, handler('ProblemMain'), now), true);
+        assert.equal(shouldBlockUnverifiedAccess(pendingExpired, handler('ProblemMain'), now), true);
+        assert.equal(shouldBlockUnverifiedAccess(rejectedExpired, handler('Home'), now), true);
+        assert.equal(shouldBlockUnverifiedAccess(approved, handler('Home'), now), false);
+        assert.equal(shouldBlockUnverifiedAccess(superAdmin, handler('Home'), now), false);
+        assert.equal(shouldBlockUnverifiedAccess(guest, handler('Home'), now), false);
+    });
+
+    it('allows pending and rejected users during the seven-day grace period', () => {
+        assert.equal(isWithinRealnameGrace(pendingInGrace, now), true);
+        assert.equal(isWithinRealnameGrace(rejectedInGrace, now), true);
+        assert.equal(isWithinRealnameGrace(pendingExpired, now), false);
+        assert.equal(isWithinRealnameGrace(rejectedExpired, now), false);
+        assert.equal(isWithinRealnameGrace(pending, now), false);
+        assert.equal(isWithinRealnameGrace(approved, now), false);
+        assert.equal(hasRealnameAccess(pendingInGrace, now), true);
+        assert.equal(hasRealnameAccess(rejectedInGrace, now), true);
+        assert.equal(hasRealnameAccess(pendingExpired, now), false);
+        assert.equal(shouldBlockUnverifiedAccess(pendingInGrace, handler('ProblemMain'), now), false);
+        assert.equal(shouldBlockUnverifiedAccess(rejectedInGrace, handler('Home'), now), false);
+        assert.equal(
+            getRealnameGraceUntil(pendingInGrace)?.getTime(),
+            withinGrace.getTime() + REALNAME_GRACE_MS,
+        );
+    });
+
+    it('falls back to the application submittedAt when the user field is missing', () => {
+        assert.equal(isWithinRealnameGrace(pending, now, withinGrace), true);
+        assert.equal(isWithinRealnameGrace(pending, now, expired), false);
+        assert.equal(isWithinRealnameGrace(rejected, now, withinGrace), true);
+        assert.equal(
+            getRealnameGraceUntil(pending, withinGrace)?.getTime(),
+            withinGrace.getTime() + REALNAME_GRACE_MS,
+        );
+        assert.equal(getRealnameSubmittedAt(pending, withinGrace)?.getTime(), withinGrace.getTime());
+        assert.equal(getRealnameSubmittedAt(pendingInGrace, now)?.getTime(), withinGrace.getTime());
+    });
+
+    it('ends the grace period at the seven-day boundary', () => {
+        const submittedAt = new Date(now.getTime() - REALNAME_GRACE_MS);
+        const atBoundary = { ...pending, realnameSubmittedAt: submittedAt };
+        assert.equal(isWithinRealnameGrace(atBoundary, now), false);
+        assert.equal(isWithinRealnameGrace(atBoundary, new Date(now.getTime() - 1)), true);
     });
 
     it('allows auth, realname, and utility handlers before approval', () => {
@@ -83,15 +132,16 @@ describe('realname access gate', () => {
             'UserLogin', 'UserLogout', 'UserRegister', 'HomeRealname',
             'HomeRealnameResult', 'HomeSecurity', 'Nav', 'SetTheme',
         ]) {
-            assert.equal(shouldBlockUnverifiedAccess(user, handler(name)), false, name);
+            assert.equal(shouldBlockUnverifiedAccess(user, handler(name, true), now), false, name);
         }
     });
 
     it('honors skipRealnameCheck on unknown handlers', () => {
-        assert.equal(shouldBlockUnverifiedAccess(user, handler('SomethingElse', true)), false);
-        assert.equal(shouldBlockUnverifiedAccess(user, handler('SomethingElse')), true);
-        assert.equal(shouldBlockUnverifiedAccess(user, handler('WebsocketEventsConnectionManager', true)), false);
-        assert.equal(handlerAllowsUnverified(handler('HomeRealname')), true);
+        assert.equal(shouldBlockUnverifiedAccess(user, handler('SomethingElse', true), now), false);
+        assert.equal(shouldBlockUnverifiedAccess(user, handler('SomethingElse'), now), true);
+        assert.equal(shouldBlockUnverifiedAccess(user, handler('WebsocketEventsConnectionManager', true), now), false);
+        assert.equal(handlerAllowsUnverified(handler('HomeRealname', true)), true);
+        assert.equal(handlerAllowsUnverified(handler('HomeRealname')), false);
     });
 });
 
@@ -130,9 +180,9 @@ describe('realname field validation', () => {
     });
 
     it('rejects too-short or too-long values', () => {
-        assert.throws(() => parseRealnameFields('A', 'School Name'), (e: any) => e.params[0] === 'realName');
-        assert.throws(() => parseRealnameFields('张三', 'X'), (e: any) => e.params[0] === 'school');
-        assert.throws(() => parseRealnameFields('张'.repeat(65), 'School Name'), (e: any) => e.params[0] === 'realName');
-        assert.throws(() => parseRealnameFields('张三', '学'.repeat(129)), (e: any) => e.params[0] === 'school');
+        assert.throws(() => parseRealnameFields('A', 'School Name'), (e: any) => e.params?.[0] === 'realName');
+        assert.throws(() => parseRealnameFields('张三', 'X'), (e: any) => e.params?.[0] === 'school');
+        assert.throws(() => parseRealnameFields('张'.repeat(65), 'School Name'), (e: any) => e.params?.[0] === 'realName');
+        assert.throws(() => parseRealnameFields('张三', '学'.repeat(129)), (e: any) => e.params?.[0] === 'school');
     });
 });
