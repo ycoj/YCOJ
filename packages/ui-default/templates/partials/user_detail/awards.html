@@ -1,0 +1,27 @@
+{% if (awardRecords and awardRecords.length) or isSelfProfile %}
+<li class="section__tab-item">
+  <h1 class="section__tab-title">{{ _('Awards') }}</h1>
+  <div class="section__tab-main">
+    {% if not awardRecords or not awardRecords.length %}
+      <div class="typo section__body">
+        <p>{{ _('No certified awards yet.') }}</p>
+        <p><a href="{{ url('home_award') }}" class="rounded primary button">{{ _('Award Certification') }}</a></p>
+      </div>
+    {% else %}
+      <div class="section__body no-padding">
+        {% set records = awardRecords %}
+        {% include "partials/award_records.html" %}
+      </div>
+      {% if handler.user.hasPriv(PRIV.PRIV_EDIT_SYSTEM) %}
+      <div class="section__body">
+        <form method="post" action="{{ url('manage_award') }}" onsubmit="return confirm({{ _('Confirm removing this award certification?')|json|safe }});">
+          <input type="hidden" name="uid" value="{{ udoc._id }}">
+          <input type="hidden" name="operation" value="unbind">
+          <button type="submit" class="rounded button">{{ _('Remove Certification') }}</button>
+        </form>
+      </div>
+      {% endif %}
+    {% endif %}
+  </div>
+</li>
+{% endif %}

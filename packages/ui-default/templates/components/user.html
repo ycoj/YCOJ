@@ -1,3 +1,13 @@
+{% macro ccf_hook(level) %}
+{% set _lv = level|default(0) %}
+{% if _lv >= 9 %}
+  <img class="ccf-hook ccf-hook--gold v-center" src="{{ UiContext.cdn_prefix }}img/ccf-hook-gold.png" width="16" height="16" alt="CCF {{ _lv }}" data-tooltip="CCF {{ _lv }}">
+{% elif _lv >= 6 %}
+  <img class="ccf-hook ccf-hook--blue v-center" src="{{ UiContext.cdn_prefix }}img/ccf-hook-blue.png" width="16" height="16" alt="CCF {{ _lv }}" data-tooltip="CCF {{ _lv }}">
+{% elif _lv >= 3 %}
+  <img class="ccf-hook ccf-hook--green v-center" src="{{ UiContext.cdn_prefix }}img/ccf-hook-green.png" width="16" height="16" alt="CCF {{ _lv }}" data-tooltip="CCF {{ _lv }}">
+{% endif %}
+{% endmacro %}
 {% macro render_inline(udoc, avatar=true, badge=true, modbadge=true, levelbadge=true) %}
 {% if udoc %}
 <span class="user-profile-link">
@@ -11,6 +21,7 @@
       {{ udoc.uname }}
     {% endif %}
   </a>
+  {{ ccf_hook(udoc.ccfLevel) }}
   {% if badge %}
     {% if udoc.badge %}
       {% set _badge = udoc.badge.split('#') %}

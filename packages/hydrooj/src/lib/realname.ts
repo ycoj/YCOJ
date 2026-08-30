@@ -1,5 +1,5 @@
 import { PRIV } from '@hydrooj/common';
-import { ValidationError } from '../error';
+import { AwardNotBoundError, ValidationError } from '../error';
 
 export const REALNAME_STATUSES = ['pending', 'approved', 'rejected'] as const;
 export type RealnameStatus = typeof REALNAME_STATUSES[number];
@@ -184,4 +184,23 @@ export function parseRealnameFields(realName: string, school: string) {
         throw new ValidationError('school');
     }
     return { realName: name, school: schoolName };
+}
+
+export async function unbindAwardsOrRollback(
+    uid: number,
+    rollback: () => Promise<void>,
+    unbindByUid: (uid: number) => Promise<unknown>,
+    restoreAwards: () => Promise<void> = async () => undefined,
+) {
+    try {
+        await unbindByUid(uid);
+    } catch (e) {
+        if (e instanceof AwardNotBoundError) return;
+        try {
+            await restoreAwards();
+        } finally {
+            await rollback();
+        }
+        throw e;
+    }
 }

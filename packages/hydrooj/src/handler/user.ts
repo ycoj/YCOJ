@@ -23,6 +23,7 @@ import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as checkin from '../model/checkin';
 import * as ContestModel from '../model/contest';
 import domain from '../model/domain';
+import * as oier from '../model/oier';
 import * as oplog from '../model/oplog';
 import problem, { ProblemDoc } from '../model/problem';
 import ScheduleModel from '../model/schedule';
@@ -458,6 +459,7 @@ class UserDetailHandler extends Handler {
         this.response.template = 'user_detail.html';
         this.response.body = {
             isSelfProfile, udoc, sdoc, pdocs, tags, tdocs,
+            awardRecords: udoc.oierId ? await oier.getRecords(udoc.oierId) : [],
             checkinHistory: {
                 timezone: CHECKIN_TIMEZONE,
                 from: checkinData.from,

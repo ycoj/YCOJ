@@ -1,0 +1,40 @@
+{% import "components/nothing.html" as nothing with context %}
+{% if not records.length %}
+  {{ nothing.render(empty_text or 'No certified awards.') }}
+{% else %}
+<table class="data-table">
+  <colgroup>
+    <col class="col--contest">
+    <col class="col--award">
+    <col class="col--score">
+    <col class="col--rank">
+    <col class="col--school">
+    <col class="col--province">
+    <col class="col--grade">
+  </colgroup>
+  <thead>
+    <tr>
+      <th class="col--contest">{{ _('Contest') }}</th>
+      <th class="col--award">{{ _('Award') }}</th>
+      <th class="col--score">{{ _('Score') }}</th>
+      <th class="col--rank">{{ _('Rank') }}</th>
+      <th class="col--school">{{ _('School') }}</th>
+      <th class="col--province">{{ _('Province') }}</th>
+      <th class="col--grade">{{ _('Grade') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {%- for rec in records -%}
+    <tr>
+      <td class="col--contest">{{ rec.contestName }}</td>
+      <td class="col--award">{{ rec.award }}</td>
+      <td class="col--score">{% if rec.score is not none %}{{ rec.score }}{% else %}—{% endif %}</td>
+      <td class="col--rank">{{ rec.rank }}</td>
+      <td class="col--school">{{ rec.school }}</td>
+      <td class="col--province">{{ rec.province }}</td>
+      <td class="col--grade">{{ rec.grade }}</td>
+    </tr>
+    {%- endfor -%}
+  </tbody>
+</table>
+{% endif %}

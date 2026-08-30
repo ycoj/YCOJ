@@ -329,6 +329,7 @@ home_messages: 메시지
 home_preference: 설정
 home_realname: 실명 인증
 home_realname_result: 인증 결과
+home_award: 수상 인증
 home_security: 보안
 homepage: 홈
 Homework Introduction: 과제 안내
@@ -408,6 +409,7 @@ manage_module: 모듈 관리
 manage_script: 스크립트 관리
 manage_setting: 설정 관리
 manage_realname: 실명 인증 관리
+manage_award: 수상 인증
 manage_user_import: 사용자 불러오기
 manage: 관리
 Manage: 관리
@@ -844,3 +846,27 @@ Pastes per page: 페이지당 공유 기록 수
 No pastes yet: 공유 기록이 없습니다
 Expires: 만료
 Optional title: 선택 제목
+Award Certification: 수상 인증
+Award certification requires an approved real-name verification.: 수상 인증을 하려면 실명 인증이 승인되어야 합니다.
+These awards are bound to your verified name. Contact an administrator if they need to be removed.: 이 수상 기록은 인증된 실명에 연결되어 있습니다. 제거가 필요하면 관리자에게 문의하세요.
+CCF Level: CCF 등급
+Latest School: 최근 학교
+'Matching contestants named {0} from {1}.': '{1}의 {0} 이름으로 선수를 찾는 중입니다.'
+your verified school: 인증된 학교
+Show same-name contestants from other schools: 다른 학교의 동명 선수 표시
+No matching contestants were found in the award database.: 수상 데이터베이스에서 일치하는 선수를 찾지 못했습니다.
+Already certified: 이미 인증됨
+Bind Awards: 수상 기록 연결
+Remove Certification: 인증 제거
+No certified awards.: 인증된 수상 기록이 없습니다.
+No certified awards yet.: 아직 인증된 수상 기록이 없습니다.
+Confirm removing this award certification?: 이 계정의 수상 인증을 제거할까요?
+Award: 상
+Province: 성/직할시
+Grade: 학년
+Schools: 학교
+This account already has certified awards. Ask an administrator to remove them first.: 이 계정에는 이미 인증된 수상 기록이 있습니다. 변경하려면 관리자에게 먼저 제거를 요청하세요.
+These awards are already certified to another account.: 이 수상 기록은 이미 다른 계정에 인증되어 있습니다.
+The selected contestant name does not match your verified real name.: 선택한 선수 이름이 인증된 실명과 일치하지 않습니다.
+This account has no certified awards.: 이 계정에는 인증된 수상 기록이 없습니다.
+'Contestant {0} not found.': '선수 {0}을(를) 찾을 수 없습니다.'

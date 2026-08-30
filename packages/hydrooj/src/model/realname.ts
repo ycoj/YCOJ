@@ -7,9 +7,10 @@ import {
 import type { RealnameApplication, RealnameStatus } from '../interface';
 import {
     asDate, buildLatestRealnameListPipeline, parseRealnameFields, REALNAME_TRANSITIONS,
-    RealnameReviewAction, RealnameUserStatus,
+    RealnameReviewAction, RealnameUserStatus, unbindAwardsOrRollback,
 } from '../lib/realname';
 import db from '../service/db';
+import * as oier from './oier';
 import user from './user';
 
 declare module '../service/db' {
@@ -126,6 +127,23 @@ export async function review(id: ObjectId, reviewer: number, action: RealnameRev
     if (!result.modifiedCount) throw new RealnameInvalidTransitionError();
     const fields = { realName: doc.realName, school: doc.school };
     await syncUser(doc.uid, status, fields);
+    if (action === 'revoke') {
+        const bound = await oier.getByUid(doc.uid);
+        await unbindAwardsOrRollback(doc.uid, async () => {
+            await coll.updateOne({ _id: id }, {
+                $set: {
+                    status: doc.status,
+                    reviewedAt: doc.reviewedAt,
+                    reviewedBy: doc.reviewedBy,
+                    rejectReason: doc.rejectReason,
+                    updatedAt: doc.updatedAt,
+                },
+            });
+            await syncUser(doc.uid, doc.status, fields);
+        }, oier.unbindByUid, async () => {
+            if (bound) await oier.restoreUidIfUnbound(bound._id, doc.uid);
+        });
+    }
     return { ...doc, ...$set };
 }
 
