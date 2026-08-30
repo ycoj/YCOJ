@@ -1,10 +1,10 @@
-import { ObjectId } from 'mongodb';
+import { type Filter, ObjectId } from 'mongodb';
 import { Context } from '../context';
 import type { RealnameApplication } from '../interface';
 import {
     getRealnameGraceUntil, getRealnameStatus, getRealnameSubmittedAt, isSuperAdmin,
-    isWithinRealnameGrace, requiresRealname,
-    type RealnameUserLike,
+    isWithinRealnameGrace, type RealnameUserLike,
+    requiresRealname,
 } from '../lib/realname';
 import { PRIV } from '../model/builtin';
 import * as realname from '../model/realname';
@@ -91,8 +91,16 @@ class SystemRealnameHandler extends Handler {
 
     @param('page', Types.PositiveInt, true)
     @param('status', Types.Range(['all', 'pending', 'approved', 'rejected']), true)
-    async get({ }, page = 1, status = 'pending') {
-        const query = status === 'all' ? {} : { status } as { status: 'pending' | 'approved' | 'rejected' };
+    @param('uname', Types.String, true)
+    async get(
+        { }, page = 1,
+        status: 'all' | RealnameApplication['status'] = 'pending', uname = '',
+    ) {
+        const query: Filter<RealnameApplication> = status === 'all' ? {} : { status };
+        uname = uname.trim();
+        if (uname) {
+            query.uid = { $in: await user.getUidsByUnameSubstring(uname) };
+        }
         const [rdocs, numPages, count] = await this.paginate(
             realname.getMulti(query).sort({ submittedAt: -1 }),
             page,
@@ -111,6 +119,7 @@ class SystemRealnameHandler extends Handler {
             numPages,
             count,
             filterStatus: status,
+            filterUname: uname,
         };
     }
 

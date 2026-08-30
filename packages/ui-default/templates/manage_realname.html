@@ -8,12 +8,14 @@
     <h1 class="section__title">{{ _('manage_realname') }}</h1>
     <div class="section__tools">
       <form method="get">
+        <input class="inline compact textbox" name="uname" type="search" value="{{ filterUname }}" placeholder="{{ _('Username') }}" autocomplete="off">
         <select class="inline compact select" name="status" onchange="this.form.submit()">
           <option value="pending" {% if filterStatus == 'pending' %}selected{% endif %}>{{ _('Pending') }}</option>
           <option value="approved" {% if filterStatus == 'approved' %}selected{% endif %}>{{ _('Approved') }}</option>
           <option value="rejected" {% if filterStatus == 'rejected' %}selected{% endif %}>{{ _('Rejected') }}</option>
           <option value="all" {% if filterStatus == 'all' %}selected{% endif %}>{{ _('All') }}</option>
         </select>
+        <button type="submit" class="inline compact primary button"><span class="icon icon-search"></span> {{ _('Search') }}</button>
       </form>
     </div>
   </div>
@@ -78,7 +80,7 @@
   </div>
   {% if numPages > 1 %}
   <div class="section__body">
-    {{ paginator.render(page, numPages, add_qs='status=' + filterStatus) }}
+    {{ paginator.render(page, numPages, add_qs=utils.buildQueryString(status=filterStatus, uname=filterUname)) }}
   </div>
   {% endif %}
 </div>
