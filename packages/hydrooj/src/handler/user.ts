@@ -126,6 +126,7 @@ class UserSudoHandler extends Handler {
     async get() {
         if (!this.session.sudoArgs?.method) throw new ForbiddenError();
         this.response.template = 'user_sudo.html';
+        this.response.body = { authn: this.user.authn, tfa: this.user.tfa };
     }
 
     @param('password', Types.String, true)
