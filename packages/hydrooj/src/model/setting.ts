@@ -270,6 +270,9 @@ AccountSetting(
     Setting('setting_storage', 'badge', '', 'text', 'badge info', null, FLAG_DISABLED | FLAG_HIDDEN | FLAG_PUBLIC),
     Setting('setting_storage', 'banReason', '', 'text', 'ban reason', null, FLAG_DISABLED | FLAG_HIDDEN),
     Setting('setting_storage', 'pinnedDomains', [], 'json', 'pinned domains', null, FLAG_DISABLED | FLAG_HIDDEN),
+    Setting('setting_storage', 'realName', '', 'text', 'Real Name', null, FLAG_DISABLED | FLAG_HIDDEN | FLAG_PRIVATE),
+    Setting('setting_storage', 'realnameSchool', '', 'text', 'Verified School', null, FLAG_DISABLED | FLAG_HIDDEN | FLAG_PRIVATE),
+    Setting('setting_storage', 'realnameStatus', 'none', 'text', 'Realname Status', null, FLAG_DISABLED | FLAG_HIDDEN),
 );
 
 DomainSetting(
@@ -376,6 +379,7 @@ SystemSetting(
     Setting('setting_basic', 'pagination.solution', 20, 'number', 'pagination.solution', 'Solutions per page'),
     Setting('setting_basic', 'pagination.training', 10, 'number', 'pagination.training', 'Trainings per page'),
     Setting('setting_basic', 'pagination.reply', 50, 'number', 'pagination.reply', 'Replies per page'),
+    Setting('setting_basic', 'pagination.realname', 50, 'number', 'pagination.realname', 'Real-name applications per page'),
     Setting('setting_basic', 'pagination.paste', 20, 'number', 'pagination.paste', 'Pastes per page'),
     Setting('setting_basic', 'hydrooj.homepage', settingFile.homepage.default, 'yaml', 'hydrooj.homepage', 'Homepage config'),
     Setting('setting_basic', 'hydrooj.langs', settingFile.langs.default, 'yaml', 'hydrooj.langs', 'Language config'),

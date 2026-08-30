@@ -10,6 +10,7 @@ import user from '../model/user';
 import { Handler, param, Types } from '../service/server';
 
 export class NavHandler extends Handler {
+    skipRealnameCheck = true;
     async get({ domainId }) {
         this.response.body.navItems = global.Hydro.ui.getNodes('Nav').filter((x) => x.checker(this));
         this.response.body.user = await user.getById(domainId, this.user._id);

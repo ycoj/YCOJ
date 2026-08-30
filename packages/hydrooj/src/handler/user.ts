@@ -14,6 +14,7 @@ import {
 import { TokenDoc, Udoc, User } from '../interface';
 import avatar from '../lib/avatar';
 import { CHECKIN_TIMEZONE, toCheckinRecord } from '../lib/checkin';
+import { getRealnameStatus, requiresRealname } from '../lib/realname';
 import { sendMail } from '../lib/mail';
 import { verifyTFA } from '../lib/verifyTFA';
 import BlackListModel from '../model/blacklist';
@@ -32,7 +33,7 @@ import {
     Handler, param, post, Query, Types,
 } from '../service/server';
 
-async function successfulAuth(this: Handler, udoc: User) {
+async function successfulAuth(this: Handler, udoc: User, redirect = '') {
     if (udoc._id !== 0) {
         await this.ctx.serial('auth/before-login', this, udoc);
         await user.setById(udoc._id, { loginat: new Date(), loginip: this.request.ip });
@@ -48,11 +49,16 @@ async function successfulAuth(this: Handler, udoc: User) {
     if (udoc._id !== 0) {
         await oplog.log(this, 'user.loginSuccess', { uid: udoc._id });
         await this.ctx.serial('auth/login', this, udoc);
+        this.response.redirect = requiresRealname(udoc)
+            ? this.url(getRealnameStatus(udoc) === 'none' ? 'home_realname' : 'home_realname_result')
+            : (redirect || ((this.request.referer || '/login').endsWith('/login')
+                ? this.url('homepage') : this.request.referer));
     }
 }
 
 class UserLoginHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
 
     @param('redirect', Types.String, true)
     async get(domainId: string, redirect: string = '') {
@@ -104,14 +110,14 @@ class UserLoginHandler extends Handler {
         }
         await udoc.checkPassword(password);
         if (!udoc.hasPriv(PRIV.PRIV_USER_PROFILE)) throw new BlacklistedError(uname, udoc.banReason);
-        await successfulAuth.call(this, udoc);
+        await successfulAuth.call(this, udoc, redirect);
         this.session.save = rememberme;
-        this.response.redirect = redirect || ((this.request.referer || '/login').endsWith('/login')
-            ? this.url('homepage') : this.request.referer);
     }
 }
 
 class UserSudoHandler extends Handler {
+    skipRealnameCheck = true;
+
     async get() {
         if (!this.session.sudoArgs?.method) throw new ForbiddenError();
         this.response.template = 'user_sudo.html';
@@ -145,6 +151,7 @@ class UserSudoHandler extends Handler {
 
 class UserTFAHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
 
     @param('q', Types.String)
     async get({ }, q: string) {
@@ -157,6 +164,7 @@ class UserTFAHandler extends Handler {
 
 class UserWebauthnHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
 
     getAuthnHost() {
         return system.get('authn.host') && this.request.hostname.includes(system.get('authn.host'))
@@ -217,10 +225,9 @@ class UserWebauthnHandler extends Handler {
         authenticator.counter = verification.authenticationInfo.newCounter;
         await user.setById(udoc._id, { authenticators: udoc._authenticators });
         if (tdoc.uid === 'login') {
-            await successfulAuth.call(this, await user.getById(domainId, udoc._id));
+            const loggedIn = await user.getById(domainId, udoc._id);
+            await successfulAuth.call(this, loggedIn, redirect);
             await token.del(challenge, token.TYPE_WEBAUTHN);
-            this.response.redirect = redirect || ((this.request.referer || '/login').endsWith('/login')
-                ? this.url('homepage') : this.request.referer);
         } else {
             await token.update(challenge, token.TYPE_WEBAUTHN, 60, { verified: true });
             this.back();
@@ -230,6 +237,7 @@ class UserWebauthnHandler extends Handler {
 
 class UserLogoutHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
 
     async get() {
         this.response.template = 'user_logout.html';
@@ -244,6 +252,7 @@ class UserLogoutHandler extends Handler {
 // rename to RegisterSendMailHandler
 export class UserRegisterHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
     async prepare() {
         if (!system.get('server.login')) throw new BuiltinLoginError();
     }
@@ -292,6 +301,7 @@ export class UserRegisterHandler extends Handler {
 
 class UserRegisterWithCodeHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
     tdoc: TokenDoc;
 
     @param('code', Types.String)
@@ -335,13 +345,14 @@ class UserRegisterWithCodeHandler extends Handler {
         if (Object.keys($set).length) await user.setById(uid, $set);
         if (Object.keys(this.tdoc.setInDomain || {}).length) await domain.setUserInDomain(domainId, uid, this.tdoc.setInDomain);
         await this.ctx.oauth.set(this.tdoc.identity.platform, this.tdoc.identity.id, uid);
-        await successfulAuth.call(this, await user.getById(domainId, uid));
-        this.response.redirect = this.tdoc.redirect || this.url('home_settings', { category: 'preference' });
+        const created = await user.getById(domainId, uid);
+        await successfulAuth.call(this, created, this.tdoc.redirect || this.url('home_settings', { category: 'preference' }));
     }
 }
 
 class UserLostPassHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
 
     async get() {
         this.response.template = 'user_lostpass.html';
@@ -377,6 +388,7 @@ class UserLostPassHandler extends Handler {
 
 class UserLostPassWithCodeHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
 
     async get({ domainId, code }) {
         const tdoc = await token.get(code, token.TYPE_LOSTPASS);
@@ -474,6 +486,7 @@ class UserDeleteHandler extends Handler {
 
 class OauthHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
 
     @param('type', Types.Key)
     @param('redirect', Types.String, true)
@@ -485,6 +498,7 @@ class OauthHandler extends Handler {
 
 class OauthCallbackHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
 
     async get(args: any) {
         const provider = this.ctx.oauth.providers[args.type];
@@ -505,16 +519,15 @@ class OauthCallbackHandler extends Handler {
         }
         const effective = existing.find((i) => i);
         if (effective) {
-            await successfulAuth.call(this, await user.getById('system', effective));
-            this.response.redirect = this.session.oauthRedirect || this.url('homepage');
+            const bound = await user.getById('system', effective);
+            await successfulAuth.call(this, bound, this.session.oauthRedirect || this.url('homepage'));
             delete this.session.oauthRedirect;
             return;
         }
         const udoc = await user.getByEmail('system', r.email);
         if (udoc) {
             await Promise.all(ids.map((i) => this.ctx.oauth.set(args.type, i, udoc._id)));
-            await successfulAuth.call(this, udoc);
-            this.response.redirect = this.session.oauthRedirect || this.url('homepage');
+            await successfulAuth.call(this, udoc, this.session.oauthRedirect || this.url('homepage'));
             delete this.session.oauthRedirect;
             return;
         }

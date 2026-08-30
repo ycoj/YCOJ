@@ -10,6 +10,7 @@ import { TemplateService } from './backendlib/template';
 
 class WikiHelpHandler extends Handler {
   noCheckPermView = true;
+  skipRealnameCheck = true;
 
   async get() {
     this.response.template = 'wiki_help.html';
@@ -18,6 +19,7 @@ class WikiHelpHandler extends Handler {
 
 class WikiAboutHandler extends Handler {
   noCheckPermView = true;
+  skipRealnameCheck = true;
 
   async get() {
     let raw = SystemModel.get('ui-default.about') || '';
@@ -42,6 +44,7 @@ class WikiAboutHandler extends Handler {
 
 class SetThemeHandler extends Handler {
   noCheckPermView = true;
+  skipRealnameCheck = true;
 
   async get({ theme }) {
     this.checkPriv(PRIV.PRIV_USER_PROFILE);
@@ -52,6 +55,7 @@ class SetThemeHandler extends Handler {
 
 class LegacyModeHandler extends Handler {
   noCheckPermView = true;
+  skipRealnameCheck = true;
 
   @param('legacy', Types.Boolean)
   @param('nohint', Types.Boolean)
@@ -64,6 +68,7 @@ class LegacyModeHandler extends Handler {
 
 class MarkdownHandler extends Handler {
   noCheckPermView = true;
+  skipRealnameCheck = true;
 
   async post({ text, inline = false }) {
     this.response.body = inline

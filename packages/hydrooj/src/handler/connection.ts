@@ -1,5 +1,7 @@
 import { Context } from '../context';
 import { ForbiddenError } from '../error';
+import { isRealnameVerified } from '../lib/realname';
+import { PRIV } from '../model/builtin';
 import SystemModel from '../model/system';
 import TokenModel from '../model/token';
 import UserModel from '../model/user';
@@ -10,6 +12,7 @@ const logger = new Logger('connection');
 
 class WebsocketEventsConnectionManagerHandler extends ConnectionHandler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
     category = '#gateway';
     private id = Math.random().toString(16).substring(2);
     private privileged = false;
@@ -67,7 +70,7 @@ class WebsocketEventsConnectionManagerHandler extends ConnectionHandler {
         const reject = [];
         const session = payload.credential
             ? await TokenModel.get(payload.credential, TokenModel.TYPE_SESSION)
-            : null;
+            : this.session;
         const op = payload.operation || '';
         if (op === 'resume' && !this.privileged) {
             this.send({ operation: 'resume_failed' });
@@ -76,6 +79,10 @@ class WebsocketEventsConnectionManagerHandler extends ConnectionHandler {
         const user = op === 'resume' ? null : await UserModel.getById('system', session?.uid || 0);
         for (const channel of payload.channels || []) {
             try {
+                if (!this.privileged && user?.hasPriv(PRIV.PRIV_USER_PROFILE) && !isRealnameVerified(user)) {
+                    reject.push(channel);
+                    continue;
+                }
                 const result = op === 'resume'
                     ? { ok: true, channel }
                     // eslint-disable-next-line no-await-in-loop

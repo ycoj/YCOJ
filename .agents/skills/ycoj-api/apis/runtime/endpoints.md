@@ -20,7 +20,7 @@ Use multipart upload. `type UploadFields={operation:"uploadFile";filename:string
 
 ### GET — signed download redirect
 
-`type FilePath={uid:number;filename:string}; type FileQuery={noDisposition?:boolean}`; example `GET /file/12/notes.txt?noDisposition=false`. Response is `302` to signed object storage with `Cache-Control: public`, or logical `Redirect` example `{"url":"https://storage.example/…"}`. Filename is validated and missing/invalid storage paths are not found.
+`type FilePath={uid:number;filename:string}; type FileQuery={noDisposition?:boolean}`; example `GET /file/12/notes.txt?noDisposition=false`. Response is `302` to signed object storage with `Cache-Control: public`, or logical `Redirect` example `{"url":"https://storage.example/…"}`. Requires an authenticated, real-name-verified (or exempt) user who owns `uid` and has `filename` in their file list; filename is validated and missing/invalid storage paths are not found.
 
 ## `/storage`
 

@@ -1,0 +1,31 @@
+.realname-result
+  padding: rem(8px 0 16px)
+
+  &__title
+    margin: rem(12px) 0 rem(6px)
+    font-size: 1.15rem
+
+  &__desc
+    margin: 0
+    color: $text-2-color
+
+.realname-status
+  font-size: rem($font-size-small)
+  display: inline-block
+  line-height: rem(22px)
+  padding: rem(0 10px)
+  vertical-align: middle
+  border-radius: rem(12px)
+  color: #FFF
+
+  .icon
+    margin-right: rem(5px)
+
+.realname-status--pending
+  background: orange
+
+.realname-status--approved
+  background: $success-color
+
+.realname-status--rejected
+  background: $fail-color

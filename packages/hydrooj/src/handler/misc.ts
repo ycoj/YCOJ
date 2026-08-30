@@ -19,6 +19,7 @@ import { sortFiles } from '../utils';
 
 class SwitchLanguageHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
 
     @param('lang', Types.Name)
     async get(domainId: string, lang: string) {
@@ -93,6 +94,9 @@ export class FSDownloadHandler extends Handler {
     @param('filename', Types.Filename)
     @param('noDisposition', Types.Boolean)
     async get(domainId: string, uid: number, filename: string, noDisposition = false) {
+        if (uid !== this.user._id || !this.user._files?.some((file) => file.name === filename)) {
+            throw new AccessDeniedError();
+        }
         const target = `user/${uid}/${filename}`;
         const file = await storage.getMeta(target);
         await oplog.log(this, 'download.file.user', {
@@ -113,6 +117,7 @@ export class FSDownloadHandler extends Handler {
 
 export class StorageHandler extends Handler {
     noCheckPermView = true;
+    skipRealnameCheck = true;
     notUsage = true;
 
     @param('target', Types.Name)

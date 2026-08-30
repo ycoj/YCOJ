@@ -200,6 +200,22 @@ export interface CheckinRecord {
     };
 }
 
+import type { RealnameStatus } from './lib/realname';
+export type { RealnameStatus } from './lib/realname';
+
+export interface RealnameApplication {
+    _id: ObjectId;
+    uid: number;
+    realName: string;
+    school: string;
+    status: RealnameStatus;
+    submittedAt: Date;
+    updatedAt: Date;
+    reviewedAt?: Date;
+    reviewedBy?: number;
+    rejectReason?: string;
+}
+
 declare module './model/problem' {
     interface ProblemDoc {
         docType: document['TYPE_PROBLEM'];
@@ -710,6 +726,7 @@ export interface Model {
     blacklist: typeof import('./model/blacklist').default;
     builtin: typeof import('./model/builtin');
     checkin: typeof import('./model/checkin');
+    realname: typeof import('./model/realname');
     contest: typeof import('./model/contest');
     discussion: typeof import('./model/discussion');
     document: Omit<typeof import('./model/document'), 'apply'>;

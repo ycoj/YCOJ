@@ -23,6 +23,22 @@ export const AlreadyVotedError = Err('AlreadyVotedError', ForbiddenError, "You'v
 export const BuiltinLoginError = Err('BuiltinLoginError', ForbiddenError, 'Builtin login is disabled.');
 export const LoginError = Err('LoginError', ForbiddenError, 'Invalid password for user {0}.');
 export const AccessDeniedError = Err('AccessDeniedError', ForbiddenError, 'Access denied.');
+export const RealnameRequiredError = Err(
+    'RealnameRequiredError', ForbiddenError,
+    'Real-name verification is required before using this site.',
+);
+export const RealnameAlreadyApprovedError = Err(
+    'RealnameAlreadyApprovedError', ForbiddenError,
+    'Your real-name verification has already been approved.',
+);
+export const RealnameNotPendingError = Err(
+    'RealnameNotPendingError', BadRequestError,
+    'This application is not pending review.',
+);
+export const RealnameInvalidTransitionError = Err(
+    'RealnameInvalidTransitionError', BadRequestError,
+    'Invalid real-name application transition.',
+);
 export const UserAlreadyExistError = Err('UserAlreadyExistError', ForbiddenError, 'User {0} already exists.');
 export const InvalidTokenError = Err('InvalidTokenError', ForbiddenError, 'The {0} Token is invalid.');
 export const BlacklistedError = Err('BlacklistedError', ForbiddenError, 'Address or user {0} is blacklisted.');
@@ -78,6 +94,10 @@ export const ProblemIsReferencedError = Err('ProblemIsReferencedError', BadReque
 export const AuthOperationError = Err('AuthOperationError', BadRequestError, '{0} is already {1}.');
 
 export const UserNotFoundError = Err('UserNotFoundError', NotFoundError, 'User {0} not found.');
+export const RealnameApplicationNotFoundError = Err(
+    'RealnameApplicationNotFoundError', NotFoundError,
+    'Real-name application {0} not found.',
+);
 export const NoProblemError = Err('NoProblemError', NotFoundError, 'No problem.');
 export const RecordNotFoundError = Err('RecordNotFoundError', NotFoundError, 'Record {0} not found.');
 export const ProblemDataNotFoundError = Err('ProblemDataNotFoundError', NotFoundError, 'Data of problem {0} not found.');

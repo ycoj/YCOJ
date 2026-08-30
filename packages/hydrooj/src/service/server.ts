@@ -10,7 +10,8 @@ import {
 } from '@hydrooj/framework';
 import { errorMessage, Time } from '@hydrooj/utils';
 import { Context } from '../context';
-import { PermissionError, PrivilegeError } from '../error';
+import { PermissionError, PrivilegeError, RealnameRequiredError } from '../error';
+import { getRealnameStatus, shouldBlockUnverifiedAccess } from '../lib/realname';
 import type { DomainDoc } from '../interface';
 import { Logger } from '../logger';
 import { PERM, PRIV } from '../model/builtin';
@@ -78,9 +79,11 @@ export function requireSudo(target: any, funcName: string, obj: any) {
 
 export class Handler extends HandlerOriginal {
     domain: DomainDoc;
+    skipRealnameCheck?: boolean;
 }
 export class ConnectionHandler extends ConnectionHandlerOriginal {
     domain: DomainDoc;
+    skipRealnameCheck?: boolean;
 }
 
 export async function apply(ctx: Context) {
@@ -208,7 +211,7 @@ export async function apply(ctx: Context) {
             async onerror(error: HydroError) {
                 error.msg ||= () => error.message;
                 if (error instanceof UserFacingError && !process.env.DEV) error.stack = '';
-                if (!(error instanceof NotFoundError) && !('nolog' in error)) {
+                if (!(error instanceof NotFoundError) && !(error instanceof RealnameRequiredError) && !('nolog' in error)) {
                     // eslint-disable-next-line max-len
                     logger.error(`User: ${this.user._id}(${this.user.uname}) ${this.request.method}: /d/${this.domain._id}${this.request.path}`, error.msg(), error.params);
                     if (error.stack) logger.error(error.stack);
@@ -219,6 +222,8 @@ export async function apply(ctx: Context) {
                             redirect: (this.context.originalPath || this.request.path) + this.context.search,
                         },
                     });
+                } else if (error instanceof RealnameRequiredError) {
+                    this.response.redirect = this.url(getRealnameStatus(this.user) === 'none' ? 'home_realname' : 'home_realname_result');
                 } else if (!this.user._dudoc.join && error instanceof PermissionError) {
                     this.response.redirect = this.url('domain_join', {
                         domainId: 'system',
@@ -243,7 +248,9 @@ export async function apply(ctx: Context) {
         });
         server.wsHandlerMixin({
             async onerror(err: HydroError) {
-                if (![NotFoundError, PrivilegeError, PermissionError].some((i) => err instanceof i) || this.user?._id !== 0) {
+                const guestExpected = [NotFoundError, PrivilegeError, PermissionError].some((i) => err instanceof i)
+                    && this.user?._id === 0;
+                if (!guestExpected && !(err instanceof RealnameRequiredError)) {
                     const msg = 'msg' in err ? err.msg() : (err as any)?.message || '';
                     logger.error(`Path:${this.request.path}, User:${this.user?._id}(${this.user?.uname})`, msg, err.params);
                     logger.error(err);
@@ -276,6 +283,7 @@ export async function apply(ctx: Context) {
                     text: v.text,
                     name: v.name,
                 }));
+            if (shouldBlockUnverifiedAccess(h.user, h)) throw new RealnameRequiredError();
             if ((!('noCheckPermView' in h) || !h.noCheckPermView) && !h.user.hasPriv(PRIV.PRIV_VIEW_ALL_DOMAIN)) h.checkPerm(PERM.PERM_VIEW);
             if (h.context.pendingError) throw h.context.pendingError;
         });

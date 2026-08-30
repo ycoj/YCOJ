@@ -1168,3 +1168,37 @@ Your browser does not support WebAuthn or you are not in secure context.: 您的
 Your Device: 你的裝置
 Your permission: 您的許可權
 Your role: 您的身分組
+Actions: 操作
+After submission, a super administrator will review your real name and school.: 提交後，老師將審核你的真實姓名與學校。
+Approve: 通過
+Approved: 已通過
+Back to homepage: 返回首頁
+Confirm approving this application?: 確認通過該申請？
+Confirm rejecting this application?: 確認拒絕該申請？
+Confirm revoking this approved application? The user will lose access until they pass review again.: 確認撤銷該已通過的申請？使用者將失去站點使用權，直至再次通過審核。
+'Full official school name. 2–128 characters.': 請填寫學校全稱，2–128 個字元。
+No real-name applications.: 暫無實名認證申請。
+Optional rejection reason: 拒絕原因（可選）
+Pending: 待審核
+Please complete real-name verification before using this site.: 請先完成實名認證後再使用本站功能。
+Please enter your legal name and school. A super administrator will review your application. You cannot use any site features until it is approved.: 請填寫你的真實姓名與學校。老師審核通過前，你將無法使用本站的任何實際功能。
+Real Name: 真實姓名
+Real-name Verification: 實名認證
+Reject: 拒絕
+Rejected: 已拒絕
+Rejected applications can be corrected and submitted again.: 被拒絕的申請可以修改後再次提交。
+Rejection Reason: 拒絕原因
+Resubmit: 重新提交
+Reviewed At: 審核時間
+Revoke: 撤銷
+Submit Verification: 提交認證
+Submitted At: 提交時間
+Update Verification: 更新認證
+'Use your legal name. 2–64 characters.': 請填寫法定姓名，2–64 個字元。
+Verification Result: 認證結果
+You are a super administrator and do not need real-name verification.: 你是老師，無需進行實名認證。
+You can now use the site normally.: 你現在可以正常使用本站功能。
+You may update a pending application if you entered something incorrectly.: 若填寫有誤，可在審核前更新已提交的申請。
+Your real-name verification has been approved.: 你的實名認證已通過。
+Your real-name verification is pending review.: 你的實名認證正在等待老師審核。
+Your real-name verification was rejected.: 你的實名認證未通過。

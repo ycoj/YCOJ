@@ -153,6 +153,7 @@ export async function buildUI() {
 
 class UiConstantsHandler extends Handler {
   noCheckPermView = true;
+  skipRealnameCheck = true;
 
   @param('name', Types.Filename)
   async all(domainId: string, name: string) {

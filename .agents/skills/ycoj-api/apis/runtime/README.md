@@ -9,7 +9,7 @@
 | Route / methods | Request | Response / authorization |
 | --- | --- | --- |
 | `/file` GET, POST | `GET ?uid?:int` (another user's files requires admin). Upload: multipart `file` plus `filename`; delete: `{files:string[]}`. | GET HTML/PJAX body includes `{files,urlForFile}`; mutations redirect. Personal uploads require `PRIV_CREATE_FILE`; quotas and filename validation apply. |
-| `/file/:uid/:filename` GET | `?noDisposition=boolean` | Browser 302 to signed object storage, or HTTP 200 `{url}` with `Accept: application/json`; filename is validated. Adds public cache header. |
+| `/file/:uid/:filename` GET | `?noDisposition=boolean` | Browser 302 to signed object storage, or HTTP 200 `{url}` with `Accept: application/json`; authenticated users may download only their own listed files, and real-name verification is required unless exempt. Adds public cache header. |
 | `/storage` GET | `?target=name&filename?:filename&expire:uint&secret:string` | Binary/streamed object body; content type guessed, optional attachment disposition. Link signature and expiry required. |
 | `/judge/files` GET, POST | Judge-authenticated POST `{id?:string,files?:Set<string>,pid?:uint}`. Example `{pid:1000,files:["1.in"]}`. | GET `"ok"`; POST `{url:string}` for submission code or `{links:Record<string,string>}` for testdata. `PRIV_JUDGE`. |
 | `/judge/upload` POST | multipart `file`, `{rid:ObjectId,name:filename}`. | `{ok:1}`; `PRIV_JUDGE`, then record/problem ownership and file limits are checked. |
@@ -24,7 +24,7 @@ The server registers connections through the same domain/base/user middleware as
 
 | Endpoint | Handshake and inbound frames | Outbound frames / access |
 | --- | --- | --- |
-| `/websocket` | Optional gateway header `x-hydro-websocket-gateway` must equal `websocket.secret`. Normal clients send `{operation:"subscribe"|"unsubscribe",credential?:sessionToken,channels:string[],request_id?:string,subscription_id?:string,metadata?:object}`. Gateway-only `{operation:"resume",channels}` resumes channels. | Subscribe returns `{operation:"verify",accept:string[],reject:string[],request_id?,subscription_id?}`; resume failure is `{operation:"resume_failed"}`. Subsequent payloads are channel-provider events. Gateway header grants privileged subscription metadata. |
+| `/websocket` | Handshake does not throw `RealnameRequiredError`. Optional gateway header `x-hydro-websocket-gateway` must equal `websocket.secret`. Normal clients send `{operation:"subscribe"\|"unsubscribe",credential?:sessionToken,channels:string[],request_id?:string,subscription_id?:string,metadata?:object}`. Gateway-only `{operation:"resume",channels}` resumes channels. | Subscribe returns `{operation:"verify",accept:string[],reject:string[],request_id?,subscription_id?}`; unverified profile users are rejected unless the connection is a privileged gateway. Resume failure is `{operation:"resume_failed"}`. Subsequent payloads are channel-provider events. Gateway header grants privileged subscription metadata. |
 | `/judge/conn` | Judge daemon connects; no application message is required to receive work. | Initial `{language: setting.langs}`, then judge task/result protocol from `JudgeConnectionHandler`. Route requires `PRIV_JUDGE`; single-task concurrency. |
 | `/manage/check-conn` | Connect with administrator session; no input frame required. Closing cancels the check. | `{type:"log"|"warn"|"error",payload:any}` streaming diagnostics. `PRIV_EDIT_SYSTEM`. |
 
