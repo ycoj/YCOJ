@@ -50,7 +50,7 @@ export function getLatestByUid(uid: number) {
 }
 
 export function getEarliestByUid(uid: number) {
-    return coll.find({ uid }).sort({ submittedAt: 1 }).limit(1).next();
+    return coll.find({ uid, submittedAt: { $exists: true, $ne: null } }).sort({ submittedAt: 1 }).limit(1).next();
 }
 
 export async function submit(uid: number, realName: string, school: string) {
@@ -119,17 +119,27 @@ export async function apply(ctx: Context) {
         { key: { uid: 1, submittedAt: -1 }, name: 'uid_submitted' },
         { key: { status: 1, submittedAt: -1 }, name: 'status_submitted' },
     );
-    const stale = await ctx.db.collection('user').find({
+    const STALE_BACKFILL_BATCH_SIZE = 50;
+    const cursor = ctx.db.collection('user').find({
         realnameStatus: { $in: ['pending', 'approved', 'rejected'] },
-    }).project({ _id: 1, realnameSubmittedAt: 1 }).toArray();
-    await Promise.all(stale.map(async (udoc) => {
-        const earliest = await getEarliestByUid(udoc._id);
-        if (!earliest?.submittedAt) return;
-        const current = asDate(udoc.realnameSubmittedAt);
-        if (!current || current.getTime() > earliest.submittedAt.getTime()) {
-            await user.setById(udoc._id, { realnameSubmittedAt: earliest.submittedAt });
-        }
-    }));
+    }).project<{ _id: number, realnameSubmittedAt?: unknown }>({ _id: 1, realnameSubmittedAt: 1 });
+    const batch: { _id: number, realnameSubmittedAt?: unknown }[] = [];
+    const flush = async () => {
+        await Promise.all(batch.map(async (udoc) => {
+            const earliest = await getEarliestByUid(udoc._id);
+            if (!earliest?.submittedAt) return;
+            const current = asDate(udoc.realnameSubmittedAt);
+            if (!current || current.getTime() > earliest.submittedAt.getTime()) {
+                await user.setById(udoc._id, { realnameSubmittedAt: earliest.submittedAt });
+            }
+        }));
+        batch.length = 0;
+    };
+    for await (const udoc of cursor) {
+        batch.push(udoc);
+        if (batch.length >= STALE_BACKFILL_BATCH_SIZE) await flush();
+    }
+    if (batch.length) await flush();
 }
 
 global.Hydro.model.realname = {
