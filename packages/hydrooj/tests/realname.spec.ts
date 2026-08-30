@@ -1,10 +1,12 @@
 import assert from 'assert';
 import { describe, it } from 'node:test';
+import { AwardNotBoundError } from '../src/error';
 import {
     buildLatestRealnameListPipeline, canSubmitApplication, canTransition, getRealnameGraceUntil,
     getRealnameStatus, getRealnameSubmittedAt, handlerAllowsUnverified, hasRealnameAccess,
     isRealnameExempt, isRealnameVerified, isWithinRealnameGrace, nextRealnameRoute, parseRealnameFields,
     REALNAME_GRACE_MS, requiresRealname, reviewStatusFor, shouldBlockUnverifiedAccess,
+    unbindAwardsOrRollback,
 } from '../src/lib/realname';
 
 const PRIV_USER_PROFILE = 1 << 2;
@@ -208,5 +210,25 @@ describe('realname field validation', () => {
         assert.throws(() => parseRealnameFields('张三', 'X'), (e: any) => e.params?.[0] === 'school');
         assert.throws(() => parseRealnameFields('张'.repeat(65), 'School Name'), (e: any) => e.params?.[0] === 'realName');
         assert.throws(() => parseRealnameFields('张三', '学'.repeat(129)), (e: any) => e.params?.[0] === 'school');
+    });
+});
+
+describe('revoke award unbind', () => {
+    it('rolls back real-name persistence when unbindByUid fails', async () => {
+        let rolled = false;
+        await assert.rejects(
+            () => unbindAwardsOrRollback(1, async () => { rolled = true; }, async () => {
+                throw new Error('unbind failed');
+            }),
+        );
+        assert.equal(rolled, true);
+    });
+
+    it('keeps the real-name update when awards were not bound', async () => {
+        let rolled = false;
+        await unbindAwardsOrRollback(1, async () => { rolled = true; }, async () => {
+            throw new AwardNotBoundError();
+        });
+        assert.equal(rolled, false);
     });
 });

@@ -2,6 +2,8 @@ import assert from 'assert';
 import { describe, it } from 'node:test';
 import { checkBind } from '../src/lib/oier/bind';
 import { computeCcf } from '../src/lib/oier/ccf';
+import { DEFAULT_GRADES } from '../src/lib/oier/constants';
+import { getGrades, parseGradesConfig } from '../src/lib/oier/grades';
 import { ccfHookSrc, ccfHookTier } from '../src/lib/oier/hook';
 import { recordFingerprint } from '../src/lib/oier/merge';
 import { parseOierData } from '../src/lib/oier/parse';
@@ -100,6 +102,44 @@ describe('oier parser', () => {
         });
         assert.ok(parsed.warnings.some((w) => w.message.includes('格式错误')));
     });
+
+    it('does not merge a one-year 初一/高一 jump in either input order', () => {
+        const jumpContests = JSON.stringify([
+            {
+                name: 'NOIP2018提高', type: 'NOIP提高', year: 2018, fall_semester: true, full_score: 600, capacity: 100,
+            },
+            {
+                name: 'NOIP2019提高', type: 'NOIP提高', year: 2019, fall_semester: true, full_score: 600, capacity: 100,
+            },
+        ]);
+        const forward = parseOierData({
+            schoolTxt,
+            contestsJson: jumpContests,
+            rawTxt: [
+                'NOIP2018提高,一等奖,赵六,初一,师大附中,400,湖南,男,',
+                'NOIP2019提高,一等奖,赵六,高一,师大附中,400,湖南,男,',
+            ].join('\n'),
+        });
+        const reversed = parseOierData({
+            schoolTxt,
+            contestsJson: jumpContests,
+            rawTxt: [
+                'NOIP2019提高,一等奖,赵六,高一,师大附中,400,湖南,男,',
+                'NOIP2018提高,一等奖,赵六,初一,师大附中,400,湖南,男,',
+            ].join('\n'),
+        });
+        assert.equal(forward.oiers.filter((o) => o.name === '赵六').length, 2);
+        assert.equal(reversed.oiers.filter((o) => o.name === '赵六').length, 2);
+        const normal = parseOierData({
+            schoolTxt,
+            contestsJson: jumpContests,
+            rawTxt: [
+                'NOIP2018提高,一等奖,钱七,初一,师大附中,400,湖南,男,',
+                'NOIP2019提高,一等奖,钱七,初二,师大附中,400,湖南,男,',
+            ].join('\n'),
+        });
+        assert.equal(normal.oiers.filter((o) => o.name === '钱七').length, 1);
+    });
 });
 
 describe('ccf and hook', () => {
@@ -148,12 +188,21 @@ describe('school match and bind checks', () => {
         assert.equal(schoolsMatch('长沙市雅礼中学', '湖南师范大学附属中学', index), false);
     });
 
-    it('rejects bind when the name differs or the slot is taken', () => {
-        assert.equal(checkBind(null, '张三', null), 'missing');
-        assert.equal(checkBind({ name: '张三' }, '张三', 12), 'already');
-        assert.equal(checkBind({ name: '李四' }, '张三', null), 'mismatch');
-        assert.equal(checkBind({ name: '张三', uid: 8 }, '张三', null), 'taken');
-        assert.equal(checkBind({ name: '张三' }, '张三', null), null);
+    it('rejects bind when the name differs, the school differs, or the slot is taken', () => {
+        const zhang = { name: '张三', schools: ['湖南师范大学附属中学'], latestSchool: '湖南师范大学附属中学' };
+        const index = buildSchoolAliasIndex([
+            { name: '湖南师范大学附属中学', aliases: ['湖南师大附中', '师大附中'] },
+            { name: '长沙市雅礼中学', aliases: ['雅礼'] },
+        ]);
+        assert.equal(checkBind(null, '张三', '师大附中', null, index), 'missing');
+        assert.equal(checkBind(zhang, '张三', '师大附中', 12, index), 'already');
+        assert.equal(checkBind({ name: '李四', schools: ['湖南师范大学附属中学'], latestSchool: '湖南师范大学附属中学' }, '张三', '师大附中', null, index), 'mismatch');
+        assert.equal(checkBind({ name: '张三', uid: 8, schools: ['湖南师范大学附属中学'], latestSchool: '湖南师范大学附属中学' }, '张三', '师大附中', null, index), 'taken');
+        assert.equal(checkBind(zhang, '张三', '师大附中', null, index), null);
+        assert.equal(checkBind(zhang, '张三', '雅礼', null, index), 'mismatch');
+        assert.equal(checkBind({
+            name: '张三', schools: ['长沙市雅礼中学'], latestSchool: '长沙市雅礼中学',
+        }, '张三', '师大附中', null, index), 'mismatch');
     });
 
     it('builds a stable record fingerprint', () => {
@@ -163,5 +212,22 @@ describe('school match and bind checks', () => {
             }),
             'NOI2019|张三|雅礼|522|1|金牌|湖南',
         );
+    });
+});
+
+describe('grade config', () => {
+    it('parses ordinary grades and rejects empty element keys', () => {
+        assert.equal(getGrades('高一', DEFAULT_GRADES), 524288n);
+        assert.equal(getGrades('初一', DEFAULT_GRADES), 65536n);
+        assert.throws(() => parseGradesConfig(JSON.stringify({
+            initial: 9,
+            element: { '': 0, 高: 9, 一: 1 },
+            special: {},
+        })));
+        assert.throws(() => getGrades('高一', {
+            initial: 9,
+            element: { '': 0, 高: 9, 一: 1 },
+            special: {},
+        }));
     });
 });

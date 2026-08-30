@@ -110,7 +110,7 @@ POST `approve`: `type Approve={operation:"approve";id:string}`, example `{"opera
 
 POST `reject`: `type Reject={operation:"reject";id:string;reason?:string}`, example `{"operation":"reject","id":"66aa66aa66aa66aa66aa66aa","reason":"Name mismatch"}`. Response `Redirect`. The seven-day grace clock from the first `realnameSubmittedAt` is kept; the user remains able to use the site until it expires and may resubmit without starting a new window.
 
-POST `revoke`: `type Revoke={operation:"revoke";id:string;reason?:string}`, example `{"operation":"revoke","id":"66aa66aa66aa66aa66aa66aa"}`. Response `Redirect`. Only approved applications may be revoked; status becomes `rejected`, `realnameSubmittedAt` is kept, and the user is locked immediately if the original seven-day window has elapsed. Certified CCF/NOI awards on that account are unbound.
+POST `revoke`: `type Revoke={operation:"revoke";id:string;reason?:string}`, example `{"operation":"revoke","id":"66aa66aa66aa66aa66aa66aa"}`. Response `Redirect`. Only approved applications may be revoked; status becomes `rejected`, `realnameSubmittedAt` is kept, and the user is locked immediately if the original seven-day window has elapsed. Certified CCF/NOI awards on that account are unbound; if unbind fails for a reason other than `AwardNotBoundError`, the real-name status change is rolled back.
 
 ## `GET|POST /manage/award`
 Description: list and remove certified CCF/NOI awards. This route requires `PRIV_EDIT_SYSTEM`. See [Award management](../award/manage.md).

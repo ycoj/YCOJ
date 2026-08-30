@@ -1,13 +1,14 @@
 /* eslint-disable no-await-in-loop */
-import { Filter, ObjectId } from 'mongodb';
+import { Collection, Filter, ObjectId } from 'mongodb';
 import type { Context } from '../context';
 import {
     AwardAlreadyBoundError, AwardNameMismatchError, AwardNotBoundError, AwardOierNotFoundError,
-    AwardOierTakenError,
+    AwardOierTakenError, AwardRealnameRequiredError,
 } from '../error';
 import {
-    buildSchoolAliasIndex, checkBind, schoolsMatch, type ParseResult, type SchoolAliasIndex,
+    buildSchoolAliasIndex, checkBind, schoolsMatch, type BindReject, type ParseResult, type SchoolAliasIndex,
 } from '../lib/oier';
+import { isRealnameVerified } from '../lib/realname';
 import db from '../service/db';
 import user from './user';
 
@@ -95,21 +96,84 @@ export async function getRecordsByOierIds(ids: number[]) {
     return map;
 }
 
-async function insertBatches<T extends { _id: any }>(target: ReturnType<typeof db.collection>, docs: T[]) {
+async function insertBatches<T extends { _id: any }>(
+    target: { insertMany: (docs: any[], opts?: { ordered?: boolean }) => Promise<unknown> },
+    docs: T[],
+) {
     for (let i = 0; i < docs.length; i += BATCH) {
         const chunk = docs.slice(i, i + BATCH);
         if (chunk.length) await target.insertMany(chunk as any[], { ordered: false });
     }
 }
 
+function extraColl<T>(name: string): Collection<T> {
+    return db.db.collection<T>(name);
+}
+
+async function cloneInto<T extends { _id: any }>(
+    from: { find: () => { toArray: () => Promise<T[]> }, deleteMany: (q: object) => Promise<unknown> },
+    to: { deleteMany: (q: object) => Promise<unknown>, insertMany: (docs: any[], opts?: { ordered?: boolean }) => Promise<unknown> },
+) {
+    const docs = await from.find().toArray();
+    await to.deleteMany({});
+    await insertBatches(to, docs);
+}
+
+async function discardColl(target: { drop: () => Promise<unknown>, deleteMany: (q: object) => Promise<unknown> }) {
+    try {
+        await target.drop();
+    } catch {
+        await target.deleteMany({}).catch(() => undefined);
+    }
+}
+
+const uidLocks = new Map<number, Promise<unknown>>();
+
+async function withUidLock<T>(uid: number, fn: () => Promise<T>): Promise<T> {
+    const prev = uidLocks.get(uid) || Promise.resolve();
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    const chain = prev.catch(() => undefined).then(() => held);
+    uidLocks.set(uid, chain);
+    await prev.catch(() => undefined);
+    try {
+        return await fn();
+    } finally {
+        release();
+        if (uidLocks.get(uid) === chain) uidLocks.delete(uid);
+    }
+}
+
+function throwBindReject(reject: BindReject | null, oierId: number) {
+    switch (reject) {
+        case 'missing': throw new AwardOierNotFoundError(oierId);
+        case 'already': throw new AwardAlreadyBoundError();
+        case 'mismatch': throw new AwardNameMismatchError();
+        case 'taken': throw new AwardOierTakenError();
+        case null: return;
+        default: {
+            const exhaustive: never = reject;
+            throw exhaustive;
+        }
+    }
+}
+
+function verifiedSchoolOf(udoc: { realnameSchool?: string, school?: string } | null | undefined, fallback = '') {
+    return udoc?.realnameSchool || udoc?.school || fallback;
+}
+
 interface BindingSnapshot {
     uid: number;
+    oierId: number;
     realName: string;
+    school: string;
+    ccfLevel: number;
+    oierBoundAt?: Date;
     fingerprints: string[];
 }
 
 async function snapshotBindings(): Promise<BindingSnapshot[]> {
-    const bound = await coll.find({ uid: { $exists: true } }).project({ _id: 1, uid: 1 }).toArray();
+    const bound = await coll.find({ uid: { $exists: true } }).project({ _id: 1, uid: 1, ccfLevel: 1 }).toArray();
     const result: BindingSnapshot[] = [];
     for (const oier of bound) {
         if (!oier.uid) continue;
@@ -117,11 +181,28 @@ async function snapshotBindings(): Promise<BindingSnapshot[]> {
         const records = await recordColl.find({ oierId: oier._id }).project({ fingerprint: 1 }).toArray();
         result.push({
             uid: oier.uid,
+            oierId: oier._id,
             realName: udoc?.realName || '',
+            school: verifiedSchoolOf(udoc),
+            ccfLevel: udoc?.ccfLevel ?? oier.ccfLevel,
+            oierBoundAt: udoc?.oierBoundAt,
             fingerprints: records.map((r) => r.fingerprint),
         });
     }
     return result;
+}
+
+async function restoreUserBindings(snapshots: BindingSnapshot[]) {
+    for (const snap of snapshots) {
+        await user.setById(snap.uid, { ccfLevel: 0 }, { oierId: '', oierBoundAt: '' });
+    }
+    for (const snap of snapshots) {
+        await user.setById(snap.uid, {
+            oierId: snap.oierId,
+            ccfLevel: snap.ccfLevel,
+            ...(snap.oierBoundAt ? { oierBoundAt: snap.oierBoundAt } : {}),
+        });
+    }
 }
 
 async function rematchBindings(snapshots: BindingSnapshot[], report?: (data: any) => void) {
@@ -143,11 +224,22 @@ async function rematchBindings(snapshots: BindingSnapshot[], report?: (data: any
         let matched = false;
         for (const [oierId] of ranked) {
             const oier = await get(oierId);
-            if (!oier || oier.name !== snap.realName || oier.uid) continue;
-            await bind(snap.uid, oierId, snap.realName);
-            restored++;
-            matched = true;
-            break;
+            if (!oier || oier.uid) continue;
+            try {
+                await bind(snap.uid, oierId, snap.realName, snap.school);
+                restored++;
+                matched = true;
+                break;
+            } catch (e) {
+                if (
+                    e instanceof AwardNameMismatchError
+                    || e instanceof AwardRealnameRequiredError
+                    || e instanceof AwardAlreadyBoundError
+                    || e instanceof AwardOierTakenError
+                    || e instanceof AwardOierNotFoundError
+                ) continue;
+                throw e;
+            }
         }
         if (!matched) dropped++;
     }
@@ -159,13 +251,6 @@ export async function replaceAll(parsed: ParseResult, report?: (data: any) => vo
     const snapshots = dryrun ? [] : await snapshotBindings();
     report?.({ message: `Parsed ${parsed.oiers.length} contestants, ${parsed.schools.length} schools, ${parsed.warnings.length} warning(s).` });
     if (dryrun) return { oiers: parsed.oiers.length, warnings: parsed.warnings.length, dryrun: true };
-    await Promise.all([
-        coll.deleteMany({}),
-        recordColl.deleteMany({}),
-        schoolColl.deleteMany({}),
-        contestColl.deleteMany({}),
-    ]);
-    invalidateSchoolCache();
     const oiers: OierDoc[] = parsed.oiers.map((o) => ({
         _id: o.id,
         name: o.name,
@@ -205,12 +290,47 @@ export async function replaceAll(parsed: ParseResult, report?: (data: any) => vo
         fullScore: c.fullScore,
         ...(c.capacity !== undefined ? { capacity: c.capacity } : {}),
     }));
-    await insertBatches(schoolColl, schools);
-    await insertBatches(contestColl, contests);
-    await insertBatches(coll, oiers);
-    await insertBatches(recordColl, records);
-    report?.({ message: `Wrote ${oiers.length} contestants and ${records.length} records.` });
-    await rematchBindings(snapshots, report);
+    const live = [
+        { dest: schoolColl, docs: schools, staging: extraColl<OierSchoolDoc>('oier.school.importing'), previous: extraColl<OierSchoolDoc>('oier.school.previous') },
+        { dest: contestColl, docs: contests, staging: extraColl<OierContestDoc>('oier.contest.importing'), previous: extraColl<OierContestDoc>('oier.contest.previous') },
+        { dest: coll, docs: oiers, staging: extraColl<OierDoc>('oier.importing'), previous: extraColl<OierDoc>('oier.previous') },
+        { dest: recordColl, docs: records, staging: extraColl<OierRecordDoc>('oier.record.importing'), previous: extraColl<OierRecordDoc>('oier.record.previous') },
+    ];
+    try {
+        for (const item of live) {
+            await item.staging.deleteMany({});
+            await insertBatches(item.staging, item.docs);
+        }
+        for (const item of live) await cloneInto(item.dest, item.previous);
+    } catch (e) {
+        for (const item of live) {
+            await discardColl(item.staging);
+            await discardColl(item.previous);
+        }
+        throw e;
+    }
+    try {
+        for (const item of live) {
+            await item.dest.deleteMany({});
+            await cloneInto(item.staging, item.dest);
+        }
+        invalidateSchoolCache();
+        report?.({ message: `Wrote ${oiers.length} contestants and ${records.length} records.` });
+        await rematchBindings(snapshots, report);
+        for (const item of live) {
+            await discardColl(item.staging);
+            await discardColl(item.previous);
+        }
+    } catch (e) {
+        for (const item of live) {
+            await item.dest.deleteMany({}).catch(() => undefined);
+            await cloneInto(item.previous, item.dest).catch(() => undefined);
+        }
+        await restoreUserBindings(snapshots).catch(() => undefined);
+        invalidateSchoolCache();
+        for (const item of live) await discardColl(item.staging);
+        throw e;
+    }
     return {
         oiers: oiers.length,
         records: records.length,
@@ -220,41 +340,48 @@ export async function replaceAll(parsed: ParseResult, report?: (data: any) => vo
     };
 }
 
-export async function bind(uid: number, oierId: number, realName: string) {
-    const oier = await get(oierId);
-    const udoc = await user.getById('system', uid);
-    const reject = checkBind(oier, realName, udoc?.oierId);
-    switch (reject) {
-        case 'missing': throw new AwardOierNotFoundError(oierId);
-        case 'already': throw new AwardAlreadyBoundError();
-        case 'mismatch': throw new AwardNameMismatchError();
-        case 'taken': throw new AwardOierTakenError();
-        case null: break;
-        default: {
-            const exhaustive: never = reject;
-            throw exhaustive;
+export async function bind(uid: number, oierId: number, realName: string, school: string) {
+    return withUidLock(uid, async () => {
+        const index = await getSchoolAliasIndex();
+        const oier = await get(oierId);
+        const udoc = await user.getById('system', uid);
+        if (!isRealnameVerified(udoc) || !udoc?.realName) throw new AwardRealnameRequiredError();
+        throwBindReject(checkBind(oier, realName, school, udoc.oierId, index), oierId);
+        const claimed = await coll.findOneAndUpdate(
+            { _id: oierId, uid: { $exists: false } },
+            { $set: { uid } },
+            { returnDocument: 'after' },
+        );
+        if (!claimed) throw new AwardOierTakenError();
+        try {
+            const fresh = await user.getById('system', uid);
+            if (!isRealnameVerified(fresh) || !fresh?.realName) throw new AwardRealnameRequiredError();
+            throwBindReject(
+                checkBind(
+                    { name: claimed.name, schools: claimed.schools, latestSchool: claimed.latestSchool },
+                    fresh.realName,
+                    verifiedSchoolOf(fresh, school),
+                    fresh.oierId,
+                    index,
+                ),
+                oierId,
+            );
+            await user.setById(uid, { oierId, oierBoundAt: new Date(), ccfLevel: claimed.ccfLevel });
+        } catch (e) {
+            await coll.updateOne({ _id: oierId, uid }, { $unset: { uid: '' } });
+            throw e;
         }
-    }
-    const claimed = await coll.findOneAndUpdate(
-        { _id: oierId, uid: { $exists: false } },
-        { $set: { uid } },
-        { returnDocument: 'after' },
-    );
-    if (!claimed) throw new AwardOierTakenError();
-    try {
-        await user.setById(uid, { oierId, oierBoundAt: new Date(), ccfLevel: claimed.ccfLevel });
-    } catch (e) {
-        await coll.updateOne({ _id: oierId, uid }, { $unset: { uid: '' } });
-        throw e;
-    }
-    return claimed;
+        return claimed;
+    });
 }
 
 export async function unbindByUid(uid: number) {
-    const udoc = await user.coll.findOne({ _id: uid }, { projection: { oierId: 1 } });
-    if (!udoc?.oierId) throw new AwardNotBoundError();
-    await coll.updateOne({ _id: udoc.oierId, uid }, { $unset: { uid: '' } });
-    await user.setById(uid, { ccfLevel: 0 }, { oierId: '', oierBoundAt: '' });
+    return withUidLock(uid, async () => {
+        const udoc = await user.coll.findOne({ _id: uid }, { projection: { oierId: 1 } });
+        if (!udoc?.oierId) throw new AwardNotBoundError();
+        await coll.updateOne({ _id: udoc.oierId, uid }, { $unset: { uid: '' } });
+        await user.setById(uid, { ccfLevel: 0 }, { oierId: '', oierBoundAt: '' });
+    });
 }
 
 export interface CandidateQuery {

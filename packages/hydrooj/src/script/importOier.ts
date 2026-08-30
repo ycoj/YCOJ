@@ -8,8 +8,9 @@ export const apply = (ctx) => ctx.addScript(
     Schema.object({
         dataDir: Schema.string().required(),
         dryrun: Schema.boolean(),
+        allowPartial: Schema.boolean(),
     }),
-    async ({ dataDir, dryrun }, report) => {
+    async ({ dataDir, dryrun, allowPartial }, report) => {
         await report({ message: `Loading OIerDb data from ${dataDir}` });
         const files = await loadOierDataDir(dataDir);
         await report({ message: `Parsing school.txt (${files.schoolTxt.length} bytes), contests.json, raw.txt (${files.rawTxt.length} bytes)` });
@@ -19,6 +20,10 @@ export const apply = (ctx) => ctx.addScript(
         }
         if (parsed.warnings.length > 50) {
             await report({ message: `... and ${parsed.warnings.length - 50} more warning(s)` });
+        }
+        if (parsed.warnings.length && !allowPartial && !dryrun) {
+            await report({ message: 'Aborting replacement because parsing produced warnings or skipped records. Re-run with allowPartial=true to replace anyway.' });
+            return false;
         }
         const result = await oier.replaceAll(parsed, report, !!dryrun);
         await report({ message: JSON.stringify(result) });

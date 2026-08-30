@@ -65,20 +65,3 @@ export const DEFAULT_GRADES = {
         高中: 3670016,
     },
 };
-
-export const DEFAULT_SCORING: Record<string, string> = {
-    APIO: '0.4',
-    CSP入门: '0.06',
-    CSP提高: '0.1',
-    CTSC: '0.2',
-    IOI: '0.6',
-    NGOI: '0.2',
-    NOI: '1',
-    NOID类: '0.75',
-    NOIP: '0.15',
-    NOIP提高: '0.1',
-    NOIP普及: '0.06',
-    NOIST: '0.2',
-    WC: '0.5',
-    'WC-AI': '0.05',
-};

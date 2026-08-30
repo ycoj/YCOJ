@@ -19,7 +19,7 @@
 | `/home/domain/create` GET/POST | `{id:"school",name:"School",bulletin:"…",avatar:"…"}` | Form/redirect; `PRIV_CREATE_DOMAIN`. |
 | `/home/realname` GET/POST | POST `{realName:"张三",school:"第一中学"}`. | Form/redirect; profile privilege. Unverified users allowed. |
 | `/home/realname/result` GET | no arguments | Status HTML; profile privilege. Unverified users allowed. |
-| `/home/award` GET/POST | GET `?others=1&page=1`; POST `{oierId:12}`. | HTML/redirect; profile privilege. Bind requires approved real name. |
+| `/home/award` GET/POST | GET `?others=1&page=1`; POST `{oierId:12}`. | HTML/redirect; profile privilege. Binding requires an approved real name. |
 | `/home/messages` GET/POST | UI operations include message content and `messageId:ObjectId`; e.g. `{operation:"delete",messageId:"66…"}`. | HTML/redirect; profile privilege. |
 
 ## Discussion routes

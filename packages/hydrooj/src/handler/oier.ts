@@ -65,7 +65,12 @@ class HomeAwardHandler extends Handler {
     async post({ }, oierId: number) {
         await this.limitRate('award_bind', 60, 5, '{{user}}');
         if (!isRealnameVerified(this.user) || !this.user.realName) throw new AwardRealnameRequiredError();
-        await oier.bind(this.user._id, oierId, this.user.realName);
+        await oier.bind(
+            this.user._id,
+            oierId,
+            this.user.realName,
+            this.user.realnameSchool || this.user.school || '',
+        );
         this.response.redirect = this.url('home_award');
     }
 }

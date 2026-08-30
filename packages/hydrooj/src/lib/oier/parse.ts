@@ -219,12 +219,11 @@ export function parseOierData(files: OierDataFiles): ParseResult {
 
 export async function loadOierDataDir(dataDir: string): Promise<OierDataFiles> {
     const read = (name: string) => fs.readFile(path.join(dataDir, name), 'utf8');
-    const [schoolTxt, contestsJson, rawTxt, gradesJson, scoringJson] = await Promise.all([
+    const [schoolTxt, contestsJson, rawTxt, gradesJson] = await Promise.all([
         read('school.txt'),
         read('contests.json'),
         read('raw.txt'),
         read('grades.json').catch(() => undefined),
-        read('scoring.json').catch(() => undefined),
     ]);
-    return { schoolTxt, contestsJson, rawTxt, gradesJson, scoringJson };
+    return { schoolTxt, contestsJson, rawTxt, gradesJson };
 }

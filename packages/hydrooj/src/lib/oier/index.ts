@@ -1,5 +1,5 @@
-export { checkBind } from './bind';
-export type { BindReject } from './bind';
+export { checkBind, schoolsMatchCanonical } from './bind';
+export type { BindOier, BindReject } from './bind';
 export {
     AWARD_LEVELS, CONTEST_TYPES, MERGE_THRESHOLD, PROVINCES,
 } from './constants';

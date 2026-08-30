@@ -13,7 +13,7 @@
     {% elif bound %}
       <blockquote class="note">{{ _('These awards are bound to your verified name. Contact an administrator if they need to be removed.') }}</blockquote>
       <p>{{ _('CCF Level') }}: <strong>{{ bound.ccfLevel }}</strong>
-        · {{ _('School') }}: {{ bound.schools|join(' / ') }}
+        · {{ _('Schools') }}: {{ bound.schools|join(' / ') }}
         · {{ _('Latest School') }}: {{ bound.latestSchool }}</p>
     {% else %}
       <p>{{ _('Matching contestants named {0} from {1}.').format(realName, school or _('your verified school')) }}</p>

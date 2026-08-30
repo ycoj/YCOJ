@@ -1,13 +1,13 @@
 import { Filter, ObjectId } from 'mongodb';
 import { Context } from '../context';
 import {
-    AwardNotBoundError, RealnameAlreadyApprovedError, RealnameApplicationNotFoundError, RealnameInvalidTransitionError,
+    RealnameAlreadyApprovedError, RealnameApplicationNotFoundError, RealnameInvalidTransitionError,
     ValidationError,
 } from '../error';
 import type { RealnameApplication, RealnameStatus } from '../interface';
 import {
     asDate, buildLatestRealnameListPipeline, parseRealnameFields, REALNAME_TRANSITIONS,
-    RealnameReviewAction, RealnameUserStatus,
+    RealnameReviewAction, RealnameUserStatus, unbindAwardsOrRollback,
 } from '../lib/realname';
 import db from '../service/db';
 import * as oier from './oier';
@@ -128,11 +128,18 @@ export async function review(id: ObjectId, reviewer: number, action: RealnameRev
     const fields = { realName: doc.realName, school: doc.school };
     await syncUser(doc.uid, status, fields);
     if (action === 'revoke') {
-        try {
-            await oier.unbindByUid(doc.uid);
-        } catch (e) {
-            if (!(e instanceof AwardNotBoundError)) throw e;
-        }
+        await unbindAwardsOrRollback(doc.uid, async () => {
+            await coll.updateOne({ _id: id }, {
+                $set: {
+                    status: doc.status,
+                    reviewedAt: doc.reviewedAt,
+                    reviewedBy: doc.reviewedBy,
+                    rejectReason: doc.rejectReason,
+                    updatedAt: doc.updatedAt,
+                },
+            });
+            await syncUser(doc.uid, doc.status, fields);
+        }, oier.unbindByUid);
     }
     return { ...doc, ...$set };
 }

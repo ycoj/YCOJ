@@ -39,8 +39,19 @@ function distance(groupA: OierRecord[], groupB: OierRecord[]): number {
         for (const b of groupB) {
             if (a.contest === b.contest) return INF;
             if (Math.abs(a.gender - b.gender) === 2) return INF;
-            const yearDiff = Math.abs(schoolYear(a.contest) - schoolYear(b.contest));
-            if (yearDiff === 1 && gradeBit(a.grades) === 65536 && gradeBit(b.grades) === 524288) return INF;
+            const yearA = schoolYear(a.contest);
+            const yearB = schoolYear(b.contest);
+            const yearDiff = Math.abs(yearA - yearB);
+            const [earlier, later] = yearA <= yearB ? [a, b] : [b, a];
+            const earlierGrade = gradeBit(earlier.grades);
+            const laterGrade = gradeBit(later.grades);
+            const juniorFirst = Number(JUNIOR_BITS[0]);
+            const seniorFirst = Number(SENIOR_BITS[0]);
+            if (
+                yearDiff === 1
+                && ((earlierGrade === juniorFirst && laterGrade === seniorFirst)
+                    || (earlierGrade === seniorFirst && laterGrade === juniorFirst))
+            ) return INF;
             const sameStage = (inBits(a.grades, PRIMARY_BITS) && inBits(b.grades, PRIMARY_BITS))
                 || (inBits(a.grades, JUNIOR_BITS) && inBits(b.grades, JUNIOR_BITS))
                 || (inBits(a.grades, SENIOR_BITS) && inBits(b.grades, SENIOR_BITS));
@@ -58,8 +69,7 @@ function distance(groupA: OierRecord[], groupB: OierRecord[]): number {
                 && !a.school.name.includes('小学')
                 && b.school.name.includes('小学')
             ) return INF;
-            const seniorLast = 2097152;
-            const juniorFirst = 65536;
+            const seniorLast = Number(SENIOR_BITS[SENIOR_BITS.length - 1]);
             if (
                 ((gradeBit(a.grades) === seniorLast && gradeBit(b.grades) === juniorFirst)
                     || (gradeBit(a.grades) === juniorFirst && gradeBit(b.grades) === seniorLast))

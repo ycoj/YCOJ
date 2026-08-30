@@ -1,12 +1,20 @@
 import { DEFAULT_GRADES, PRIMARY_OR_NONE_GRADES } from './constants';
 import type { GradesConfig, OierContestState } from './types';
 
+function assertGradeElements(element: Record<string, number>) {
+    if (Object.keys(element).some((item) => item === '')) {
+        throw new Error('未知的年级元素');
+    }
+}
+
 export function parseGradesConfig(json?: string): GradesConfig {
     if (!json) return DEFAULT_GRADES;
     const raw = JSON.parse(json) as GradesConfig;
+    const element = raw.element || {};
+    assertGradeElements(element);
     return {
         initial: raw.initial,
-        element: raw.element || {},
+        element,
         special: Object.fromEntries(
             Object.entries(raw.special || {}).map(([k, v]) => [k, Number(v)]),
         ),
@@ -16,10 +24,12 @@ export function parseGradesConfig(json?: string): GradesConfig {
 export function getGrades(gradeName: string, config: GradesConfig): bigint {
     const special = config.special[gradeName];
     if (special !== undefined) return BigInt(special);
+    const elements = Object.keys(config.element);
+    assertGradeElements(config.element);
     let ret = config.initial;
     let cur = gradeName;
     while (cur !== '') {
-        const element = Object.keys(config.element).find((item) => cur.startsWith(item));
+        const element = elements.find((item) => cur.startsWith(item));
         if (!element) throw new Error(`未知的年级：'${gradeName}'`);
         ret += config.element[element];
         cur = cur.slice(element.length);

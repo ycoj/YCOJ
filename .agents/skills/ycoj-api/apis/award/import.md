@@ -4,9 +4,9 @@ This is not an HTTP route. Super administrators with `PRIV_EDIT_SYSTEM` run it f
 
 ## `importOier`
 
-Description: parse an OIerDb `data/` directory and replace the `oier`, `oier.record`, `oier.school`, and `oier.contest` collections. Existing user bindings are snapshotted by record fingerprint and restored when the contestant name still matches the user’s verified `realName`. Unmatched bindings are dropped.
+Description: parse an OIerDb `data/` directory and replace the `oier`, `oier.record`, `oier.school`, and `oier.contest` collections. New documents are written to staging collections and copied over the live collections only after that insert succeeds; a durable `.previous` copy is kept until rematch finishes so insert or rematch failures restore the prior award records and user bindings. Existing user bindings are snapshotted by record fingerprint and restored when the contestant name and canonical school still match the user’s verified identity. Unmatched bindings are dropped.
 
-Request `type Args={dataDir:string;dryrun?:boolean}`, example `{"dataDir":"/opt/OIerDb/data","dryrun":false}`. `dataDir` must contain `school.txt`, `contests.json`, and `raw.txt` in the [OIerDb data format](https://github.com/OIerDb-ng/OIerDb/tree/master/data). Optional `grades.json` and `scoring.json` override built-in defaults. `dryrun` parses and reports counts without writing. The script streams progress through the usual manage-script record callback.
+Request `type Args={dataDir:string;dryrun?:boolean;allowPartial?:boolean}`, example `{"dataDir":"/opt/OIerDb/data","dryrun":false}`. `dataDir` must contain `school.txt`, `contests.json`, and `raw.txt` in the [OIerDb data format](https://github.com/OIerDb-ng/OIerDb/tree/master/data). Optional `grades.json` overrides built-in grade-name parsing. `dryrun` parses and reports counts without writing. Replacement is aborted when parsing produced warnings or skipped records unless `allowPartial` is true. The script streams progress through the usual manage-script record callback.
 
 File formats:
 

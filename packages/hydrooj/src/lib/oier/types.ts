@@ -94,7 +94,6 @@ export interface OierDataFiles {
     contestsJson: string;
     rawTxt: string;
     gradesJson?: string;
-    scoringJson?: string;
 }
 
 export type CcfHookTier = 'green' | 'blue' | 'gold';
