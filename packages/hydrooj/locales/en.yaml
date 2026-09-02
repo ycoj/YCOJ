@@ -2,15 +2,19 @@ __flag: 🇬🇧
 __id: en
 __interface: yes
 __langname: English
+1 day: 1 day
+1 month: 1 month
+1 week: 1 week
 Can be Extended For: Extension
+Code: Code
+contest_bulk_submit: Bulk Submit
 contest_create: Contest Create
-contest_detail_problem_submit: Submit Contest Problem
-contest_detail_problem: Problem Detail
 contest_detail: Contest Detail
+contest_detail_problem: Problem Detail
+contest_detail_problem_submit: Submit Contest Problem
 contest_edit: Contest Edit
 contest_main: Contest
 contest_manage: Contest Management
-contest_bulk_submit: Bulk Submit
 contest_print: Print
 contest_problemlist: Problem List
 contest_scoreboard: Scoreboard
@@ -18,6 +22,8 @@ contest_solution_create: Create Solution
 contest_solution_detail: Contest Solution
 contest_solution_edit: Edit Solution
 contest_user: Attendee Manage
+Copy link: Copy link
+Create Paste: Share a snippet
 discussion_create: Create Discussion
 discussion_detail: Discussion Detail
 discussion_edit: Discussion Edit
@@ -34,16 +40,19 @@ domain_main: Main
 domain_permission: System Permission
 domain_role: System Role
 domain_user: System User
+Edit Paste: Edit snippet
+Expiration: Expiration
+Expires: Expires
 fs_upload: File Upload
 home_account: Account Settings
+home_award: Award Certification
+home_domain: My Domains
 home_domain_account: Profile @ Domain
 home_domain_create: Create Domain
-home_domain: My Domains
 home_messages: Messages
 home_preference: Preference
 home_realname: Real-name Verification
 home_realname_result: Verification Result
-home_award: Award Certification
 home_security: Security
 homepage: Home
 homework_create: Homework Create
@@ -52,18 +61,24 @@ homework_edit: Homework Edit
 homework_main: Homework
 homework_scoreboard: Scoreboard
 judge_playground: Judge Playground
+Language: Language
 main: Home
+manage: System Manage
+manage_award: Award Certification
 manage_config: System Configurations
 manage_dashboard: System
 manage_module: Module Management
+manage_realname: Real-name Verification
 manage_script: Scripts
 manage_setting: System Settings
-manage_realname: Real-name Verification
-manage_award: Award Certification
 manage_user_import: Import Users
 manage_user_priv: User Privilege
-manage: System Manage
+Markdown: Markdown
+My Pastes: Share history
+Never expire: Never expire
+No pastes yet: No share history yet
 no_translation_warn: <blockquote class="warn">This part of content is under translation.</blockquote>
+Optional title: Optional title
 page.problem_detail.sidebar.show_category: Click to Show
 page.training_detail.invalid_when_not_enrolled: You cannot view problem details unless enrolled.
 page.training_detail.see_other_user_detail: You are viewing user {0} training details.
@@ -71,12 +86,18 @@ pager_first: « First
 pager_last: Last »
 pager_next: Next ›
 pager_previous: ‹ Previous
+Paste type: Type
+paste_detail: Snippet
+paste_edit: Edit Snippet
+paste_main: Share Snippets
+Pastebin: Share Snippets
+Pastes per page: Share history per page
 perm_contest: Contests
 perm_discussion: Discussions
 perm_general: General
 perm_homework: Homework
-perm_problem_solution: Problem Solutions
 perm_problem: Problems
+perm_problem_solution: Problem Solutions
 perm_ranking: Ranking
 perm_record: Records
 perm_training: Trainings
@@ -99,13 +120,14 @@ problem.import.limit_and_hint: '## Limits'
 problem.import.output_format: '## Output Format'
 problem.import.problem_description: '## Description'
 ranking: Ranking
+Raw: Raw
 record_detail: Record Detail
 record_main: Record
 setting_customize: Customize
 setting_display: Display Preference
 setting_function: Function
-setting_info_domain: Personal Info
 setting_info: Personal Info
+setting_info_domain: Personal Info
 setting_preference: Preference
 setting_privacy: Privacy
 setting_server: Server Settings
@@ -125,25 +147,3 @@ user_register: Register
 user_sudo: Entering Sudo Mode
 wiki_about: About
 wiki_help: Help
-paste_main: Share Snippets
-paste_detail: Snippet
-paste_edit: Edit Snippet
-Pastebin: Share Snippets
-Create Paste: Share a snippet
-Edit Paste: Edit snippet
-Paste type: Type
-Code: Code
-Markdown: Markdown
-Language: Language
-Expiration: Expiration
-1 day: 1 day
-1 week: 1 week
-1 month: 1 month
-Never expire: Never expire
-Raw: Raw
-Copy link: Copy link
-My Pastes: Share history
-No pastes yet: No share history yet
-Expires: Expires
-Optional title: Optional title
-Pastes per page: Share history per page

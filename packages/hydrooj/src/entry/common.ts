@@ -27,7 +27,7 @@ const getLoader = (type: LoadTask, filename: string) => async function loader(pe
             const loadType = type.replace(/^(.)/, (t) => t.toUpperCase());
             try {
                 const m = unwrapExports(require(p));
-                if (m.apply) ctx.loader.reloadPlugin(p, name);
+                if (m.apply) await ctx.loader.reloadPlugin(p, name);
                 else logger.info(`${loadType} init: %s`, i);
             } catch (e) {
                 fail.push(i);

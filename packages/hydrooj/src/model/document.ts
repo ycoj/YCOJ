@@ -6,6 +6,7 @@ import { Context } from '../context';
 import {
     CheckinDoc, Content, ContestClarificationDoc, ContestPrintDoc, ContestSolutionDoc, ContestStatusDoc,
     DiscussionDoc, DiscussionReplyDoc, ProblemDoc, ProblemStatusDoc,
+    PreliminaryAttemptDoc, PreliminaryPaperDoc, PreliminaryRevisionDoc,
     Tdoc, TrainingDoc, TrainingStatusDoc,
 } from '../interface';
 import bus from '../service/bus';
@@ -31,6 +32,9 @@ export const TYPE_CONTEST_PRINT = 32 as const;
 export const TYPE_CONTEST_SOLUTION = 33 as const;
 export const TYPE_TRAINING = 40 as const;
 export const TYPE_CHECKIN = 80 as const;
+export const TYPE_PRELIMINARY_PAPER = 90 as const;
+export const TYPE_PRELIMINARY_REVISION = 91 as const;
+export const TYPE_PRELIMINARY_ATTEMPT = 92 as const;
 
 export interface DocType {
     [TYPE_PROBLEM]: ProblemDoc;
@@ -45,6 +49,9 @@ export interface DocType {
     [TYPE_CONTEST_CLARIFICATION]: ContestClarificationDoc;
     [TYPE_TRAINING]: TrainingDoc;
     [TYPE_CHECKIN]: CheckinDoc;
+    [TYPE_PRELIMINARY_PAPER]: PreliminaryPaperDoc;
+    [TYPE_PRELIMINARY_REVISION]: PreliminaryRevisionDoc;
+    [TYPE_PRELIMINARY_ATTEMPT]: PreliminaryAttemptDoc;
 }
 
 export interface DocStatusType {
@@ -446,6 +453,10 @@ export async function apply(ctx: Context) {
         { key: { domainId: 1, docType: 1, rule: 1, docId: -1 }, name: 'contestRule', sparse: true },
         // For training
         { key: { domainId: 1, docType: 1, 'dag.pids': 1 }, name: 'training', sparse: true },
+        // For preliminary-round training
+        { key: { domainId: 1, docType: 1, published: 1, docId: -1 }, name: 'preliminaryPaper', ...onlyFor(TYPE_PRELIMINARY_PAPER) },
+        { key: { domainId: 1, docType: 1, parentId: 1, revision: 1 }, name: 'preliminaryRevision', unique: true, ...onlyFor(TYPE_PRELIMINARY_REVISION) },
+        { key: { domainId: 1, docType: 1, owner: 1, parentId: 1, docId: -1 }, name: 'preliminaryAttempt', ...onlyFor(TYPE_PRELIMINARY_ATTEMPT) },
     );
     await db.ensureIndexes(
         collStatus,
@@ -458,6 +469,9 @@ export async function apply(ctx: Context) {
 }
 
 global.Hydro.model.document = {
+    TYPE_PRELIMINARY_ATTEMPT,
+    TYPE_PRELIMINARY_PAPER,
+    TYPE_PRELIMINARY_REVISION,
     coll,
     collStatus,
 

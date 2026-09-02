@@ -139,6 +139,15 @@ export const DocumentNotFoundError = Err('DocumentNotFoundError', NotFoundError,
 export const ProblemNotFoundError = Err('ProblemNotFoundError', DocumentNotFoundError, 'Problem {1} not found.');
 export const SolutionNotFoundError = Err('SolutionNotFoundError', DocumentNotFoundError, 'Solution {1} not found.');
 export const TrainingNotFoundError = Err('TrainingNotFoundError', DocumentNotFoundError, 'Training {1} not found.');
+export const PreliminaryPaperNotFoundError = Err(
+    'PreliminaryPaperNotFoundError', DocumentNotFoundError, 'Preliminary-round paper {1} not found.',
+);
+export const PreliminaryAttemptNotFoundError = Err(
+    'PreliminaryAttemptNotFoundError', NotFoundError, 'Preliminary-round attempt {0} not found.',
+);
+export const PreliminaryPaperNotPublishedError = Err(
+    'PreliminaryPaperNotPublishedError', ForbiddenError, 'This preliminary-round paper is not published.',
+);
 export const ContestNotFoundError = Err('ContestNotFoundError', DocumentNotFoundError, 'Contest {1} not found.');
 export const DiscussionNotFoundError = Err('DiscussionNotFoundError', DocumentNotFoundError, 'Discussion {1} not found.');
 export const DiscussionNodeNotFoundError = Err('DiscussionNodeNotFoundError', DocumentNotFoundError, 'Discussion node {1} not found.');

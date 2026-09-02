@@ -1,0 +1,57 @@
+{% extends "layout/basic.html" %}
+{% block content %}
+<div class="row">
+  <div class="large-9 columns">
+    <div class="section preliminary__result-summary">
+      <div class="section__header"><h1 class="section__title">{{ paper.title }}</h1></div>
+      <div class="section__body">
+        <div class="numbox"><div class="numbox__num large">{{ attempt.score }} / {{ attempt.totalScore }}</div><div class="numbox__text">{{ _('Score') }}</div></div>
+        <span class="supplementary">{{ _('Revision') }} {{ attempt.revision }} · {{ datetimeSpan(attempt.submittedAt, false)|safe }}</span>
+      </div>
+    </div>
+    {% for section in paper.sections %}
+      <div class="section preliminary__section">
+        <div class="section__header"><h2 class="section__title">{{ section.title }}</h2></div>
+        {% if section.content %}<div class="section__body typo richmedia preliminary__passage">{{ section.content|markdown|safe }}</div>{% endif %}
+        <ol class="preliminary__questions">
+        {% for question in section.questions %}
+          <li class="preliminary__question preliminary__question--{{ 'correct' if question.result.correct else 'incorrect' }}">
+            <div class="preliminary__question-heading">
+              <span>{{ question.questionNumber }}</span>
+              <span class="preliminary__result-state">{{ _('Correct') if question.result.correct else _('Incorrect') }}</span>
+              <span class="supplementary">{{ question.result.score }} / {{ question.result.maxScore }}</span>
+            </div>
+            <div class="typo richmedia">{{ question.prompt|markdown|safe }}</div>
+            <div class="preliminary__options">
+            {% if question.type == 'true_false' %}
+              {% for value, label in [['true', _('True')], ['false', _('False')]] %}
+                <div class="preliminary__review-option{% if question.result.answer == value %} is-selected{% endif %}{% if question.correctAnswer == value %} is-correct{% endif %}">{{ label }}</div>
+              {% endfor %}
+            {% else %}
+              {% for option in question.options %}
+                <div class="preliminary__review-option{% if question.result.answer == option.id %} is-selected{% endif %}{% if question.correctAnswer == option.id %} is-correct{% endif %}">
+                  <span>{{ utils.getAlphabeticId(loop.index0) }}.</span> {{ option.text|markdownInline|safe }}
+                </div>
+              {% endfor %}
+            {% endif %}
+            </div>
+            {% if not question.result.correct and question.explanation %}
+              <div class="preliminary__explanation typo">
+                <h3>{{ _('Explanation') }}</h3>
+                {{ question.explanation|markdown|safe }}
+              </div>
+            {% endif %}
+          </li>
+        {% endfor %}
+        </ol>
+      </div>
+    {% endfor %}
+  </div>
+  <div class="large-3 columns">
+    <div class="section side"><ol class="menu">
+      <li class="menu__item"><a class="menu__link" href="{{ url('preliminary_detail', paperId=paper.docId) }}"><span class="icon icon-chevron_left"></span> {{ _('Back to Paper') }}</a></li>
+      <li class="menu__item"><a class="menu__link" href="{{ url('preliminary_main', query={view:'attempts'}) }}"><span class="icon icon-list"></span> {{ _('My Attempts') }}</a></li>
+    </ol></div>
+  </div>
+</div>
+{% endblock %}

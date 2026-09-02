@@ -1,6 +1,6 @@
 # YCOJ API documents
 
-This is the routing index for the backend contracts present at source revision `9ee423517944` (2026-08-28). It covers all 139 literal HTTP route registrations, five literal connection registrations, and the indirectly registered `/api/:op` HTTP/connection transport. Routes from optional packages or conditional configuration are documented but exist at runtime only when their package or feature is enabled.
+This is the routing index for the backend contracts present in the repository snapshot on 2026-09-01. It covers all 154 literal HTTP route registrations, five literal connection registrations, and the indirectly registered `/api/:op` HTTP/connection transport. Routes from optional packages or conditional configuration are documented but exist at runtime only when their package or feature is enabled.
 
 The default base URL is `https://ycoj.cc/`. Every documented route is relative to that base. Prefix a path with `/d/{domainId}` when selecting a domain by URL rather than host; for example, `/p` in domain `school` becomes `https://ycoj.cc/d/school/p`.
 
@@ -10,6 +10,7 @@ The default base URL is `https://ycoj.cc/`. Every documented route is relative t
 | `/contest`, `/contest/*` | [Contest](contest/README.md) | Lists, details, creation/editing, problem list, management, bulk submit, files, users, print, balloons, scoreboard, onsite-toolkit routes |
 | `/homework`, `/homework/*` | [Homework](homework/README.md) | Creation/editing, attendance, files, code, scoreboard |
 | `/training`, `/training/*` | [Training](training/README.md) | Lists, plans, editing, files and downloads |
+| `/preliminary`, `/preliminary/*` | [Preliminary Round Training](preliminary/README.md) | Structured objective papers, draft/publish management, attempts, scores, and incorrect-answer explanations |
 | `/record`, `/record/*`, `/record-conn`, `/record-detail-conn` | [Record](record/README.md) | Submission search/detail, rejudge/cancel, live record streams |
 | `/status`, `/status/*` | [Status](status/README.md) | Judge/system status and updates |
 | `/checkin` | [Check-in](checkin/README.md) | Daily check-in mutation |

@@ -1,0 +1,91 @@
+{% extends "layout/basic.html" %}
+{% block content %}
+<div class="row">
+  <div class="large-9 columns">
+    <div class="section">
+      <div class="section__header">
+        <h1 class="section__title">{{ paper.title }}</h1>
+        {% if not paper.published %}<span class="preliminary__state">{{ _('Draft') }}</span>{% endif %}
+      </div>
+      {% if paper.content %}<div class="section__body typo">{{ paper.content|markdown|safe }}</div>{% endif %}
+    </div>
+    <form id="preliminary-answer-form" data-can-submit="{{ 'true' if canSubmit else 'false' }}">
+      {% for section in paper.sections %}
+        <div class="section preliminary__section">
+          <div class="section__header"><h2 class="section__title">{{ section.title }}</h2></div>
+          {% if section.content %}<div class="section__body typo richmedia preliminary__passage">{{ section.content|markdown|safe }}</div>{% endif %}
+          <ol class="preliminary__questions">
+          {% for question in section.questions %}
+            <li class="preliminary__question" id="question-{{ question.id }}" data-question-id="{{ question.id }}">
+              <div class="preliminary__question-heading">
+                <span>{{ question.questionNumber }}</span>
+                <span class="supplementary">{{ _('{0} points').format(question.score) }}</span>
+              </div>
+              <div class="typo richmedia">{{ question.prompt|markdown|safe }}</div>
+              <div class="preliminary__options">
+              {% if question.type == 'true_false' %}
+                <label class="radiobox"><input type="radio" name="{{ question.id }}" value="true" {% if not paper.published %}disabled{% endif %}> {{ _('True') }}</label>
+                <label class="radiobox"><input type="radio" name="{{ question.id }}" value="false" {% if not paper.published %}disabled{% endif %}> {{ _('False') }}</label>
+              {% else %}
+                {% for option in question.options %}
+                  <label class="radiobox preliminary__option">
+                    <input type="radio" name="{{ question.id }}" value="{{ option.id }}" {% if not paper.published %}disabled{% endif %}>
+                    <span>{{ utils.getAlphabeticId(loop.index0) }}.</span>
+                    <span class="typo richmedia">{{ option.text|markdownInline|safe }}</span>
+                  </label>
+                {% endfor %}
+              {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+          </ol>
+        </div>
+      {% endfor %}
+      {% if canSubmit %}
+        <div class="preliminary__submit-bar">
+          <button type="submit" class="button primary rounded"><span class="icon icon-send"></span> {{ _('Submit') }}</button>
+          <button type="button" name="clear_answers" class="button rounded"><span class="icon icon-erase"></span> {{ _('Clear answers') }}</button>
+          <span class="supplementary"><span data-answered-count>0</span> / {{ paper.questionCount }} {{ _('answered') }}</span>
+        </div>
+      {% endif %}
+    </form>
+  </div>
+  <div class="large-3 columns">
+    <div class="section side">
+      <div class="section__header"><h1 class="section__title">{{ _('Paper') }}</h1></div>
+      <div class="section__body"><dl>
+        <dt>{{ _('Questions') }}</dt><dd>{{ paper.questionCount }}</dd>
+        <dt>{{ _('Total Score') }}</dt><dd>{{ paper.totalScore }}</dd>
+        <dt>{{ _('Revision') }}</dt><dd>{{ paper.revision }}</dd>
+      </dl></div>
+      {% if canEdit %}
+        <ol class="menu">
+          <li class="menu__item"><a class="menu__link" href="{{ url('preliminary_edit', paperId=paper.docId) }}"><span class="icon icon-edit"></span> {{ _('Edit') }}</a></li>
+          <li class="menu__item"><button class="menu__link" name="delete_paper"><span class="icon icon-delete"></span> {{ _('Delete') }}</button></li>
+        </ol>
+      {% endif %}
+    </div>
+    {% if attempts.length %}
+      <div class="section side">
+        <div class="section__header"><h1 class="section__title">{{ _('My Attempts') }}</h1></div>
+        <ol class="menu">
+        {% for attempt in attempts %}
+          <li class="menu__item"><a class="menu__link preliminary__attempt-link" href="{{ url('preliminary_attempt', paperId=paper.docId, attemptId=attempt.docId) }}">
+            <strong>{{ attempt.score }} / {{ attempt.totalScore }}</strong>
+            <span class="supplementary">{{ datetimeSpan(attempt.submittedAt, false)|safe }}</span>
+          </a></li>
+        {% endfor %}
+        </ol>
+      </div>
+    {% endif %}
+    <div class="section side preliminary__question-nav">
+      <div class="section__header"><h1 class="section__title">{{ _('Questions') }}</h1></div>
+      <div class="section__body">
+      {% for section in paper.sections %}{% for question in section.questions %}
+        <a href="#question-{{ question.id }}" data-question-link="{{ question.id }}">{{ question.questionNumber }}</a>
+      {% endfor %}{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

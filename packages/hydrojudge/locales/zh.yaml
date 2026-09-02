@@ -1,5 +1,3 @@
-'Error parsing memory: {0}': 无法解析内存：{0}
-'Error parsing time: {0}': 无法解析时间：{0}
 Cannot find checker {0}.: 找不到比较器 {0}。
 Cannot find input file {0}.: 找不到输入文件 {0}。
 Cannot find judge extra file {0}.: 找不到评测额外文件 {0}。
@@ -8,6 +6,8 @@ Cannot find user extra file {0}.: 找不到用户额外文件 {0}。
 Cannot parse testdata.: 无法解析测试数据。
 Checker returned {0}.: 比较器返回了 {0}。
 Disable builtin judge: 禁用内置评测机
+'Error parsing memory: {0}': 无法解析内存：{0}
+'Error parsing time: {0}': 无法解析时间：{0}
 Executable file not found.: 没有找到可执行文件。
 Found {0} testcases.: 识别到 {0} 个测试点。
 Invalid judge_extra_files config.: 无效的 judge_extra_files 配置。

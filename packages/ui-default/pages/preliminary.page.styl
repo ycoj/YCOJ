@@ -1,0 +1,279 @@
+.page--preliminary_main,
+.page--preliminary_detail,
+.page--preliminary_attempt,
+.page--preliminary_create,
+.page--preliminary_edit
+  .preliminary__title
+    font-size: rem($font-size-title)
+    line-height: 1.25
+    margin: 0 0 rem(8px)
+
+  .preliminary__state
+    display: inline-block
+    margin-left: rem(8px)
+    padding: rem(2px 7px)
+    border: 1px solid $border-1-color
+    border-radius: rem(3px)
+    color: $text-2-color
+    font-size: rem($font-size-small)
+    vertical-align: middle
+
+  .preliminary__list-item
+    padding: rem(18px 20px)
+
+  .preliminary__questions
+    list-style: none
+    margin: 0
+    padding: 0
+
+  .preliminary__question
+    padding: rem(22px)
+    border-top: 1px solid $border-1-color
+
+  .preliminary__question-heading,
+  .preliminary-editor__question-header,
+  .preliminary-editor__section-header,
+  .preliminary-editor__footer
+    display: flex
+    align-items: center
+    justify-content: space-between
+    gap: rem(12px)
+
+  .preliminary__options
+    display: grid
+    gap: rem(8px)
+    margin-top: rem(14px)
+
+  .preliminary__option
+    display: flex
+    align-items: flex-start
+    gap: rem(8px)
+    padding: rem(9px 10px)
+    border: 1px solid $border-1-color
+    border-radius: rem(4px)
+
+  .preliminary__submit-bar
+    position: sticky
+    bottom: 0
+    z-index: 5
+    padding: rem(14px)
+    background: $section-bg-color
+    border: 1px solid $border-1-color
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, .08)
+
+  .preliminary__question-nav .section__body
+    display: grid
+    grid-template-columns: repeat(5, 1fr)
+    gap: rem(6px)
+
+  .preliminary__question-nav a
+    display: flex
+    align-items: center
+    justify-content: center
+    min-height: rem(34px)
+    border: 1px solid $border-1-color
+    border-radius: rem(3px)
+
+    &.is-answered
+      border-color: $primary-color
+      background: rgba($primary-color, .1)
+
+  .preliminary__attempt-link
+    display: flex
+    justify-content: space-between
+    gap: rem(8px)
+
+  .preliminary__question--correct
+    border-left: rem(4px) solid #2f9e44
+
+  .preliminary__question--incorrect
+    border-left: rem(4px) solid #d94841
+
+  .preliminary__result-state
+    margin-right: auto
+
+  .preliminary__review-option
+    padding: rem(9px 10px)
+    border: 1px solid $border-1-color
+    border-radius: rem(4px)
+
+    &.is-selected
+      border-color: #d94841
+
+    &.is-correct
+      border-color: #2f9e44
+      background: rgba(47, 158, 68, .08)
+
+  .preliminary__explanation
+    margin-top: rem(16px)
+    padding: rem(14px)
+    border-left: rem(3px) solid $primary-color
+    background: rgba($primary-color, .06)
+
+  .preliminary-editor__tools,
+  .preliminary-editor__add-question,
+  .preliminary-editor__add-section,
+  .preliminary-editor__save
+    display: flex
+    align-items: center
+    gap: rem(8px)
+
+    .button
+      flex: 0 0 auto
+      margin-bottom: 0
+      white-space: nowrap
+
+  .preliminary-editor__section-header .section__tools
+    position: static
+
+  .preliminary-editor__section .section__body
+    padding-top: rem(8px)
+    padding-bottom: 0.7em
+
+  .preliminary-editor__questions
+    display: flex
+    flex-direction: column
+    gap: rem(8px)
+
+  .preliminary-editor__question
+    margin-top: 0
+    padding: rem(8px 10px)
+    border: 1px solid $border-1-color
+    border-radius: rem(4px)
+
+  .preliminary-editor__question-header
+    margin-bottom: rem(6px)
+
+  .preliminary-editor__prompt-row
+    display: flex
+    align-items: flex-start
+    gap: rem(8px)
+    margin-bottom: rem(6px)
+
+    > textarea.textbox
+      flex: 1 1 auto
+      min-width: 0
+      height: rem(52px)
+      min-height: rem(36px)
+      margin-bottom: 0
+
+    .preliminary-editor__score
+      flex: 0 0 rem(64px)
+      width: rem(64px)
+      height: rem($compact-control-height)
+      align-self: flex-start
+
+  .preliminary-editor textarea.textbox.preliminary-editor__intro
+    height: rem(72px)
+    min-height: rem(48px)
+
+  .preliminary-editor__options
+    display: flex
+    flex-wrap: wrap
+    align-items: center
+    gap: rem(6px)
+
+  .preliminary-editor__option
+    display: flex
+    align-items: center
+    gap: rem(4px)
+    flex: 1 1 rem(140px)
+    min-width: rem(120px)
+    max-width: 100%
+    margin-bottom: 0
+
+    .textbox
+      flex: 1 1 auto
+      min-width: 0
+      height: rem($compact-control-height)
+      margin-bottom: 0
+
+    .button
+      padding-left: rem(8px)
+      padding-right: rem(8px)
+
+  .preliminary-editor__truth
+    display: flex
+    flex-wrap: wrap
+    gap: rem(16px)
+    margin-bottom: rem(6px)
+
+  .preliminary-editor textarea.textbox.preliminary-editor__passage
+    height: rem(140px)
+    min-height: rem(80px)
+
+  .preliminary-editor__explanation-wrap
+    display: flex
+    align-items: flex-start
+    gap: rem(6px)
+    margin-top: rem(8px)
+
+    .textbox
+      flex: 1 1 auto
+      min-width: 0
+      height: rem(52px)
+      min-height: rem(36px)
+      margin-bottom: 0
+
+  .preliminary-editor .button
+    white-space: nowrap
+
+    .icon
+      vertical-align: middle
+
+  .preliminary-editor__options > .button
+    flex: 0 0 auto
+
+  .preliminary-editor__add-question
+    margin-top: rem(8px)
+    padding-bottom: rem(4px)
+
+  .preliminary-editor__add-section
+    flex-wrap: nowrap
+    min-width: 0
+
+    .select
+      width: auto
+      min-width: 10em
+      flex: 0 0 auto
+      margin-bottom: 0
+
+  .preliminary-editor__tools .button
+    padding-left: rem(8px)
+    padding-right: rem(8px)
+
+  @media (max-width: 600px)
+    &.page--preliminary_main .section__header
+      display: flex
+      align-items: stretch
+      flex-direction: column
+      gap: rem(10px)
+
+      .section__title
+        line-height: 1.3
+
+      .section__tools
+        position: static
+
+      .filter-form
+        display: flex
+        gap: rem(6px)
+
+        .textbox
+          min-width: 0
+          width: 100%
+
+    .preliminary-editor__section-header,
+    .preliminary-editor__footer
+      align-items: stretch
+      flex-direction: column
+
+    .preliminary-editor__add-section,
+    .preliminary-editor__save
+      flex-wrap: nowrap
+
+    .preliminary-editor__option
+      flex: 1 1 rem(160px)
+
+    .preliminary__attempt-link
+      flex-direction: column

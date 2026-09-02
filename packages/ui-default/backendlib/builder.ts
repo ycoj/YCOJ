@@ -17,11 +17,15 @@ declare module 'hydrooj' {
   }
   interface UiContextBase {
     constantVersion?: string;
+    localeVersions?: Record<string, string>;
   }
 }
 
-const vfs: Record<string, string> = {};
-const hashes: Record<string, string> = {};
+// Keep the currently published bundle stable while a new bundle is assembled.
+// buildUI is asynchronous and its output is served concurrently by the HTTP
+// handlers, so mutating these maps in place can expose a partial entry.js.
+let vfs: Record<string, string> = {};
+let hashes: Record<string, string> = {};
 const logger = new Logger('ui');
 const tmp = tmpdir();
 
@@ -93,12 +97,13 @@ const applyCss = (css: string) => `
   document.head.appendChild(style);
 `;
 
-export async function buildUI() {
+async function doBuildUI() {
   const start = Date.now();
   let totalSize = 0;
   const entryPoints: string[] = [];
   const lazyModules: string[] = [];
-  const newFiles = ['entry.js'];
+  const nextVfs: Record<string, string> = {};
+  const nextHashes: Record<string, string> = {};
   for (const addon of Object.values(global.addons) as string[]) {
     let publicPath = resolve(addon, 'frontend');
     if (!fs.existsSync(publicPath)) publicPath = resolve(addon, 'public');
@@ -110,10 +115,9 @@ export async function buildUI() {
     }
   }
   function addFile(name: string, content: string) {
-    vfs[name] = content;
-    hashes[name] = sha1(content).substring(0, 8);
-    logger.info('+ %s-%s: %s', name, hashes[name].substring(0, 6), size(content.length));
-    newFiles.push(name);
+    nextVfs[name] = content;
+    nextHashes[name] = sha1(content).substring(0, 8);
+    logger.info('+ %s-%s: %s', name, nextHashes[name].substring(0, 6), size(content.length));
     totalSize += content.length;
   }
   for (const m of lazyModules) {
@@ -125,14 +129,16 @@ export async function buildUI() {
       addFile(basename(m).replace(/\.[tj]sx?$/, '.js'), (css ? applyCss(css) : '') + file.text);
     }
   }
+  const localeVersions: Record<string, string> = {};
   for (const lang in global.Hydro.locales) {
     if (!/^[a-zA-Z_]+$/.test(lang)) continue;
     if (!global.Hydro.locales[lang].__interface) continue;
     const str = `window.LOCALES=${JSON.stringify(global.Hydro.locales[lang][Symbol.for('iterate')])};`;
     addFile(`lang-${lang}.js`, str);
+    localeVersions[lang] = nextHashes[`lang-${lang}.js`];
   }
   const entry = await build([
-    `window.lazyloadMetadata = ${JSON.stringify(hashes)};`,
+    `window.lazyloadMetadata = ${JSON.stringify(nextHashes)};`,
     `window.LANGS=${JSON.stringify(SettingModel.langs)};`,
     ...entryPoints.map((i) => `import '${relative(tmp, i).replace(/\\/g, '\\\\')}';`),
   ].join('\n'));
@@ -142,13 +148,24 @@ export async function buildUI() {
     ${css.length ? applyCss(css.join('\n')) : ''}
     ${pages.join('\n')}
   };`);
-  UiContextBase.constantVersion = hashes['entry.js'];
-  for (const key in vfs) {
-    if (newFiles.includes(key)) continue;
-    delete vfs[key];
-    delete hashes[key];
-  }
+  // Publish the complete generated bundle in one synchronous operation. Any
+  // request racing this build continues to use the previous complete bundle.
+  vfs = nextVfs;
+  hashes = nextHashes;
+  UiContextBase.constantVersion = nextHashes['entry.js'];
+  UiContextBase.localeVersions = localeVersions;
   logger.success('UI addons built in %d ms (%s)', Date.now() - start, size(totalSize));
+}
+
+// Builds are triggered by overlapping events (startup, setting changes, file
+// watches, i18n updates). Serialize them so a slower, stale build can never
+// publish over a newer bundle.
+let queue: Promise<void> = Promise.resolve();
+
+export function buildUI() {
+  const next = queue.then(doBuildUI);
+  queue = next.catch(() => { });
+  return next;
 }
 
 class UiConstantsHandler extends Handler {

@@ -1,0 +1,94 @@
+{% extends "layout/basic.html" %}
+{% block content %}
+<div class="row">
+  <div class="large-9 columns">
+    <div class="section">
+      <div class="section__header">
+        <h1 class="section__title">{{ _('Preliminary Round Training') }}</h1>
+        {% if view == 'papers' %}
+          <div class="section__tools">
+            <form method="get" class="filter-form">
+              <input type="hidden" name="view" value="papers">
+              <input type="text" class="inline compact textbox" name="q" value="{{ q }}" placeholder="{{ _('Search papers...') }}">
+              <button type="submit" class="compact button">{{ _('Search') }}</button>
+            </form>
+          </div>
+        {% endif %}
+      </div>
+      <div class="section__tab-container">
+        <div class="section__tab-header-wrapper">
+          <ul class="section__tab-header">
+            <li class="section__tab-header-item{% if view == 'papers' %} tab--active{% endif %}">
+              <a href="{{ url('preliminary_main') }}">{{ _('Papers') }}</a>
+            </li>
+            {% if handler.user.hasPriv(PRIV.PRIV_USER_PROFILE) %}
+              <li class="section__tab-header-item{% if view == 'attempts' %} tab--active{% endif %}">
+                <a href="{{ url('preliminary_main', query={view:'attempts'}) }}">{{ _('My Attempts') }}</a>
+              </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+      {% if view == 'papers' %}
+        {% if not papers.length %}
+          {{ nothing.render('No preliminary-round papers are available.') }}
+        {% else %}
+          <ol class="section__list all primary preliminary__list">
+          {% for paper in papers %}
+            <li class="section__list__item preliminary__list-item">
+              <div class="media">
+                <div class="media__body middle">
+                  <h1 class="preliminary__title">
+                    <a href="{{ url('preliminary_detail', paperId=paper.docId) }}">{{ paper.title }}</a>
+                    {% if not paper.published %}<span class="preliminary__state">{{ _('Draft') }}</span>{% endif %}
+                  </h1>
+                  {% if paper.content %}<div class="supplementary">{{ paper.content }}</div>{% endif %}
+                  <ul class="supplementary list">
+                    <li><span class="icon icon-flag"></span> {{ _('{0} questions').format(paper.questionCount) }}</li>
+                    <li>{{ _('{0} points').format(paper.totalScore) }}</li>
+                    <li>{{ _('{0} attempts').format(paper.nAttempt) }}</li>
+                    <li>{{ datetimeSpan(paper.updatedAt, false)|safe }}</li>
+                  </ul>
+                </div>
+              </div>
+            </li>
+          {% endfor %}
+          </ol>
+          {{ paginator.render(page, pcount, add_qs='view=papers' + ('&q=' + q|urlencode if q else '')) }}
+        {% endif %}
+      {% else %}
+        {% if not attempts.length %}
+          {{ nothing.render('You have not submitted any preliminary-round papers.') }}
+        {% else %}
+          <div class="table-container">
+            <table class="data-table">
+              <thead><tr><th>{{ _('Paper') }}</th><th>{{ _('Score') }}</th><th>{{ _('Revision') }}</th><th>{{ _('Submitted At') }}</th></tr></thead>
+              <tbody>
+              {% for attempt in attempts %}
+                <tr>
+                  <td><a href="{{ url('preliminary_attempt', paperId=attempt.paperId, attemptId=attempt.docId) }}">{{ attempt.title }}</a></td>
+                  <td><strong>{{ attempt.score }}</strong> / {{ attempt.totalScore }}</td>
+                  <td>{{ attempt.revision }}</td>
+                  <td>{{ datetimeSpan(attempt.submittedAt, false)|safe }}</td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {{ paginator.render(page, pcount, add_qs='view=attempts') }}
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  <div class="large-3 columns">
+    {% if handler.user.hasPerm(perm.PERM_CREATE_PROBLEM) %}
+      <div class="section side">
+        <div class="section__header"><h1 class="section__title">{{ _('Manage Papers') }}</h1></div>
+        <ol class="menu">
+          <li class="menu__item"><a class="menu__link" href="{{ url('preliminary_create') }}"><span class="icon icon-add"></span> {{ _('New Paper') }}</a></li>
+        </ol>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
