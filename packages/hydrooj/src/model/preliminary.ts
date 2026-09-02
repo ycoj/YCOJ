@@ -146,11 +146,15 @@ export const getAttempts = (domainId: string, query: Filter<PreliminaryAttemptDo
     document.getMulti(domainId, ATTEMPT, query).sort({ _id: -1 });
 
 export async function del(domainId: string, paperId: ObjectId) {
-    await document.deleteOne(domainId, PAPER, paperId);
-    await Promise.all([
-        document.deleteMulti(domainId, REVISION, { parentId: paperId }),
-        document.deleteMulti(domainId, ATTEMPT, { parentId: paperId }),
-    ]);
+    // Papers, revisions, and attempts share the document collection, so the
+    // whole cascade is a single delete statement and cannot leave orphans.
+    await document.coll.deleteMany({
+        domainId,
+        $or: [
+            { docType: PAPER, docId: paperId },
+            { docType: { $in: [REVISION, ATTEMPT] }, parentType: PAPER, parentId: paperId },
+        ],
+    });
 }
 
 global.Hydro.model.preliminary = {

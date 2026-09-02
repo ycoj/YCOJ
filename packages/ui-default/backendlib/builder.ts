@@ -97,7 +97,7 @@ const applyCss = (css: string) => `
   document.head.appendChild(style);
 `;
 
-export async function buildUI() {
+async function doBuildUI() {
   const start = Date.now();
   let totalSize = 0;
   const entryPoints: string[] = [];
@@ -155,6 +155,17 @@ export async function buildUI() {
   UiContextBase.constantVersion = nextHashes['entry.js'];
   UiContextBase.localeVersions = localeVersions;
   logger.success('UI addons built in %d ms (%s)', Date.now() - start, size(totalSize));
+}
+
+// Builds are triggered by overlapping events (startup, setting changes, file
+// watches, i18n updates). Serialize them so a slower, stale build can never
+// publish over a newer bundle.
+let queue: Promise<void> = Promise.resolve();
+
+export function buildUI() {
+  const next = queue.then(doBuildUI);
+  queue = next.catch(() => { });
+  return next;
 }
 
 class UiConstantsHandler extends Handler {
