@@ -230,7 +230,7 @@ function throwBindReject(reject: BindReject | null, oierId: number) {
     }
 }
 
-function verifiedSchoolOf(udoc: { realnameSchool?: string, school?: string } | null | undefined, fallback = '') {
+function verifiedSchoolOf(udoc: any, fallback = '') {
     return udoc?.realnameSchool || udoc?.school || fallback;
 }
 

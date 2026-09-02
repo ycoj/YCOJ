@@ -1,5 +1,3 @@
-'Error parsing memory: {0}': ML {0} 처리 오류
-'Error parsing time: {0}': TL {0} 처리 오류
 Cannot connect to sandbox service.: 샌드박스 연결 실패
 Cannot find checker {0}.: Checker {0}을(를) 찾을 수 없습니다.
 Cannot find input file {0}.: 입력 파일 {0}을(를) 찾을 수 없습니다.
@@ -8,6 +6,8 @@ Cannot find output file {0}.: 출력 파일 {0}을(를) 찾을 수 없습니다.
 Cannot find user extra file {0}.: 사용자 추가 파일 {0}을(를) 찾을 수 없습니다.
 Cannot parse testdata.: Testdata 처리 오류
 Checker returned {0}.: Checker가 {0}을(를) 리턴함
+'Error parsing memory: {0}': ML {0} 처리 오류
+'Error parsing time: {0}': TL {0} 처리 오류
 Executable file not found.: 실행 파일 없음
 Found {0} testcases.: 총 {0}개의 TC 찾음
 Invalid judge_extra_files config.: judge_extra_files config 오류

@@ -3,6 +3,9 @@ __id: zh_TW
 __interface: yes
 __langname: 正體中文
 '"{data}" copied to clipboard!': '“{data}”已複製到剪貼簿！'
+(All Problems): (所有題目)
+(None): (無)
+(Not changed): 未更改
 '{0} {1} delete your discussion reply {2} in "{3}"({4}).': '{0} {1} 從討論 {3}({4}) 刪除了你的回覆 {2}。'
 '{0} comments': '{0} 條評論'
 '{0} discussions': '{0} 條討論'
@@ -23,53 +26,40 @@ __langname: 正體中文
 '↓ # Stars': '↓ 收藏數'
 '↓ Create Time': '↓ 建立時間'
 '↓ Update Time': '↓ 更新時間'
-'A domain ID cannot be changed after creation. It is supposed to be:': '建立後將無法更改 ID。ID 必須滿足以下條件：'
-'Copy "{data}" failed :(': '複製“{data}”失敗 :('
-'Copy failed :(': '複製失敗 :('
-'Current dataset: {0}': '當前測試資料: {0}'
-'Discussion: Terms Of Service': '討論區服務條款'
-'First Blood Notice\n{0} solved problem {1} ({2})': '題目首殺提示\n{0} 解決了題目 {1} ({2})'
-'Format: category 1, sub category 1.1, sub category 1.2, ..., sub category 1.x, ..., category n, sub category n.1, sub category n.2, ..., sub category n.m, ...': '格式：分類1, 子分類1.1, 子分類1.2, ..., 子分類1.x, ..., 分類n, 子分類n.1, 子分類n.2, ..., 子分類n.m, ...'
-'Format: one group per line, CSV: groupName,uid1,uid2,...': '格式：每行一個小組，CSV：組名,UID1,UID2,...'
-'No': '否'
-'Note: Problem title may not be hidden.': '注意：題目標題可能不會被隱藏。'
-'Or upload a file:': '或者上傳一個檔案：'
-'Original score: {0}': '原得分: {0}'
-'Role {1} already exists in domain {0}.': '域 {0} 中已存在角色 {1}。'
-'Solved {0} problems, RP: {1} (No. {2})': '解決了 {0} 道題目，RP: {1} (No. {2})'
-'The value `{1}` of {0} already exists.': '{0} 的值 `{1}` 已經存在。'
-'Yes': '是'
-(All Problems): (所有題目)
-(None): (無)
-(Not changed): 未更改
+1 day: 1 天
 1 Hour: 1 小時
+1 month: 1 個月
+1 week: 1 週
 5 Min: 5 分鐘
+'A domain ID cannot be changed after creation. It is supposed to be:': '建立後將無法更改 ID。ID 必須滿足以下條件：'
 Aborted: 已放棄
+about: 關於
+About: 關於
 About {0}: 關於 {0}
 About Markdown: 關於 Markdown
 About test data: 關於測試資料
-about: 關於
-About: 關於
 AC Message: 通過訊息
-Accepted Ratio: 通過率
+'Accept both layouts. When both exist for the same contestant and problem, the subfolder file is used:': 同時接受兩種目錄結構。同一選手同一題兩種路徑都存在時，優先使用子資料夾中的檔案：
 Accepted: 已通過
+Accepted Ratio: 通過率
 Access Control: 訪問控制
+AccountExpiredError: 帳號過期
 Action: 動作
 Active Sessions: 活動會話
+Add: 新增
 Add blacklist by ip, uid: 封禁 IP / 將對應 uid 的使用者拉入黑名單
 Add module: 新增模組
 Add new data: 新增新資料
 Add User: 新增使用者
-Add: 新增
 Additional File: 附加檔案
 Admin {0} delete your discussion "{1}".: 管理員 {0} 刪除了你的討論 "{1}"。
 Admin {0} delete your discussion tail reply {1} in "{2}"({3}).: 管理員 {0} 從討論 {2}({3}) 中刪除了你的討論串回覆 {1}。
+All: 全部
 All {0} Contests: 所有 {0} 比賽
 All Contests: 所有比賽
 All Homeworks: 所有功課
 All Submissions: 所有遞交
 All Training Plans: 所有訓練計劃
-All: 全部
 Allow builtin-login: 啟用內建登入
 Allow users send messages: 允許使用者使用私信
 Allow using gravatar:email qq:id github:name url:link format.: 允許使用 gravatar:email，qq:id，github:name，url:link 格式。
@@ -77,8 +67,8 @@ Allowed langs: 域內允許使用的提交語言
 Always granted all privileges: 總是擁有所有域許可權
 An error has occurred.: 發生了一個錯誤。
 An example of dataset: 測試資料集的一個例子
-Any user is allowed to join this domain with an invitation code: 任意使用者都可以透過邀請碼加入此域
 Any user is allowed to join this domain: 任意使用者都可以加入此域
+Any user is allowed to join this domain with an invitation code: 任意使用者都可以透過邀請碼加入此域
 API: API
 Argument {0} is invalid.: 非法的引數 {0} 。
 Arguments: 引數
@@ -88,10 +78,12 @@ Attend Contest: 參加比賽
 Attend contests: 參加比賽
 Attended: 已參加
 author: 作者
+Auto: 自動
 Auto adjust the format of line breaks and remove unnecessary whitespace characters.: 自動調整換行符格式，並移除不必要的空白字元。
 Auto format code: 自動格式化程式碼
 Auto organize input: 自動整理輸入
 Avatar: 頭像
+Award certification requires an approved real-name verification.: 獎項認證需要先通過實名認證。
 Back to contest list: 返回比賽列表
 Background: 背景
 Be Copied: 被複制
@@ -99,28 +91,25 @@ Begin at: 開始於
 Begin Date: 開始日期
 Begin Time: 開始時間
 Belongs to: 屬於
-Bio Visibility: 個人簡介可見性
 Bio: 個人簡介
+Bio Visibility: 個人簡介可見性
 Bold: 加粗
 Boom!: 炸了！
 Browser: 瀏覽器
 Built-in: 內建
 Bulk Submit: 批量提交
 Bulk submit finished.: 批量提交完成。
-'Each contestant is a folder. Nested problem folders contain a matching .cpp file:': 每位選手一個資料夾。題目子資料夾名與下方對應一致，其中放入同名 .cpp 檔案：
-'Each contestant is a folder. Place matching .cpp files directly in it:': 每位選手一個資料夾，直接放入與題目名對應的 .cpp 檔案，無需題目子資料夾：
-'Accept both layouts. When both exist for the same contestant and problem, the subfolder file is used:': 同時接受兩種目錄結構。同一選手同一題兩種路徑都存在時，優先使用子資料夾中的檔案：
 Bulletin: 公告
 By clicking the button, you will become a member of the domain {0}.: 點選按鈕，您將成為域 {0} 的成員。
 By Contest: 由比賽
 By Problem: 由題目
 By Username / UID: 由使用者名稱或 UID
 Calculate rp of a domain, or all domains: 計算使用者的 RP
-Calendar View: 日曆檢視
 Calendar: 日曆
+Calendar View: 日曆檢視
 Can be Extended For: 可延期
-Cancel Score: 取消成績
 Cancel: 取消
+Cancel Score: 取消成績
 Categories: 分類
 Category: 分類
 CDN Prefix: CDN 路徑字首
@@ -135,10 +124,10 @@ Clear Marks: 清除標記
 Click here to chat with me: 點選這裡與我聊天
 click to add: 點選新增
 CLOSE: 關閉
-Code blocks: 程式碼區塊
-Code language settings: 程式語言設定
-Code language: 程式碼語言
 Code: 程式碼
+Code blocks: 程式碼區塊
+Code language: 程式碼語言
+Code language settings: 程式語言設定
 collapse: 收縮
 Comment: 評論
 Comments: 評論
@@ -153,26 +142,28 @@ Confirm deleting this reply?: 確認刪除這個回覆嗎？
 Confirm removing the selected users?: 您確定將所選使用者移除嗎？
 Confirmation mail has been sent to your new email.: 確認郵件已經傳送到您的新電子郵箱。
 Congratulations! Your submission is accepted.: 恭喜！您的遞交已評測通過。
-Contact Us: 聯絡我們
 Contact: 聯絡
+Contact Us: 聯絡我們
 content: 內容
 Content: 內容
+contest: 比賽
+Contest: 比賽
 Contest {0} has a new clarification about {1}, please go to contest clarifications page to reply.: 比賽 {0} 有一條關於 {1} 的新答疑，請前往比賽答疑頁面回覆。
 Contest {0} jury replied to your clarification, please go to contest page to view.: 比賽 {0} 的裁判回覆了您的答疑，請前往比賽頁面檢視。
 Contest Clarifications: 賽時答疑
 Contest Management: 比賽管理
-Contest scoreboard is not visible.: 當前比賽成績表隱藏，暫不可顯示。
 Contest Scoreboard: 比賽成績表
+Contest scoreboard is not visible.: 當前比賽成績表隱藏，暫不可顯示。
 contest_balloon: 氣球狀態
+contest_bulk_submit: 批量提交
 contest_clarification: 賽時答疑
 contest_create: 建立比賽
-contest_detail_problem_submit: 遞交比賽程式碼
-contest_detail_problem: 題目詳情
 contest_detail: 比賽詳情
+contest_detail_problem: 題目詳情
+contest_detail_problem_submit: 遞交比賽程式碼
 contest_edit: 編輯比賽
 contest_main: 比賽
 contest_manage: 比賽管理
-contest_bulk_submit: 批量提交
 contest_print: 列印
 contest_problemlist: 題目列表
 contest_scoreboard: 比賽成績表
@@ -180,55 +171,59 @@ contest_solution_create: 建立比賽題解
 contest_solution_detail: 比賽題解
 contest_solution_edit: 編輯比賽題解
 contest_user: 參賽者管理
-contest: 比賽
-Contest: 比賽
+'Contestant {0} not found.': 未找到獲獎人 {0}。
 Contests per page: 每頁展示的比賽數量
 Continue: 繼續
 Contributed Problems: 貢獻的題目
 Contributions: 貢獻
-Copy Email: 複製電子郵件
-Copy the content below: 複製下方的內容
-Copy from: 複製自
-Copy QQ Number: 複製QQ號
-Copy WeChat Account: 複製微訊號
 Copy: 複製
+'Copy "{data}" failed :(': '複製“{data}”失敗 :('
+Copy Email: 複製電子郵件
+'Copy failed :(': '複製失敗 :('
+Copy from: 複製自
+Copy link: 複製連結
+Copy QQ Number: 複製QQ號
+Copy the content below: 複製下方的內容
+Copy WeChat Account: 複製微訊號
 Copyright Complaint: 版權申訴
 CPU Info: CPU資訊
+Create: 建立
 Create a contest: 建立一個比賽
 Create a Discussion: 建立一個討論
 Create a problem: 建立一個題目
 Create Contest: 建立比賽
 Create contests: 建立比賽
-Create Discussion in {0}: 在 {0} 下建立討論
 Create Discussion: 建立討論
+Create Discussion in {0}: 在 {0} 下建立討論
 Create discussions: 建立討論
 Create Domain: 建立域
 Create homework: 建立功課
 Create Homework: 建立功課
 Create Link: 建立連結
-Create problem solutions: 建立題解
+Create Paste: 分享程式碼片段
 Create Problem: 建立題目
+Create problem solutions: 建立題解
 Create problems: 建立題目
 Create Role: 建立角色
 Create Training Plan: 建立訓練計劃
 Create training plans: 建立訓練計劃
-Create: 建立
 Created By: 建立人
 Created virtual user: 已建立虛擬使用者
 Created virtual user (a registered user also exists): 已建立虛擬使用者（同時存在同名正式使用者）
 Current dataset comes from: 當前資料集來自
+'Current dataset: {0}': '當前測試資料: {0}'
 current domain: 當前域
 Current Email: 當前電子郵件
 Current Location: 當前位置
-Current password doesn't match.: 當前密碼輸入錯誤。
 Current Password: 當前密碼
+Current password doesn't match.: 當前密碼輸入錯誤。
 Current Status: 當前狀態
 currently offline: 目前離線
 Data of Problem {0} not found.: 題目 {0} 的資料缺失。
 Data of problem {1} not found.: 題目 {1} 的資料未找到。
 Data of record {0} not found.: 記錄 {0} 的資料未找到。
-Dataset Format: 測試資料集格式
 Dataset: 測試資料
+Dataset Format: 測試資料集格式
 Day: 日
 Deadline: 截止時間
 Default Code Language: 預設程式碼語言
@@ -236,9 +231,11 @@ Default Code Template: 預設程式碼模板
 Default display language: 預設顯示語言
 Default Privilege: 使用者預設全站許可權
 Delay: 延遲
+delete: 刪除
+Delete: 刪除
 Delete a user: 刪除使用者
-Delete discussion replies of own discussion: 刪除自己討論中的回覆
 Delete discussion replies: 刪除討論回覆
+Delete discussion replies of own discussion: 刪除自己討論中的回覆
 Delete discussions: 刪除討論
 Delete own discussion replies: 刪除討論中自己的回覆
 Delete own discussions: 刪除自己的討論
@@ -247,17 +244,17 @@ Delete own problem solutions: 刪除自己的題解
 Delete problem solution replies: 刪除題解的回覆
 Delete problem solutions: 刪除題解
 Delete Selected Roles: 刪除所選角色
-delete: 刪除
-Delete: 刪除
 Description: 說明
 Destination Domain: 目標域
+Detail: 詳情
 Development: 開發
+Difficulty: 難度
 Difficulty Algorithm: 難度演算法
 Difficulty by admin: 管理員設定的難度
 Difficulty by algorithm: 演算法計算的難度
 Difficulty displayed: 顯示的難度
-Difficulty: 難度
 Disabled: 關閉
+Discussion: 討論
 Discussion {1} not found.: 討論 {1} 不存在。
 Discussion category {1} already exists.: 討論分類 {1} 已經存在。
 Discussion category {1} not found.: 討論分類 {1} 不存在。
@@ -269,54 +266,57 @@ discussion_detail: 討論詳情
 discussion_edit: 編輯討論
 discussion_main: 討論
 discussion_node: 討論
-Discussion: 討論
-Discussions per page: 每頁展示的討論數量
+'Discussion: Terms Of Service': '討論區服務條款'
 Discussions: 討論
-Display name {1} you want to set is used by others.: 您想要設定的顯示名 {1} 已經被其他人使用了。
+Discussions per page: 每頁展示的討論數量
 Display Name: 顯示名
+Display name {1} you want to set is used by others.: 您想要設定的顯示名 {1} 已經被其他人使用了。
 display_name: 顯示名
 Do not discuss solutions otherwise you will be regarded as cheating and then lose qualifications.: 請勿討論解法，否則以作弊論處並且將失去參賽資格。
 Document {2} not found.: 檔案 {2} 不存在。
+domain: 域
+Domain: 域
 Domain {0} already exists.: 域 {0} 已經存在。
 Domain {0} is bulit-in and cannot be modified.: 域 {0} 為內建，不可修改。
 Domain {0} not found.: 域 {0} 不存在。
-Domain ID cannot be changed once the domain is created.: 在建立後不能更改 ID。
 Domain ID: 域 ID
+Domain ID cannot be changed once the domain is created.: 在建立後不能更改 ID。
 domain_create: 建立域
 domain_dashboard: 管理域
 domain_discussion: 討論節點
 domain_edit: 編輯域資料
 domain_file: 我的檔案
 domain_group: 管理小組
-domain_join_applications: 加域申請
 domain_join: 加入域
+domain_join_applications: 加域申請
 domain_main: 首頁
 domain_permission: 管理許可權
 domain_role: 管理角色
 domain_user: 管理使用者
-domain: 域
-Domain: 域
 Don't have an account?: 還沒有賬戶？
 Done: 已結束
+Download: 下載
 Download Dataset: 下載資料集
 Download Hack Input: 下載 Hack 輸入
 Download link copied to clipboard!: 下載連結已複製到剪貼簿。
-Download: 下載
-Dry run finished.: 試執行完成。
-Dry run: 試執行
-Duplicate submission for this contestant and problem: 該選手此題有重複檔案
 Downvote: 差評
-Duration (hours): 持續時間 (小時)
+Dry run: 試執行
+Dry run finished.: 試執行完成。
+Duplicate submission for this contestant and problem: 該選手此題有重複檔案
 Duration: 持續時間
+Duration (hours): 持續時間 (小時)
+'Each contestant is a folder. Nested problem folders contain a matching .cpp file:': 每位選手一個資料夾。題目子資料夾名與下方對應一致，其中放入同名 .cpp 檔案：
+'Each contestant is a folder. Place matching .cpp files directly in it:': 每位選手一個資料夾，直接放入與題目名對應的 .cpp 檔案，無需題目子資料夾：
+Edit: 編輯
 Edit any contests: 修改任意的比賽
 Edit any homework: 修改任意功課
 Edit Contest: 編輯比賽
 Edit description of this domain: 修改此域描述
-Edit discussion replies of own discussion: 修改自己討論中的回覆
 Edit discussion replies: 修改討論的回覆
+Edit discussion replies of own discussion: 修改自己討論中的回覆
 Edit discussions: 修改討論
-Edit domain settings: 編輯域設定
 Edit Domain: 編輯域
+Edit domain settings: 編輯域設定
 Edit Homework: 編輯功課
 Edit own contests: 修改自己的比賽
 Edit own discussion replies: 修改討論中自己的回覆
@@ -326,17 +326,18 @@ Edit own problem solution replies: 修改題解中自己的回覆
 Edit own problem solutions: 修改自己的題解
 Edit own problems: 修改自己的題目
 Edit own training plans: 修改自己的訓練計劃
+Edit Paste: 編輯分享
 Edit permissions of a role: 修改角色許可權
+Edit Problem: 編輯題目
 Edit problem solution replies: 修改題解的回覆
 Edit problem solutions: 修改題解
-Edit Problem: 編輯題目
 Edit problems: 修改題目
 Edit Profile: 編輯個人資訊
 Edit training plans: 修改訓練計劃
-Edit: 編輯
 Effects only when Difficulty is not 'Use algorithm calculated'.: 僅當難度不為“使用演算法計算”時才起效。
-Email Visibility: Email 可見性
 Email: 電子郵件
+Email Visibility: Email 可見性
+Empty source file: 原始碼為空
 Enabled: 開啟
 End at: 結束於
 End Date: 結束日期
@@ -349,8 +350,14 @@ Enrollees: 參加人數
 Enter Edit Mode: 進入編輯模式
 error: 錯誤
 Evaluated difficulty: 估計的難度
+Every selected account must already have a finite expiration.: 所選帳號必須已有截止日期，才能延長或縮短。
+Existing registered user: 已有正式使用者
+Existing virtual user: 已有虛擬使用者
+Existing virtual user (a registered user also exists): 已有虛擬使用者（同時存在同名正式使用者）
 expand: 展開
+Expiration: 到期時間
 Expire: 過期
+Expires: 到期時間
 Export All Code: 匯出所有原始碼
 Export as {0}: 匯出為 {0}
 Export Groups: 批量匯出小組
@@ -358,20 +365,23 @@ Extension (days): 最長延期（日）
 Extension Score Penalty: 延期遞交扣分規則
 Failed to join the domain. You are already a member.: 加入域失敗，您已是該域的成員。
 Failed to read file: 讀取檔案失敗
-Filename does not match problem folder: 檔名與題目資料夾不一致
 Feedback: 反饋
-Field {0} or {1} validation failed. ({2}): 欄位 {0} 或 {1} 驗證失敗。 ({2})
 Field {0} or {1} validation failed.: 欄位 {0} 或 {1} 驗證失敗。
-Field {0} validation failed. ({2}): 欄位 {0} 驗證失敗。 ({2})
+Field {0} or {1} validation failed. ({2}): 欄位 {0} 或 {1} 驗證失敗。 ({2})
 Field {0} validation failed.: 欄位 {0} 驗證失敗。
+Field {0} validation failed. ({2}): 欄位 {0} 驗證失敗。 ({2})
+Filename does not match problem folder: 檔名與題目資料夾不一致
 Filter: 過濾
+'First Blood Notice\n{0} solved problem {1} ({2})': '題目首殺提示\n{0} 解決了題目 {1} ({2})'
 Footer: 頁尾
 Forgot Password and/or Username: 忘記密碼和/或使用者名稱
 Forgot password or username?: 忘記密碼或者使用者名？
+'Format: category 1, sub category 1.1, sub category 1.2, ..., sub category 1.x, ..., category n, sub category n.1, sub category n.2, ..., sub category n.m, ...': '格式：分類1, 子分類1.1, 子分類1.2, ..., 子分類1.x, ..., 分類n, 子分類n.1, 子分類n.2, ..., 子分類n.m, ...'
+'Format: one group per line, CSV: groupName,uid1,uid2,...': '格式：每行一個小組，CSV：組名,UID1,UID2,...'
 Formula blocks: 公式區塊
 fs_upload: 上傳檔案
-Gender Visibility: 性別可見性
 Gender: 性別
+Gender Visibility: 性別可見性
 General Issue: 一般問題
 Hard Deadline: 最終截止時間
 Hash: 雜湊
@@ -382,47 +392,49 @@ Hidden: 隱藏
 Hide all tags: 隱藏所有標籤
 Hide categorical tags: 隱藏分類標籤
 Hide Selected: 隱藏選中
-Highlight discussions: 高亮討論
 highlight: 高亮
 Highlight: 高亮
+Highlight discussions: 高亮討論
 Hint: 提示
 home_account: 賬戶設定
+home_award: 獎項認證
+home_domain: 我的域
 home_domain_account: 當前域的設定
 home_domain_create: 建立域
-home_domain: 我的域
 home_files: 我的檔案
 home_messages: 站內訊息
 home_preference: 偏好設定
 home_realname: 實名認證
 home_realname_result: 認證結果
-home_award: 獎項認證
 home_security: 安全設定
-Homepage Config: 主頁設定
 homepage: 首頁
+Homepage Config: 主頁設定
+Homework: 功課
 Homework Introduction: 功課介紹
 Homework scoreboard is not visible.: 目前無法檢視功課成績表。
 homework_create: 建立功課
-homework_detail_problem_submit: 遞交作業題目
-homework_detail_problem: 題目詳情
 homework_detail: 作業詳情
+homework_detail_problem: 題目詳情
+homework_detail_problem_submit: 遞交作業題目
 homework_edit: 編輯功課
 homework_files: 作業檔案
 homework_main: 功課
 homework_scoreboard: 成績表
 homework_status: 作業成績表
-Homework: 功課
 Homeworks per page: 每頁展示的作業數量
 Host: 主持人
 hour(s): 小時
+If a registered user already has this name: 若已有同名正式使用者
 If enabled, source code will be emailed to you after the submission is accepted.: 如果啟用，在您通過題目後，原始碼會以 Email 的形式傳送給您。
 If left blank, the built-in template of the corresponding language will be used.: 若留空，則將使用對應語言的內建程式碼模板。
+Ignored junk file: 已忽略無效檔案
 Images: 圖片
-Import From Hydro: 從 Hydro 匯入
+Import: 匯入
 Import from: 匯入自
+Import From Hydro: 從 Hydro 匯入
 Import Groups: 批量匯入小組
 Import Problem: 匯入題目
 Import User: 匯入使用者
-Import: 匯入
 Imported successfully.: 匯入成功。
 In 1 day: 一天後
 In 1 month: 一個月後
@@ -444,17 +456,18 @@ Insert Image: 插入影象
 Installed Modules: 已安裝的模組
 Instant Rendering: 即時渲染
 Instead of copying the test data directly, the test data of the copied problems will be linked to the test data of the source problems (called the source test data). Thus, the copied problems can observe the changes in the source test data. The permissions of the test data of the copied problems follow the source test data, e.g., you still might not download them but the judges can. By uploading some new test data, the link will be broken and the new test data will be used.: 雖然測試資料不會被複制，但是系統會將題目的測試資料連結到原題。因此在原題的資料被改動的時候，複製後的題目的資料也會同時改動。連結後的測試資料的許可權以原題為準，比如您可能依舊無法下載資料，但是評測機可以。在題目設定頁面中可以透過上傳新的測試資料的方式，這個資料連結會被刪除，以後將使用您的新測試資料。
-Introduce must not exceed 500 characters and it will be shown in the list view.: 簡介不能超過 500 個字元，將顯示在列表頁面中。
 Introduce: 簡介
-Invalid password for user {0}.: 使用者 {0} 的密碼錯誤。
+Introduce must not exceed 500 characters and it will be shown in the list view.: 簡介不能超過 500 個字元，將顯示在列表頁面中。
 Invalid: 無效
+Invalid password for user {0}.: 使用者 {0} 的密碼錯誤。
+Invalid real-name application transition.: 實名認證申請狀態流轉無效。
 Invitation Code: 邀請碼
 IO: 輸入輸出
 Is rated: 計入排名
 It works!: 它成了！
 Italic: 斜體
-Join {0}: 加入 {0}
 Join: 加入
+Join {0}: 加入 {0}
 Judge Status: 評測狀態
 judge_playground: 評測遊樂場
 Judged At: 評測時間
@@ -479,30 +492,31 @@ Live...: 正在進行…
 Location: 位置
 Lock discussions: 鎖定討論
 Lock Topic: 鎖定主題
+Login: 登入
 Login to Attend Contest: 登入後參加比賽
 Login to Claim Homework: 登入以認領功課
 Login to Create a Discussion: 登入後建立討論
 Login to join training plan: 登入以參加訓練計劃
 Login to Submit: 登入後遞交
-Login: 登入
+Logout: 登出
 Logout All Sessions: 登出所有會話
 Logout This Session: 登出該會話
-Logout: 登出
 Lost Password: 忘記密碼
 Lucky: 手氣不錯
 Mail From: 發件人
+manage: 管理
+Manage: 管理
+manage_award: 獎項認證
 manage_dashboard: 概況
 manage_join_applications: 加域申請
 manage_module: 管理模組
-manage_setting: 系統設定
 manage_realname: 實名認證管理
-manage_award: 獎項認證
+manage_setting: 系統設定
 manage_user_import: 匯入使用者
-manage: 管理
-Manage: 管理
 Manager: 管理
 Mark Green: 標綠
 Mark Yellow: 標黃
+Markdown: Markdown
 Materials: 材料
 Max files for user: 單使用者最大檔案數量
 Max files per problem: 單題最大檔案數量
@@ -510,9 +524,10 @@ Max files size per problem: 單題最大總檔案大小
 Max pretest count per minute: 每分鐘自測數量限制
 Max submission count per minute: 每分鐘提交數量限制
 Max total file size for user: 單使用者最大總檔案大小
+Memory: 記憶體
 Memory Cost: 記憶體佔用
 Memory Info: 記憶體資訊
-Memory: 記憶體
+Merge submissions for system users; submit non-system users as virtual users: 系統使用者合併提交，非系統使用者以虛擬使用者提交
 Message {0} not found.: 訊息 {0} 不存在。
 Messages: 訊息
 Method: 方法
@@ -521,6 +536,7 @@ Monthly Popular: 月度最受歡迎
 Most Upvoted Solutions: 最熱題解
 My Domains: 我的域
 My Files: 我的檔案
+My Pastes: 分享記錄
 My Profile: 我的資料
 My Recent Submissions: 我最近的遞交記錄
 My Role: 我的角色
@@ -529,14 +545,16 @@ name: 名稱
 Name: 名稱
 Network error: 網路錯誤
 Never expire: 永不過期
+New: 建立
 New Email: 新電子郵件
 New file: 新檔案
 New Password: 新密碼
 New Training Plan: 新訓練計劃
-New: 建立
+'No': '否'
 No comments so far...: 目前還沒有評論...
 No dataset at present.: 暫無測試資料。
 No discussion yet...: 目前沒有討論…
+No pastes yet: 尚無分享記錄
 No Permission to Attend Contest: 您沒有許可權參加比賽
 No Permission to Claim Homework: 您沒有許可權認領功課
 No Permission to Create a Discussion: 您沒有許可權建立討論
@@ -547,13 +565,16 @@ No Submissions: 沒有遞交
 No testdata at current.: 暫無測試資料。
 No user is allowed to join this domain: 沒有使用者可以自助加入此域
 no_translation_warn: <blockquote class="warn">這部分內容正在翻譯。</blockquote>
+Non-subfolder mode: 非子資料夾模式
 None: 無
+Not a C++ file: 不是 C++ 檔案
 Not Attended: 未參加
 Not available: 不可用
 Not Claimed: 未認領
 Not Enrolled: 未參加
 Not started with a number: 不以數字開頭
 Not wrapped with space: 兩側不含空格
+'Note: Problem title may not be hidden.': '注意：題目標題可能不會被隱藏。'
 Numeric PID: 數字題號
 Oh, the user doesn't have any contributions!: 啊哦，這個使用者還沒貢獻過題目~
 Oh, the user hasn't created any discussions yet!: 這個使用者還沒有釋出過討論
@@ -564,19 +585,23 @@ Oh, there is no task in the queue!: 喔，佇列中目前沒有任務。
 Ok: 確定
 Only A-Z, a-z, 0-9 and _ are accepted: 只接受 A-Z, a-z, 0-9 和 _
 Only Partic.: 僅參賽者
+Only zip files are allowed: 僅允許 zip 檔案
 Oops, there are no results.: 呀，沒有結果。
 Oops!: Oops!
+Open: 開放
 Open in Problem Set: 在題庫中開啟
 Open Scratchpad: 進入線上程式設計模式
 Open Since: 開始時間
 Open Source: 開源
-Open: 開放
 Operating System: 作業系統
 Ops: 運維
+Optional title: 可選標題
 Or paste CSV content: 或貼上 CSV 內容
+'Or upload a file:': '或者上傳一個檔案：'
 Or, with automatically filled invitation code: 或者，可以使用自動填寫邀請碼
 Ordered List: 有序列表
 Original Score: 原始得分
+'Original score: {0}': '原得分: {0}'
 OS Info: 系統資訊
 Output Format: 輸出格式
 Owner: 所有者
@@ -589,9 +614,15 @@ pager_next: 下一頁 ›
 pager_previous: ‹ 前一頁
 Params: 引數
 Partic.: 參賽人數
-Password reset mail has been sent to your email.: 密碼重置郵件已傳送到您的電子郵箱。
 Password: 密碼
+Password reset mail has been sent to your email.: 密碼重置郵件已傳送到您的電子郵箱。
 Passwords don't match.: 驗證密碼不匹配。
+Paste type: 類型
+paste_detail: 分享詳情
+paste_edit: 編輯分享
+paste_main: 分享程式碼片段
+Pastebin: 分享程式碼片段
+Pastes per page: 每頁展示的分享記錄數量
 Path {0} not found.: 路徑 {0} 不存在。
 Peak Memory: 峰值記憶體
 Penalty (Minutes): 罰時（分鐘）
@@ -599,8 +630,8 @@ perm_contest: 比賽
 perm_discussion: 討論
 perm_general: 一般
 perm_homework: 作業
-perm_problem_solution: 題解
 perm_problem: 題庫
+perm_problem_solution: 題解
 perm_ranking: 排名
 perm_record: 記錄
 perm_training: 訓練
@@ -614,26 +645,34 @@ Pin training plans: 置頂訓練計劃
 Plan: 計劃
 Please attend contest to see the problems.: 請參加比賽來檢視題目。
 Please claim the assignment to see the problems.: 認領功課後方可檢視題目。
+Please complete real-name verification before using this site.: 請先完成實名認證後再使用本站功能。
+Please select a zip file.: 請選擇 zip 檔案。
 Please select at least one role to perform this operation.: 請選擇至少一個角色來進行操作。
 Please select at least one user to perform this operation.: 請選擇至少一個使用者來進行操作。
 preferredEditorType: 首選編輯模式
+Pretest: 自測
 Pretest Data: 自測資料
 Pretest Your Code: 使用自定義資料測試
-Pretest: 自測
 Pretest?: 自測?
 Preview: 預覽
+Preview only, do not submit: 僅預覽，不實際提交
 Print: 列印
 Privacy: 隱私
+Problem: 題目
 Problem {1} not found.: 題目 {1} 不存在。
 Problem Categories: 題目標籤
 Problem Category: 標籤
 Problem Data: 題目資料
 Problem Description: 題目描述
+Problem folder is not in mapping: 題目資料夾未在對應中
 Problem ID List: 題目 ID 列表
+Problem mapping: 題目對應
+Problem name in zip: Zip 中的題目名
+Problem not found: 題目不存在
 Problem Set: 題庫
 Problem Settings: 題目設定
-Problem Solution List: 題解列表
 Problem Solution: 題解列表
+Problem Solution List: 題解列表
 Problem Tags Visibility: 題目標籤可見性
 problem_create: 建立題目
 problem_detail: 題目詳情
@@ -647,17 +686,15 @@ problem_statistics: 題目統計
 problem_submit: 遞交程式碼
 problem-category-delim: '|'
 problem-subcategory-delim: 、
-Problem: 題目
 problem.import.additional_file: '## 附加檔案'
 problem.import.hint: '## 提示'
 problem.import.input_format: '## 輸入格式'
 problem.import.limit_and_hint: '## 限制'
 problem.import.output_format: '## 輸出格式'
 problem.import.problem_description: '## 題目描述'
-Pastes per page: 每頁展示的分享記錄數量
+Problems: 題目
 Problems per page: 每頁展示的題目數量
 Problems Sets: 題庫
-Problems: 題目
 Profile Background Image: 背景圖片
 Progress: 進度
 Properties: 屬性
@@ -670,64 +707,75 @@ Quote: 引用
 Rank: 排名
 ranking: 排名
 Ranking: 排名
+Raw: 原始內容
 Read record codes after accept: 題目通過後讀取記錄的程式碼
+Real Name: 真實姓名
+'Real-name application {0} not found.': 實名認證申請 {0} 不存在。
+Real-name applications per page: 每頁展示的實名認證申請數量
+Real-name Verification: 實名認證
+Real-name verification is required before using this site.: 使用本站前必須完成實名認證。
+Realname Status: 實名認證狀態
+Realname Submitted At: 實名認證提交時間
 Recalculates nSubmit and nAccept in problem status.: 重新計算每道題目的 AC 量和提交量
 Recommended: 推薦
 Record {0} not found.: 記錄 {0} 不存在。
 record_detail: 記錄詳情
 record_main: 評測佇列
-Records per page: 每頁展示的評測記錄數量
 Records: 評測記錄
-Refresh Records: 重新整理評測記錄
+Records per page: 每頁展示的評測記錄數量
 Refresh: 重新整理
+Refresh Records: 重新整理評測記錄
 Registered at: 註冊於
+Rejudge: 重測
 Rejudge problems: 重測題目
 Rejudge records: 重測記錄
-Rejudge: 重測
-Related Discussions: 相關討論
 Related: 相關
+Related Discussions: 相關討論
 Relax and try to remember your password.: 放鬆，嘗試回憶您設定的密碼。
 Remember me: 記住我
+Remove: 移除
 Remove Selected User: 將所選使用者移出
 Remove this data: 移除這組資料
-Remove: 移除
 Repeat Password: 重複密碼
 Replies per page: 每頁展示的回覆數量
-Reply discussions: 回覆討論
-Reply problem solutions: 回覆題解
 reply: 回覆
 Reply: 回覆
+Reply discussions: 回覆討論
+Reply problem solutions: 回覆題解
 Report: 舉報
 required: 必填
-Reset Password or Find Username: 重置密碼或找回使用者名稱
-Reset Password: 重置密碼
 Reset: 重置
+Reset Password: 重置密碼
+Reset Password or Find Username: 重置密碼或找回使用者名稱
 Restart: 重新啟動
+Result: 結果
+Revoked by administrator: 由管理員撤銷
+Role: 角色
+'Role {1} already exists in domain {0}.': '域 {0} 中已存在角色 {1}。'
 Role Assignment: 角色分配
 Role has been updated to {0} for selected users.: 所選使用者角色已更新為 {0}。
 Role has been updated to {0}.: 角色已更新為 {0}。
 Role name can only contains numbers, letters and underscores.: 角色名稱只能包含數字、字母和下劃線。
-Role: 角色
 Roles: 角色
 RP Algorithm: RP 演算法
 Rule: 規則
-Run Pretest: 執行自測
 Run: 執行
+Run Pretest: 執行自測
+Sample: 樣例
 Sample Input: 輸入資料
 Sample Output: 輸出資料
-Sample: 樣例
 Save All Changes: 儲存所有修改
-Saved session expire seconds: 儲存的會話的過期秒數
 Saved session: 已儲存的會話
+Saved session expire seconds: 儲存的會話的過期秒數
 School: 學校
-score canceled: 成績取消
 Score: 分數
-Scoreboard (Hidden): 成績表 (隱藏)
+score canceled: 成績取消
 Scoreboard: 成績表
+Scoreboard (Hidden): 成績表 (隱藏)
 Scripts: 指令碼
 Search: 搜尋
-Secret (visible to admins): 保密（對管理員可見）
 Secret: 保密
+Secret (visible to admins): 保密（對管理員可見）
 Section: 章節
 Security: 安全
 Select a node to create discussion.: 選擇一個節點來發表討論。
@@ -737,6 +785,7 @@ Select User: 選擇使用者
 Selected categories: 已選標籤
 Selected roles have been deleted.: 所選角色已刪除。
 Selected users have been removed from the domain.: 所選使用者已從此域中移除。
+Send: 傳送
 Send Broadcast Message: 傳送公告
 Send Clarification Request: 提問
 Send Code after acceptance: 通過題目後傳送原始碼
@@ -744,7 +793,6 @@ Send Message: 傳送站內資訊
 Send Password Reset Email: 傳送密碼重置郵件
 Send Problem: 傳送題目
 Send Verification Email: 傳送驗證郵件
-Send: 傳送
 Service Status: 服務狀態
 Set Role: 設定角色
 Set Roles for Selected User: 設定所選使用者的角色
@@ -754,57 +802,64 @@ setting_customize: 自訂
 setting_display: 顯示偏好
 setting_domain: 域設定
 setting_file: 儲存桶設定
-setting_info_domain: 個人資訊
 setting_info: 個人資訊
+setting_info_domain: 個人資訊
 setting_privacy: 隱私
 setting_server: 伺服器設定
 setting_session: Session 設定
 setting_smtp: SMTP 設定
 setting_usage: 使用偏好
 Settings: 設定
-Share problem with domain (* for any): 允許引用該域題目的域（* 表示所有域均允許）
 Share: 分享
+Share problem with domain (* for any): 允許引用該域題目的域（* 表示所有域均允許）
 She: 她
+Show: 顯示
 Show all tags: 顯示所有標籤
 show invisible characters when formatting code: 在格式化後的程式碼中顯示不可見字元
 Show MOD badge: 展示 MOD 徽章
-Show: 顯示
 Sign In: 登入
 SIGN IN: 登入
+Sign Up: 註冊
 Sign up mail has been sent to your email.: 註冊郵件已經傳送到您的電子郵箱。
 Sign Up Now: 現在註冊
-Sign Up: 註冊
 Size: 大小
+Skipped: 已跳過
 SMTP Password: SMTP 密碼
 SMTP Server Host: SMTP 伺服器地址
 SMTP Server Port: SMTP 伺服器埠
 SMTP Username: SMTP 使用者名稱
 Solutions per page: 每頁展示的題解數量
+'Solved {0} problems, RP: {1} (No. {2})': '解決了 {0} 道題目，RP: {1} (No. {2})'
 Sorry: 對不起
 Sort by: 排序
+Source file too long: 原始碼過長
 Source type: 來源型別
 Split by ',' '.': 由"，"、"、"或"。"分隔。
 Split View: 分屏預覽
-Star Topic: 收藏討論
 Star: 收藏
+Star Topic: 收藏討論
 Starred Problems: 收藏的題目
 Start at: 開始於
 Statistics: 統計
-Status is hidden: 狀態已隱藏
 status: 狀態
 Status: 狀態
+Status is hidden: 狀態已隱藏
 Storage engine accessKey: 儲存桶 accessKey
 Storage engine bucket: 儲存桶名稱
 Storage engine endPoint: 儲存桶 endPoint
 Storage engine region: 儲存桶地域
 Storage engine secret: 儲存桶 secretKey
 Student ID: 學號
+Subfolder mode: 子資料夾模式
 Subject: 主題
-Submission Statistics: 遞交統計
 Submission: 遞交
+Submission Statistics: 遞交統計
 Submissions: 遞交
 Submit: 遞交
+Submit all as virtual users: 全部以虛擬使用者方式提交
+Submit failed: 提交失敗
 Submitted: 已遞交
+Submitted {0}, skipped {1}, virtual users {2} ({3} new).: 已提交 {0} 份，跳過 {1} 份，虛擬使用者 {2} 個（新建 {3} 個）。
 Support: 支援
 Sync problem filelist from s3 service: 從 S3 同步題目檔案列表。
 Tags: 標籤
@@ -823,27 +878,34 @@ The invitation code you provided is invalid.: 您提供的邀請碼無效。
 The link is either invalid or expired.: 加域連結無效或已過期。
 The link will be expired at {0}: 連結將於 {0} 過期
 The role to assign when user joining the domain.: 使用者加入此域時分配的角色。
+The selected contestant name does not match your verified real name.: 所選獲獎人姓名與你的實名不一致。
 The uploaded file is too long.: 上傳的檔案太長。
 The user is already a member of the domain.: 該使用者已是域的成員。
 The user is too lazy to leave something here...: 該使用者太懶，這裡啥也沒寫 (´・ω・｀)
+'The value `{1}` of {0} already exists.': '{0} 的值 `{1}` 已經存在。'
 theme: 主題
 There are no contests...: 沒有比賽…
 There is no homework so far ╰(*°▽°*)╯: 目前沒有功課 ╰(*°▽°*)╯
-This contest is not live.: 比賽沒有開始。
+These awards are already certified to another account.: 這些獎項已被其他帳號認證。
+This account already has certified awards. Ask an administrator to remove them first.: 該帳號已綁定獎項。如需更改請先聯繫管理員移除。
+This account has no certified awards.: 該帳號沒有已認證的獎項。
+This application is not pending review.: 該申請目前不在待審核狀態。
 This contest has already started.: 比賽已開始。
+This contest is not live.: 比賽沒有開始。
 This email was sent by {0} automatically, and please do not reply directly.: 這封郵件由 {0} 自動傳送，請勿直接回復。
 This homework is not open and you cannot view problems.: 功課尚未開放，不能檢視題目。
 This homework is not open.: 功課尚未開放遞交。
 This is the current session: 這是當前的會話
+This language is not allowed to submit.: 不允許使用該語言提交。
 This message will be presented to those whose submissions are accepted.: 這條訊息將會被展示給通過此題的使用者。
 This page needs JavaScript to work.: 這個頁面需要 Javascript。
 This person is lazy and didn't write anything.: 該使用者太懶，這裡啥也沒寫 (´・ω・｀)
 This section cannot be challenged at present, so please complete the following sections first: 該章節目前不可挑戰，請先完成以下章節
 This type of files are not allowed to be uploaded.: 不允許上傳這種檔案。
+Time: 時間
 Time (Seconds): 耗時 (秒)
 Time Cost: 耗時
 Time Extension: 延期
-Time: 時間
 timeago_locale: zh_TW
 Timezone: 時區
 title: 標題
@@ -851,43 +913,45 @@ Title: 標題
 Toggle Pretest Panel: 切換自測面板
 Toggle Preview: 切換預覽
 Toggle Records Panel: 切換評測記錄面板
-Total Score: 總分
-Total Time (Seconds): 總耗時 (秒)
-Total Time: 總耗時
 Total: 總計
+Total Score: 總分
+Total Time: 總耗時
+Total Time (Seconds): 總耗時 (秒)
+Training: 訓練
 Training requirement is not satisfied.: 不滿足訓練條件。
 training_create: 建立訓練
 training_detail: 訓練詳情
 training_edit: 編輯訓練
 training_files: 訓練檔案
 training_main: 訓練
-Training: 訓練
 Trainings per page: 每頁展示的訓練數量
 Type: 型別
 UI Language: 使用者介面語言
 Uncompleted: 未完成
+Unexpected path layout: 壓縮包目錄結構不符合要求
 Unhide Selected: 取消隱藏選中
 Unique: 唯一
-Unknown field {0}.: 未知欄位 {0}。
 Unknown: 未知
+Unknown field {0}.: 未知欄位 {0}。
 Unlock Topic: 解鎖主題
 Unordered List: 無序列表
 Unsaved session expire seconds: 未儲存的會話的過期秒數
-Unstar Topic: 取消收藏
 Unstar: 取消收藏
+Unstar Topic: 取消收藏
+Update: 更新
 Update Permission: 更新許可權
 Update Settings: 更新設定
-Update: 更新
+Upload: 上傳
 Upload CSV File: 上傳 CSV 檔案
 Upload File: 上傳檔案
 Upload Problem: 上傳題目
-Upload: 上傳
 Uploaded By: 上傳者
 Upvote: 好評
 Usage exceeded.: 用量超限。
 Use admin specificed: 由管理員指定
 Use algorithm calculated: 使用演算法計算
 Use average of above: 使用上面的平均值
+User: 使用者
 User {0} already exists.: 使用者 {0} 已存在。
 User {0} mentioned you in {1:link}: 使用者 {0} 在 {1:link} 中提到了你。
 User {0} not found.: 使用者 {0} 不存在。
@@ -898,24 +962,25 @@ user_detail: 使用者
 user_login: 登入
 user_logout: 登出
 user_lostpass: 忘記密碼
-user_register_mail_sent: 註冊郵件已傳送
 user_register: 註冊
+user_register_mail_sent: 註冊郵件已傳送
 user_sudo: 使用者安全授權
 User-defined role: 使用者定義的角色
-User: 使用者
-Username / UID: 使用者名或 UID
 Username: 使用者名
-Users with those roles will be removed from the domain.: 擁有這些角色的使用者將從此域中移除。
+Username / UID: 使用者名或 UID
 Users: 使用者
+Users with those roles will be removed from the domain.: 擁有這些角色的使用者將從此域中移除。
 Using your {0} universal account: 使用您的 {0} 通用賬戶
 Valid for registered users who are not members of the domain: 對域外註冊使用者有效
 Valid for visitors: 對未登入的遊客有效
+Verified School: 已認證學校
 Verify register email: 註冊需郵件驗證
 Version: 版本
+View: 檢視
 View all contests: 檢視所有比賽
 View all homework: 檢視所有作業
-View contest scoreboard: 檢視比賽成績表
 View Contest: 檢視比賽
+View contest scoreboard: 檢視比賽成績表
 View contests: 檢視比賽
 View Details: 檢視詳情
 View discussions: 檢視討論
@@ -923,28 +988,27 @@ View domain user private info: 顯示域中使用者的私有資訊
 View hidden contest submission status and scoreboard: 檢視隱藏的比賽遞交狀態和成績表
 View hidden homework submission status and scoreboard: 翻閲隱藏的功課遞交狀態和成績表
 View hidden problems: 檢視隱藏的題目
-View homework scoreboard: 翻閲功課成績表
 View homework: 翻閲功課
 View Homework: 翻閲功課
+View homework scoreboard: 翻閲功課成績表
 View or create discussion: 檢視與發表討論
 View or submit solution: 檢視與發表題解
 View Owned Problems: 檢視自己的題目
 View Owned Training Plans: 檢視自己的訓練計劃
-View problem solutions after accept: 題目通過後檢視題解
-View problem solutions: 檢視題解
 View Problem: 檢視題目
+View problem solutions: 檢視題解
+View problem solutions after accept: 題目通過後檢視題解
 View problems: 檢視題目
 View ranking: 檢視排名
 View this domain: 檢視此域
 View training plans: 檢視訓練計劃
-View: 檢視
 Visible to registered users: 對註冊使用者可見
 Visit: 檢視
-Vote problem solutions: 為題解投票
 Vote: 投票
+Vote problem solutions: 為題解投票
 We will check code similarity after this contest.: 我們會在賽後檢查程式碼相似度。
-WeChat Visibility: 微信可見性
 WeChat: 微信
+WeChat Visibility: 微信可見性
 Week: 周
 What is domain?: 什麼是域?
 What is this?: 這是什麼？
@@ -956,12 +1020,13 @@ Whether to show tags in the problem list.: 是否在題目列表中顯示題目�
 wiki_about: 關於
 Will be used as the domain icon.: 將被用作圖示。
 With this feature, you can copy problems that you can view from a domain to some other domain. Their title, content, tags and categories will be copied. However, their test data are not copied directly.: 您可以透過這個功能將某域下您能檢視的題目複製到其它域中，題目的標題、描述、標籤與分類將被複制過來。但是測試資料不會被直接複製。
-With this feature, you can import problems that you can view from a site to here. Their title, content, tags and categories will be imported. However, their test data are not copied directly.: 您可以透過這個功能將其他 OJ 的題目匯入到本站。題目的標題、題面、標籤和分類將會被直接匯入，測試資料將會在後臺自動匯入。
 With this feature, you can import problems that you can view from a site to here. Their title, content, tags and categories will be imported.: 您可以透過這個功能將其他 OJ 的題目匯入到本站。題目的標題、題面、標籤和分類都將會被自動匯入。
+With this feature, you can import problems that you can view from a site to here. Their title, content, tags and categories will be imported. However, their test data are not copied directly.: 您可以透過這個功能將其他 OJ 的題目匯入到本站。題目的標題、題面、標籤和分類將會被直接匯入，測試資料將會在後臺自動匯入。
 Write Your Comment: 發表您的評論
 Write Your Solution: 發表您的題解
 WYSIWYG: 所見即所得
 Year: 年
+'Yes': '是'
 You are banned by the domain moderator.: 您被該域的管理員封禁。
 You are not allowed to join domain {0}. {1}: 您無法加入 {0}。{1}
 You can create your own training plans and share them with others.: 您可以建立您自己的訓練計劃並且與他人分享。
@@ -982,76 +1047,11 @@ You're not logged in.: 您沒有登入。
 You've already attended this contest.: 您已經參加本次比賽。
 You've already claimed this homework.: 您已認領該功課。
 You've already voted.: 您已經投過票。
+Your account has expired. Please contact your teacher or coach!: 您的帳號已過期，請聯繫老師或教練！
 Your permission: 您的許可權
-Your role: 您的角色
-Empty source file: 原始碼為空
-Existing registered user: 已有正式使用者
-Existing virtual user: 已有虛擬使用者
-Existing virtual user (a registered user also exists): 已有虛擬使用者（同時存在同名正式使用者）
-If a registered user already has this name: 若已有同名正式使用者
-Submit all as virtual users: 全部以虛擬使用者方式提交
-Merge submissions for system users; submit non-system users as virtual users: 系統使用者合併提交，非系統使用者以虛擬使用者提交
-Ignored junk file: 已忽略無效檔案
-Not a C++ file: 不是 C++ 檔案
-Only zip files are allowed: 僅允許 zip 檔案
-Please select a zip file.: 請選擇 zip 檔案。
-Preview only, do not submit: 僅預覽，不實際提交
-Problem folder is not in mapping: 題目資料夾未在對應中
-Problem mapping: 題目對應
-Problem name in zip: Zip 中的題目名
-Problem not found: 題目不存在
-Result: 結果
-Skipped: 已跳過
-Source file too long: 原始碼過長
-Submit failed: 提交失敗
-Submitted {0}, skipped {1}, virtual users {2} ({3} new).: 已提交 {0} 份，跳過 {1} 份，虛擬使用者 {2} 個（新建 {3} 個）。
-This language is not allowed to submit.: 不允許使用該語言提交。
-Unexpected path layout: 壓縮包目錄結構不符合要求
-Zip file: Zip 檔案
-Zip layout: 壓縮包格式
-Auto: 自動
-Subfolder mode: 子資料夾模式
-Non-subfolder mode: 非子資料夾模式
-Detail: 詳情
-paste_main: 分享程式碼片段
-paste_detail: 分享詳情
-paste_edit: 編輯分享
-Pastebin: 分享程式碼片段
-Create Paste: 分享程式碼片段
-Edit Paste: 編輯分享
-Paste type: 類型
-Markdown: Markdown
-Expiration: 到期時間
-Every selected account must already have a finite expiration.: 所選帳號必須已有截止日期，才能延長或縮短。
-1 day: 1 天
-1 week: 1 週
-1 month: 1 個月
-Raw: 原始內容
-Copy link: 複製連結
-My Pastes: 分享記錄
-No pastes yet: 尚無分享記錄
-Expires: 到期時間
-Optional title: 可選標題
-Invalid real-name application transition.: 實名認證申請狀態流轉無效。
-Please complete real-name verification before using this site.: 請先完成實名認證後再使用本站功能。
+Your real-name verification has already been approved.: 你的實名認證已經通過。
 Your real-name verification is pending review. You may use the site for seven days after submission.: 你的實名認證正在等待老師審核。提交後七天內你可以繼續使用本站。
 Your real-name verification was rejected. Please resubmit before the seven-day grace period ends.: 你的實名認證未通過。請在七天寬限期內重新提交。
-Real Name: 真實姓名
-Real-name Verification: 實名認證
-'Real-name application {0} not found.': 實名認證申請 {0} 不存在。
-Real-name applications per page: 每頁展示的實名認證申請數量
-Real-name verification is required before using this site.: 使用本站前必須完成實名認證。
-Realname Status: 實名認證狀態
-Realname Submitted At: 實名認證提交時間
-Revoked by administrator: 由管理員撤銷
-This application is not pending review.: 該申請目前不在待審核狀態。
-Verified School: 已認證學校
-Your real-name verification has already been approved.: 你的實名認證已經通過。
-Award certification requires an approved real-name verification.: 獎項認證需要先通過實名認證。
-This account already has certified awards. Ask an administrator to remove them first.: 該帳號已綁定獎項。如需更改請先聯繫管理員移除。
-These awards are already certified to another account.: 這些獎項已被其他帳號認證。
-The selected contestant name does not match your verified real name.: 所選獲獎人姓名與你的實名不一致。
-This account has no certified awards.: 該帳號沒有已認證的獎項。
-'Contestant {0} not found.': 未找到獲獎人 {0}。
-AccountExpiredError: 帳號過期
-Your account has expired. Please contact your teacher or coach!: 您的帳號已過期，請聯繫老師或教練！
+Your role: 您的角色
+Zip file: Zip 檔案
+Zip layout: 壓縮包格式

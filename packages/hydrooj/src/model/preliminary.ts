@@ -9,6 +9,7 @@ import type {
 import {
     normalizePreliminaryAnswers, normalizePreliminaryDefinition, scorePreliminaryAnswers,
 } from '../lib/preliminary';
+import db from '../service/db';
 import * as document from './document';
 
 const PAPER = document.TYPE_PRELIMINARY_PAPER;
@@ -113,27 +114,44 @@ export async function submit(
     const answers = normalizePreliminaryAnswers(revision, answerInput);
     const graded = scorePreliminaryAnswers(revision, answers);
     const submittedAt = new Date();
-    const attemptId = await document.add(
-        domainId, '', owner, ATTEMPT, null, PAPER, paperId,
-        {
-            paperId,
-            revisionId: revision.docId,
-            revision: revision.revision,
-            answers,
-            ...graded,
-            submittedAt,
-        },
-    );
-    const claimed = await document.coll.findOneAndUpdate(
-        { domainId, docType: PAPER, docId: paperId, published: true },
-        { $inc: { nAttempt: 1 } },
-        { returnDocument: 'after' },
-    ) as PreliminaryPaperDoc;
-    if (!claimed) {
-        await document.deleteOne(domainId, ATTEMPT, attemptId);
-        throw new PreliminaryPaperNotPublishedError(paperId);
+
+    const session = db.client.startSession();
+    try {
+        let attemptId: ObjectId;
+        let attempt: PreliminaryAttemptDoc;
+        await session.withTransaction(async () => {
+            const currentPaper = await document.coll.findOne(
+                { domainId, docType: PAPER, docId: paperId, published: true },
+                { session },
+            );
+            if (!currentPaper) throw new PreliminaryPaperNotPublishedError(paperId);
+
+            attemptId = await document.add(
+                domainId, '', owner, ATTEMPT, null, PAPER, paperId,
+                {
+                    paperId,
+                    revisionId: revision.docId,
+                    revision: revision.revision,
+                    answers,
+                    ...graded,
+                    submittedAt,
+                },
+            );
+
+            const claimed = await document.coll.findOneAndUpdate(
+                { domainId, docType: PAPER, docId: paperId, published: true },
+                { $inc: { nAttempt: 1 } },
+                { returnDocument: 'after', session },
+            ) as PreliminaryPaperDoc;
+
+            if (!claimed) throw new PreliminaryPaperNotPublishedError(paperId);
+
+            attempt = await document.get(domainId, ATTEMPT, attemptId);
+        });
+        return attempt;
+    } finally {
+        await session.endSession();
     }
-    return await document.get(domainId, ATTEMPT, attemptId);
 }
 
 export async function getAttempt(domainId: string, paperId: ObjectId, attemptId: ObjectId) {
@@ -146,15 +164,22 @@ export const getAttempts = (domainId: string, query: Filter<PreliminaryAttemptDo
     document.getMulti(domainId, ATTEMPT, query).sort({ _id: -1 });
 
 export async function del(domainId: string, paperId: ObjectId) {
-    // Papers, revisions, and attempts share the document collection, so the
-    // whole cascade is a single delete statement and cannot leave orphans.
-    await document.coll.deleteMany({
-        domainId,
-        $or: [
-            { docType: PAPER, docId: paperId },
-            { docType: { $in: [REVISION, ATTEMPT] }, parentType: PAPER, parentId: paperId },
-        ],
-    });
+    await Promise.all([
+        document.coll.deleteMany({
+            domainId,
+            $or: [
+                { docType: PAPER, docId: paperId },
+                { docType: { $in: [REVISION, ATTEMPT] }, parentType: PAPER, parentId: paperId },
+            ],
+        }),
+        document.collStatus.deleteMany({
+            domainId,
+            $or: [
+                { docType: PAPER, docId: paperId },
+                { docType: { $in: [REVISION, ATTEMPT] }, parentType: PAPER, parentId: paperId },
+            ],
+        }),
+    ]);
 }
 
 global.Hydro.model.preliminary = {

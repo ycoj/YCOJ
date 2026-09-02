@@ -44,7 +44,7 @@ function matches(filter: Record<string, any>, doc: FakeDoc): boolean {
 
 function fakeCollection(store: FakeDoc[]) {
     const query = (filter: Record<string, any>) => store.filter((doc) => matches(filter, doc));
-    const cursor = (filter: Record<string, any>) => {
+    const cursor = (filter: Record<string, any>, options?: { session?: any }) => {
         const result = {
             sort: () => result,
             limit: () => result,
@@ -60,8 +60,8 @@ function fakeCollection(store: FakeDoc[]) {
             return { insertedId: doc._id };
         },
         find: (filter: Record<string, any>) => cursor(filter),
-        findOne: async (filter: Record<string, any>) => query(filter)[0] ?? null,
-        findOneAndUpdate: async (filter: Record<string, any>, update: Record<string, any>) => {
+        findOne: async (filter: Record<string, any>, options?: { session?: any }) => query(filter)[0] ?? null,
+        findOneAndUpdate: async (filter: Record<string, any>, update: Record<string, any>, options?: { returnDocument?: string; session?: any }) => {
             const index = store.findIndex((doc) => matches(filter, doc));
             if (index < 0) return null;
             const target = store[index];
@@ -90,10 +90,31 @@ function fakeCollection(store: FakeDoc[]) {
 
 const documentStore: FakeDoc[] = [];
 const collections = new Map<string, ReturnType<typeof fakeCollection>>();
+
+function fakeSession() {
+    return {
+        withTransaction: async (fn: () => Promise<void>) => {
+            const initialState = documentStore.map((doc) => ({ ...doc }));
+
+            try {
+                await fn();
+            } catch (error) {
+                documentStore.length = 0;
+                documentStore.push(...initialState);
+                throw error;
+            }
+        },
+        endSession: async () => {},
+    };
+}
+
 mockModule('../src/service/db', {
     collection: (name: string) => {
         if (!collections.has(name)) collections.set(name, fakeCollection(name === 'document' ? documentStore : []));
         return collections.get(name);
+    },
+    client: {
+        startSession: () => fakeSession(),
     },
 });
 mockModule('../src/service/bus', { parallel: async () => { } });
