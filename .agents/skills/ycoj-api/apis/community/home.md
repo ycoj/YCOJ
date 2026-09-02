@@ -27,7 +27,7 @@ Description: account security view and UI-selected security mutation. GET `type 
 `disableTfa`: sudo-only TOTP removal. `type DisableTfa={operation:"disableTfa"}`, example `{"operation":"disableTfa"}`. Response `Redirect`, example `{"url":"/home/security"}`; rejects when TFA is already disabled.
 
 ## `GET|POST /home/settings/:category`
-Description: show/save a user settings category. GET `type Path={category:string}`, example `GET /home/settings/profile`, response `HTML`. POST `type Input={category:string}&Record<string,unknown>`, example `{"category":"profile","bio":"Hello"}`, response `Redirect`, example `{"url":"/home/settings/profile"}`. Requires profile privilege.
+Description: show/save a user settings category. GET `type Path={category:string}`, example `GET /home/settings/profile`, response `HTML`. POST `type Input={category:string}&Record<string,unknown>`, example `{"category":"profile","bio":"Hello"}`, response `Redirect`, example `{"url":"/home/settings/profile"}`. Content and short-text values are validated for their size limits and normalized with trimming before persistence; YAML/JSON subtypes are still parsed and rejected when invalid. Requires profile privilege.
 
 ## `POST /home/avatar`
 Description: validate/save avatar data. Request `type Input={input:string}`, example `{"input":"data:image/png;base64,iVBOR…"}`. Response `type Result={url:string}`, example `{"url":"/avatar/12"}`. Requires profile privilege.

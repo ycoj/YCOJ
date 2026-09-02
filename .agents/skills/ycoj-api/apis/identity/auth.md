@@ -50,7 +50,7 @@ GET displays registration: `type Empty = {}`, example `GET /register`, response 
 
 ### `GET|POST /register/:code`
 
-GET validates a registration token and renders completion form: `type CodePath={code:string}`, example `/register/opaque-token`; response `HTML`. POST completes it: `type RegisterComplete={code:string;password:string;verifyPassword:string;uname?:string}`; example `{"code":"opaque-token","uname":"alice","password":"secret","verifyPassword":"secret"}`. Response `Redirect`, example `{"url":"/"}` and a session is created. Requires registration privilege; token and matching password are checked.
+GET validates a registration token and renders completion form: `type CodePath={code:string}`, example `/register/opaque-token`; response `HTML`. For OAuth providers with `lockUsername`, the rendered form includes `lockUsername=true` and makes the username field read-only. POST completes it: `type RegisterComplete={code:string;password:string;verifyPassword:string;uname?:string}`; example `{"code":"opaque-token","uname":"alice","password":"secret","verifyPassword":"secret"}`. When the provider locks usernames, the server ignores the submitted `uname` and uses the token's `username` value. Response `Redirect`, example `{"url":"/"}` and a session is created. Requires registration privilege; token and matching password are checked.
 
 ### `GET|POST /lostpass`
 
