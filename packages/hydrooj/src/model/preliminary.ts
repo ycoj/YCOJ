@@ -124,7 +124,15 @@ export async function submit(
             submittedAt,
         },
     );
-    await document.inc(domainId, PAPER, paperId, 'nAttempt', 1);
+    const claimed = await document.coll.findOneAndUpdate(
+        { domainId, docType: PAPER, docId: paperId, published: true },
+        { $inc: { nAttempt: 1 } },
+        { returnDocument: 'after' },
+    ) as PreliminaryPaperDoc;
+    if (!claimed) {
+        await document.deleteOne(domainId, ATTEMPT, attemptId);
+        throw new PreliminaryPaperNotPublishedError(paperId);
+    }
     return await document.get(domainId, ATTEMPT, attemptId);
 }
 
@@ -138,8 +146,8 @@ export const getAttempts = (domainId: string, query: Filter<PreliminaryAttemptDo
     document.getMulti(domainId, ATTEMPT, query).sort({ _id: -1 });
 
 export async function del(domainId: string, paperId: ObjectId) {
+    await document.deleteOne(domainId, PAPER, paperId);
     await Promise.all([
-        document.deleteOne(domainId, PAPER, paperId),
         document.deleteMulti(domainId, REVISION, { parentId: paperId }),
         document.deleteMulti(domainId, ATTEMPT, { parentId: paperId }),
     ]);
