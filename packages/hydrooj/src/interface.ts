@@ -375,6 +375,88 @@ export interface TrainingDoc extends Omit<Tdoc, 'docType'> {
     dag: TrainingNode[];
 }
 
+export interface PreliminaryChoiceOption {
+    id: string;
+    text: string;
+}
+
+export interface PreliminaryQuestionBase {
+    id: string;
+    prompt: string;
+    score: number;
+    explanation: string;
+}
+
+export interface PreliminaryChoiceQuestion extends PreliminaryQuestionBase {
+    type: 'choice';
+    options: PreliminaryChoiceOption[];
+    answer: string;
+}
+
+export interface PreliminaryTrueFalseQuestion extends PreliminaryQuestionBase {
+    type: 'true_false';
+    answer: 'true' | 'false';
+}
+
+export type PreliminaryQuestion = PreliminaryChoiceQuestion | PreliminaryTrueFalseQuestion;
+
+export interface PreliminarySection {
+    id: string;
+    type: 'single_choice' | 'program_reading' | 'program_completion';
+    title: string;
+    content: string;
+    questions: PreliminaryQuestion[];
+}
+
+export interface PreliminaryPaperDefinition {
+    title: string;
+    content: string;
+    sections: PreliminarySection[];
+}
+
+export interface PreliminaryPaperDoc extends Document, PreliminaryPaperDefinition {
+    docType: 90;
+    docId: ObjectId;
+    published: boolean;
+    revision: number;
+    activeRevisionId?: ObjectId;
+    nAttempt: number;
+    updatedAt: Date;
+}
+
+export interface PreliminaryRevisionDoc extends Document, PreliminaryPaperDefinition {
+    docType: 91;
+    docId: ObjectId;
+    parentType: 90;
+    parentId: ObjectId;
+    paperId: ObjectId;
+    revision: number;
+    createdAt: Date;
+}
+
+export interface PreliminaryQuestionResult {
+    questionId: string;
+    answer?: string;
+    correct: boolean;
+    score: number;
+    maxScore: number;
+}
+
+export interface PreliminaryAttemptDoc extends Document {
+    docType: 92;
+    docId: ObjectId;
+    parentType: 90;
+    parentId: ObjectId;
+    paperId: ObjectId;
+    revisionId: ObjectId;
+    revision: number;
+    answers: Record<string, string>;
+    results: PreliminaryQuestionResult[];
+    score: number;
+    totalScore: number;
+    submittedAt: Date;
+}
+
 export interface DomainDoc extends Record<string, any> {
     _id: string;
     owner: number;
@@ -750,6 +832,7 @@ export interface Model {
     oplog: typeof import('./model/oplog');
     token: typeof import('./model/token').default;
     training: typeof import('./model/training');
+    preliminary: typeof import('./model/preliminary');
     user: typeof import('./model/user').default;
     oauth: typeof import('./model/oauth').default;
     storage: typeof import('./model/storage').default;

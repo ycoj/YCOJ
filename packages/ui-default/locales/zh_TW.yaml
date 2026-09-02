@@ -1257,3 +1257,61 @@ The selected contestant name does not match your verified real name.: 所選獲�
 This account has no certified awards.: 該帳號沒有已認證的獎項。
 'Contestant {0} not found.': 未找到獲獎人 {0}。
 
+preliminary_main: 初賽訓練
+preliminary_create: 新建初賽試卷
+preliminary_edit: 編輯初賽試卷
+preliminary_detail: 初賽試卷
+preliminary_attempt: 初賽答題結果
+Preliminary Round Training: 初賽訓練
+Search papers...: 搜尋試卷...
+Papers: 試卷
+My Attempts: 我的答題記錄
+No preliminary-round papers are available.: 暫無可用的初賽試卷。
+Draft: 草稿
+'{0} questions': '{0} 道題'
+'{0} points': '{0} 分'
+'{0} attempts': '{0} 次答題'
+Manage Papers: 管理試卷
+New Paper: 新建試卷
+You have not submitted any preliminary-round papers.: 你尚未提交過初賽試卷。
+Paper: 試卷
+Revision: 版本
+Questions: 題目
+answered: 已作答
+Confirm deleting this paper? All attempts and score history will be deleted.: 確認刪除這份試卷嗎？所有答題記錄和成績都將被刪除。
+Correct: 正確
+Incorrect: 錯誤
+Explanation: 解析
+Back to Paper: 返回試卷
+Edit Paper: 編輯試卷
+Introduction: 簡介
+Single-choice Questions: 單項選擇題
+'Single Choice': 單選題
+Program Reading: 程式閱讀題
+Program Completion: 程式完善題
+Move up: 上移
+Move down: 下移
+Delete section: 刪除分區
+Section Title: 分區標題
+Passage / Program: 題幹 / 程式
+True / False: 判斷題
+True: 正確
+False: 錯誤
+Question: 題目
+Points: 分值
+Delete question: 刪除題目
+Correct answer: 正確答案
+Remove option: 刪除選項
+Add option: 新增選項
+Add explanation: 新增解析
+Remove explanation: 刪除解析
+Choice Question: 選擇題
+Add Section: 新增分區
+Unpublish: 取消發佈
+Save Changes: 儲存更改
+Save Draft: 儲存草稿
+Publish: 發佈
+This preliminary-round paper is not published.: 這份初賽試卷尚未發佈。
+'Preliminary-round paper {1} not found.': 未找到初賽試卷 {1}。
+'Preliminary-round attempt {0} not found.': 未找到答題記錄 {0}。
+This paper revision is no longer available.: 該試卷版本已不可用。

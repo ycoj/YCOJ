@@ -22,6 +22,7 @@ export * as SettingModel from './model/setting';
 export * as DiscussionModel from './model/discussion';
 export * as DocumentModel from './model/document';
 export * as CheckinModel from './model/checkin';
+export * as PreliminaryModel from './model/preliminary';
 export { DocType } from './model/document';
 export * as BuiltinModel from './model/builtin';
 export * as ContestModel from './model/contest';

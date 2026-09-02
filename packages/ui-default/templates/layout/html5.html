@@ -59,7 +59,8 @@
 <body>
   {% if not isIE(handler.request.headers['user-agent']) and not handler.session.legacy %}
     <script type="text/javascript" src="{{ UiContext.cdn_prefix if UiContext.cdn_dynamic else '/' }}resource/{{ UiContext.constantVersion }}/entry.js"></script>
-    <script type="text/javascript" src="{{ UiContext.cdn_prefix }}resource/{{ global.Hydro.version['ui-default'] }}/lang-{{ _('__id') }}.js"></script>
+    {% set lang_id = _('__id') %}
+    <script type="text/javascript" src="{{ UiContext.cdn_prefix }}resource/{{ UiContext.localeVersions[lang_id] or global.Hydro.version['ui-default'] }}/lang-{{ lang_id }}.js"></script>
     <script type="text/javascript" src="{{ UiContext.cdn_prefix }}hydro-{{ global.Hydro.version['ui-default'] }}.js{% if process.env.DEV %}?version=dev{% endif %}"></script>
   {% endif %}
   {% block body %}{% endblock %}
