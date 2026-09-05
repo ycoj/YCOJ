@@ -143,6 +143,7 @@ Belongs to: 属于
 Bind Awards: 绑定奖项
 Bio: 个人简介
 Bio Visibility: 个人简介可见性
+Blocked solution authors: 已屏蔽题解的作者
 Bold: 加粗
 Boom!: 炸了！
 Browser: 浏览器
@@ -446,6 +447,7 @@ Failed to join the domain. You are already a member.: 加入域失败，您已�
 Failed to parse subtask.: 无法解析子任务信息。
 Failed to parse testcase.: 无法解析测试点信息。
 False: 错误
+Featured Solution: 精选题解
 Feedback: 反馈
 Field {0} or {1} validation failed.: 字段 {0} 或 {1} 验证失败。
 Field {0} validation failed.: 字段 {0} 验证失败。
@@ -695,6 +697,7 @@ No Permission to Submit: 您没有权限递交
 No preliminary-round papers are available.: 暂无可用的初赛试卷。
 No problem.: 没有题目。
 No real-name applications.: 暂无实名认证申请。
+No solutions match these filters.: 没有符合筛选条件的题解。
 No solutions so far...: 目前还没有题解...
 No submission language available for this problem.: 本题没有可用的提交语言。
 No Submissions: 没有递交
@@ -817,6 +820,7 @@ Problem: 题目
 Problem {1} not found.: 题目 {1} 不存在。
 Problem Category: 标签
 Problem Data: 题目数据
+Problem ID: 题目编号
 Problem ID cannot be a pure number. Leave blank if you want to use numberic id.: 题目ID不能为纯数字。 若要自动分配数字ID请将此处留空。
 Problem ID List: 题目 ID 列表
 Problem List: 题目列表
@@ -903,7 +907,9 @@ RegExp supported, quote with "/": 支持正则表达式，使用 "/" 包裹。
 Registered at: 注册于
 Registration cancelled.: 报名已取消。
 Reject: 拒绝
+Reject all this author’s solutions and block new solution submissions in this domain? Existing solutions remain publicly expandable.: 将该作者在本域的全部题解设为不通过，并禁止提交新题解？已有题解仍可公开展开查看。
 Rejected: 已拒绝
+Rejected and author blocked: 不通过并屏蔽作者题解
 Rejected applications can be corrected and submitted again.: 被拒绝的申请可以修改后再次提交。
 Rejection Reason: 拒绝原因
 Rejudge: 重测
@@ -939,6 +945,7 @@ Reset Password or Find Username: 重置密码或找回用户名
 Restart: 重新启动
 Resubmit: 重新提交
 Reviewed At: 审核时间
+Reviewed by: 审核人
 Revision: 版本
 Revoke: 撤销
 Role: 角色
@@ -1037,7 +1044,11 @@ Sign Up Now: 现在注册
 'Single Choice': 单选题
 Single-choice Questions: 单项选择题
 Size: 大小
+Solution content and replies: 题解内容与回复
+
+Solution Review: 题解审核
 Solutions: 题解
+Solutions for this author are being updated. Please try again.: 该作者的题解正在更新，请重试。
 Solutions Liked: 题解被赞
 Solve: 解决
 Solved: 解决
@@ -1109,6 +1120,7 @@ The scoreboard was frozen with {0} minutes remaining at {1} - submissions in the
 The selected contestant name does not match your verified real name.: 所选获奖人姓名与你的实名不一致。
 The seven-day grace period has ended. Please resubmit to continue using this site.: 七天宽限期已结束。请重新提交认证后才能继续使用本站。
 The seven-day grace period has ended. Site access is blocked until a super administrator approves your application.: 七天宽限期已结束。在老师审核通过前，你将无法使用本站。
+The solution changed. Reload the page and review it again.: 题解已发生变化，请刷新页面后重新审核。
 The uploaded file is too long.: 上传的文件太长。
 The user is already a member of the domain.: 该用户已是域的成员。
 The user is too lazy to leave something here...: 该用户太懒，这里啥也没写 (´・ω・｀)
@@ -1168,6 +1180,8 @@ Two Factor Authentication: 两步验证
 Two Factor Authentication Code: 两步验证码
 Type: 类型
 UI Language: 用户界面语言
+Unblock solution author: 解除题解屏蔽
+Unblocking returns this author’s blocked solutions to unreviewed.: 解除屏蔽后，该作者被屏蔽的题解将恢复为未审核。
 Uncompleted: 未完成
 Unique: 唯一
 Unknown: 未知
@@ -1176,6 +1190,7 @@ Unlimited: 无限制
 Unordered List: 无序列表
 Unpublish: 取消发布
 Unrank: 打星
+Unreviewed: 未审核
 Unstar: 取消收藏
 Unstar Topic: 取消收藏
 Unsupported configure this type of problem. Please refer to the documentation.: 暂不支持快捷配置此类题目。请参照文档操作。
@@ -1322,4 +1337,5 @@ Your real-name verification is pending review. You may use the site for seven da
 Your real-name verification was rejected.: 你的实名认证未通过。
 Your real-name verification was rejected. Please resubmit before the seven-day grace period ends.: 你的实名认证未通过。请在七天宽限期内重新提交。
 Your role: 您的角色
+Your solution submissions are blocked in this domain.: 你在本域的题解提交已被屏蔽。
 your verified school: 你的已认证学校

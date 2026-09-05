@@ -2,7 +2,7 @@
 
 ## Description
 
-Renders/imports a Hydro problem archive. Requires `PERM_CREATE_PROBLEM`; `keepUser=true` additionally requires `PRIV_EDIT_SYSTEM`. The import runs with supplied prefix/hidden options and may continue after the request returns.
+Renders/imports a Hydro problem archive. Requires `PERM_CREATE_PROBLEM`; `keepUser=true` additionally requires `PRIV_EDIT_SYSTEM`. The import runs with supplied prefix/hidden options and may continue after the request returns. Imported solution files are owned by the importer and start unreviewed (`reviewStatus: 1`, `revision: 0`). If the importer is blocked from solution submissions in the domain, importing solution files fails through the existing import error reporting; already imported problem data is not rolled back.
 
 ## Request format
 
@@ -37,7 +37,7 @@ Under JSON accept, a completed import instead returns `{ "url":"/p" }`; after fi
 
 ## Description
 
-These package routes import FPS XML/ZIP, QDUOJ ZIP, and HOJ ZIP exports, respectively. Each requires `PERM_CREATE_PROBLEM`. FPS creates config/test data (and optionally remote-judge configuration); QDUOJ/HOJ build problem statements, test data, and `config.yaml` from their package conventions.
+These package routes import FPS XML/ZIP, QDUOJ ZIP, and HOJ ZIP exports, respectively. Each requires `PERM_CREATE_PROBLEM`. FPS creates config/test data (and optionally remote-judge configuration). Embedded solutions start unreviewed and are owned by the importer; a domain solution block raises `SolutionSubmissionBlockedError` (403) when creating those solutions, without rolling back already imported data. See [solution review](problem-solution-review.md). QDUOJ/HOJ build problem statements, test data, and `config.yaml` from their package conventions.
 
 ## Request format
 

@@ -5,8 +5,8 @@ import {
 import { Context } from '../context';
 import {
     CheckinDoc, Content, ContestClarificationDoc, ContestPrintDoc, ContestSolutionDoc, ContestStatusDoc,
-    DiscussionDoc, DiscussionReplyDoc, ProblemDoc, ProblemStatusDoc,
-    PreliminaryAttemptDoc, PreliminaryPaperDoc, PreliminaryRevisionDoc,
+    DiscussionDoc, DiscussionReplyDoc, PreliminaryAttemptDoc, PreliminaryPaperDoc, PreliminaryRevisionDoc,
+    ProblemDoc, ProblemSolutionDoc, ProblemStatusDoc,
     Tdoc, TrainingDoc, TrainingStatusDoc,
 } from '../interface';
 import bus from '../service/bus';
@@ -38,7 +38,7 @@ export const TYPE_PRELIMINARY_ATTEMPT = 92 as const;
 
 export interface DocType {
     [TYPE_PROBLEM]: ProblemDoc;
-    [TYPE_PROBLEM_SOLUTION]: any;
+    [TYPE_PROBLEM_SOLUTION]: ProblemSolutionDoc;
     [TYPE_PROBLEM_LIST]: any;
     [TYPE_DISCUSSION_NODE]: any;
     [TYPE_DISCUSSION]: DiscussionDoc;
@@ -443,6 +443,12 @@ export async function apply(ctx: Context) {
         { key: { domainId: 1, docType: 1, sort: 1, docId: 1 }, name: 'sort' },
         // For problem solution
         { key: { domainId: 1, docType: 1, parentType: 1, parentId: 1, vote: -1, docId: -1 }, name: 'solution', sparse: true },
+        {
+            key: { domainId: 1, docType: 1, parentId: 1, reviewStatus: -1, vote: -1, docId: -1 },
+            name: 'solutionReviewSort',
+            ...onlyFor(TYPE_PROBLEM_SOLUTION),
+        },
+        { key: { domainId: 1, docType: 1, reviewStatus: 1, docId: 1 }, name: 'solutionReviewQueue', ...onlyFor(TYPE_PROBLEM_SOLUTION) },
         // For discussion
         { key: { docType: 1, domainId: 1, hidden: 1, pin: -1, docId: -1 }, name: 'discussionSort', ...onlyFor(TYPE_DISCUSSION) },
         { key: { docType: 1, domainId: 1, hidden: 1, parentType: 1, parentId: 1, pin: -1, docId: -1 }, name: 'discussionNodeSort', sparse: true },

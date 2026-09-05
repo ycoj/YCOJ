@@ -16,6 +16,7 @@ import MessageModel from './model/message';
 import problem from './model/problem';
 import RecordModel from './model/record';
 import ScheduleModel from './model/schedule';
+import SolutionModel from './model/solution';
 import StorageModel from './model/storage';
 import system from './model/system';
 import TaskModel from './model/task';
@@ -638,6 +639,10 @@ export const coreScripts: MigrationScript[] = [
                 await rename(file.path, `contest/${domainId}/${tid}/public/${name || type}`);
             }
         }
+        return true;
+    },
+    async function _97_98() {
+        await SolutionModel.migrateLegacy();
         return true;
     },
 ];

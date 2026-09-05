@@ -29,8 +29,24 @@
   comment_delete_op = 'delete_reply',
   reply_delete_op = 'delete_tail_reply'
 ) %}
+<ul style="display:none">
+  <li class="dczcomments__reply commentbox-container">
+    <div class="media">
+      <div class="media__body top">
+        <div class="clearfix">
+          <div class="supplementary dczcomments__supplementary">
+            {{ user.render_inline(handler.user, badge=false) }}
+          </div>
+        </div>
+        <div class="commentbox-placeholder"></div>
+      </div>
+    </div>
+  </li>
+</ul>
 <ul class="dczcomments__list view--solution">
-{% if handler.user.hasPerm(comment_post_perm) %}
+{% if solutionBlocked %}
+<li class="dczcomments__item">{{ _('Your solution submissions are blocked in this domain.') }}</li>
+{% elif handler.user.hasPerm(comment_post_perm) %}
 <li class="dczcomments__item">
   <div class="media">
     <div class="media__left top">
@@ -60,20 +76,6 @@
         <textarea class="textbox" name="dczcomments__dummy-box" readonly data-form="{{ {operation: comment_post_op}|json }}" placeholder="{{ _(comment_placeholder) }}"></textarea>
       </div>
       <div class="commentbox-placeholder"></div>
-      <ul style="display:none">
-        <li class="dczcomments__reply commentbox-container">
-          <div class="media">
-            <div class="media__body top">
-              <div class="clearfix">
-                <div class="supplementary dczcomments__supplementary">
-                  {{ user.render_inline(handler.user, badge=false) }}
-                </div>
-              </div>
-              <div class="commentbox-placeholder"></div>
-            </div>
-          </div>
-        </li>
-      </ul>
     </div>
   </div>
 </li>
@@ -100,6 +102,7 @@
       <div class="clearfix">
         <div class="supplementary dczcomments__supplementary">
           {{ user.render_inline(udoc) }} @ {{ datetimeSpan(doc._id)|safe }}
+          <strong class="solution-review-status">{{ _(reviewLabels[doc.reviewStatus]) }}</strong>
         </div>
         <div class="dczcomments__operations nojs--hide">
         {% if pdoc %}
@@ -124,7 +127,9 @@
         {% endif %}
         </div>
       </div>
-      <div class="typo richmedia collapsible-content" data-emoji-enabled data-raw-url="{{ url('problem_solution_raw', pid=doc.parentId, psid=doc._id) }}">
+      <details class="solution-content" {% if doc.reviewStatus >= 2 %}open{% endif %}>
+        <summary>{{ _('Solution content and replies') }} — {{ _(reviewLabels[doc.reviewStatus]) }}</summary>
+      <div class="typo richmedia" data-emoji-enabled data-raw-url="{{ url('problem_solution_raw', pid=doc.parentId, psid=doc._id) }}">
         {{ doc['content']|markdown|safe }}
       </div>
       <div class="commentbox-edit-target"></div>
@@ -163,6 +168,7 @@
         </li>
       {%- endfor -%}
       </ul>
+      </details>
     </div>
   </div>
 </li>

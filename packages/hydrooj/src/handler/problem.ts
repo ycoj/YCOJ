@@ -23,7 +23,7 @@ import {
     ProblemNotFoundError, RecordNotFoundError, SolutionNotFoundError, ValidationError,
 } from '../error';
 import {
-    ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, User,
+    ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, SolutionReviewStatus, User,
 } from '../interface';
 import { convertHtmlToMarkdown } from '../lib/ai/html2md/converter';
 import { getHtmlToMarkdownConfig } from '../lib/ai/html2md/runtime';
@@ -860,6 +860,61 @@ export class ProblemFileDownloadHandler extends ProblemDetailHandler {
     }
 }
 
+export class ProblemSolutionReviewHandler extends Handler {
+    async prepare() {
+        this.checkPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION);
+    }
+
+    @param('page', Types.PositiveInt, true)
+    @param('status', Types.Range(['pending', 'featured', 'approved', 'rejected', 'blocked', 'all', 'authors']), true)
+    @param('pid', Types.ProblemId, true)
+    @param('uid', Types.PositiveInt, true)
+    async get(domainId: string, page = 1, status = 'pending', pid?: string | number, uid?: number) {
+        const states = {
+            pending: SolutionReviewStatus.Pending,
+            featured: SolutionReviewStatus.Featured,
+            approved: SolutionReviewStatus.Approved,
+            rejected: SolutionReviewStatus.Rejected,
+            blocked: SolutionReviewStatus.Blocked,
+        };
+        const filter: any = {};
+        if (states[status] !== undefined) filter.reviewStatus = states[status];
+        if (pid !== undefined) filter.parentId = (await problem.get(domainId, pid)).docId;
+        if (uid !== undefined) filter.owner = uid;
+        const authors = status === 'authors';
+        const cursor = authors
+            ? domain.getMultiUserInDomain(domainId, { solutionBlocked: true, ...(uid ? { uid } : {}) })
+                .project({ _id: 0, domainId: 1, uid: 1, solutionBlocked: 1, solutionBlockedBy: 1, solutionBlockedAt: 1 }).sort({ uid: 1 })
+            : solution.getReviewQueue(domainId, filter);
+        const [docs, pcount, count] = await this.paginate(cursor, page, 'solution');
+        const uids = authors ? docs.map((doc) => doc.uid) : docs.flatMap((doc) => [doc.owner, doc.reviewedBy].filter(Boolean));
+        const udict = await user.getList(domainId, uids);
+        const pdict = authors ? {} : await problem.getList(domainId, docs.map((doc) => doc.parentId), true, false);
+        this.response.template = 'problem_solution_review.html';
+        this.response.body = {
+            docs, page, pcount, count, udict, pdict, status, pid, uid,
+            reviewLabels: solution.reviewLabels,
+        };
+    }
+
+    @param('psid', Types.ObjectId)
+    @param('revision', Types.UnsignedInt)
+    @param('status', Types.Range([-1, 0, 2, 3]))
+    async postReview(domainId: string, psid: ObjectId, revision: number, status: SolutionReviewStatus) {
+        const psdoc = await solution.review(domainId, psid, revision, status, this.user._id);
+        await oplog.log(this, 'solution.review', { psid, status, owner: psdoc.owner });
+        this.back({ psdoc });
+    }
+
+    @param('uid', Types.PositiveInt)
+    async postUnblock(domainId: string, uid: number) {
+        await user.getById(domainId, uid);
+        await solution.unblock(domainId, uid, this.user._id);
+        await oplog.log(this, 'solution.unblock', { uid });
+        this.back();
+    }
+}
+
 export class ProblemSolutionHandler extends ProblemDetailHandler {
     @param('page', Types.PositiveInt, true)
     @param('tid', Types.ObjectId, true)
@@ -879,7 +934,7 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
         );
         if (sid) {
             psdocs = [await solution.get(domainId, sid)];
-            if (!psdocs[0]) throw new SolutionNotFoundError(domainId, sid);
+            solution.ensureParent(psdocs[0], this.pdoc.docId, domainId, sid);
         }
         const uids = [this.pdoc.owner];
         const docids = [];
@@ -894,6 +949,7 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
         const pssdict = await solution.getListStatus(domainId, docids, this.user._id);
         this.response.body = {
             psdocs, page, pcount, pscount, udict, pssdict, pdoc: this.pdoc, sid,
+            reviewLabels: solution.reviewLabels, solutionBlocked: await solution.isBlocked(domainId, this.user._id),
         };
     }
 
@@ -908,6 +964,7 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
     @param('psid', Types.ObjectId)
     async postEditSolution(domainId: string, content: string, psid: ObjectId) {
         let psdoc = await solution.get(domainId, psid);
+        solution.ensureParent(psdoc, this.pdoc.docId, domainId, psid);
         if (!this.user.own(psdoc)) this.checkPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION);
         else this.checkPerm(PERM.PERM_EDIT_PROBLEM_SOLUTION_SELF);
         psdoc = await solution.edit(domainId, psdoc.docId, content);
@@ -917,6 +974,7 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
     @param('psid', Types.ObjectId)
     async postDeleteSolution(domainId: string, psid: ObjectId) {
         const psdoc = await solution.get(domainId, psid);
+        solution.ensureParent(psdoc, this.pdoc.docId, domainId, psid);
         if (!this.user.own(psdoc)) this.checkPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION);
         else this.checkPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION_SELF);
         await solution.del(domainId, psdoc.docId);
@@ -928,6 +986,7 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
     async postReply(domainId: string, psid: ObjectId, content: string) {
         this.checkPerm(PERM.PERM_REPLY_PROBLEM_SOLUTION);
         const psdoc = await solution.get(domainId, psid);
+        solution.ensureParent(psdoc, this.pdoc.docId, domainId, psid);
         await solution.reply(domainId, psdoc.docId, this.user._id, content);
         this.back();
     }
@@ -960,6 +1019,7 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
     @param('psid', Types.ObjectId)
     async postUpvote(domainId: string, psid: ObjectId) {
         this.checkPerm(PERM.PERM_VOTE_PROBLEM_SOLUTION);
+        solution.ensureParent(await solution.get(domainId, psid), this.pdoc.docId, domainId, psid);
         const psdoc = await solution.vote(domainId, psid, this.user._id, 1);
         this.back({ vote: psdoc.vote, user_vote: 1 });
     }
@@ -967,6 +1027,7 @@ export class ProblemSolutionHandler extends ProblemDetailHandler {
     @param('psid', Types.ObjectId)
     async postDownvote(domainId: string, psid: ObjectId) {
         this.checkPerm(PERM.PERM_VOTE_PROBLEM_SOLUTION);
+        solution.ensureParent(await solution.get(domainId, psid), this.pdoc.docId, domainId, psid);
         const psdoc = await solution.vote(domainId, psid, this.user._id, -1);
         this.back({ vote: psdoc.vote, user_vote: -1 });
     }
@@ -988,6 +1049,7 @@ export class ProblemSolutionRawHandler extends ProblemDetailHandler {
             this.response.body = psrdoc.content;
         } else {
             const psdoc = await solution.get(domainId, psid);
+            solution.ensureParent(psdoc, this.pdoc.docId, domainId, psid);
             this.response.body = psdoc.content;
         }
         this.response.type = 'text/markdown';
@@ -1261,6 +1323,7 @@ declare module '@hydrooj/framework' {
 export async function apply(ctx: Context) {
     ctx.Route('problem_main', '/p', ProblemMainHandler, PERM.PERM_VIEW_PROBLEM);
     ctx.Route('problem_random', '/problem/random', ProblemRandomHandler, PERM.PERM_VIEW_PROBLEM);
+    ctx.Route('problem_solution_review', '/p/solution-review', ProblemSolutionReviewHandler, PERM.PERM_DELETE_PROBLEM_SOLUTION);
     ctx.Route('problem_detail', '/p/:pid', ProblemDetailHandler);
     ctx.Route('problem_submit', '/p/:pid/submit', ProblemSubmitHandler, PERM.PERM_SUBMIT_PROBLEM);
     ctx.Route('problem_hack', '/p/:pid/hack/:rid', ProblemHackHandler, PERM.PERM_SUBMIT_PROBLEM);

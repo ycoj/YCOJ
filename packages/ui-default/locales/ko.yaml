@@ -58,6 +58,7 @@ Any user is allowed to join this domain with an invitation code: 누구나 코�
 API key: API 키
 API model ID: API 모델 ID
 API type: API 유형
+Approved: 승인
 Are you sure to cancel the registration of this user?: 이 사용자의 참가를 취소하시겠습니까?
 Argument {0} is invalid.: 인자 {0}이(가) 무효입니다.
 Arguments: 인자
@@ -74,6 +75,7 @@ Begin Time: 시작 시각
 Belongs to: 소유
 Bio: 소개
 Bio Visibility: 소개 공개
+Blocked solution authors: 풀이가 차단된 작성자
 Bold: 굵게
 Boom!: 펑!
 Browser: 브라우저
@@ -305,6 +307,7 @@ Export as {0}: '{0}로 내보내기'
 Extension (days): 추가 (날짜)
 Extension Score Penalty: 추가 패널티
 Failed to join the domain. You are already a member.: 그룹 참여 실패. 이미 참여함.
+Featured Solution: 추천 풀이
 Feedback: 피드백
 Field {0} or {1} validation failed.: 항목 {0} 또는 {1} 검증 실패
 Field {0} validation failed.: 항목 {0} 검증 실패
@@ -459,6 +462,7 @@ No Permission to Claim Homework: 과제를 할당받을 권한이 없습니다.
 No Permission to Create a Discussion: 토론을 시작할 권한이 없습니다.
 No Permission to Submit: 제출할 권한이 없습니다.
 No problem.: 문제가 없습니다.
+No solutions match these filters.: 조건에 맞는 풀이가 없습니다.
 No solutions so far...: 아직 해설이 없네요...
 No Submissions: 제출 없음
 No user is allowed to join this domain: 이 그룹은 참여가 불가능합니다.
@@ -533,6 +537,7 @@ Privacy: 개인정보
 Problem: 문제
 Problem {1} not found.: 문제 {1}을(를) 찾을 수 없습니다.
 Problem Data: 문제 데이터
+Problem ID: 문제 ID
 Problem ID List: 문제 ID 목록
 Problem Set: 문제 모음
 Problem Settings: 문제 설정
@@ -588,6 +593,9 @@ Refresh: 새로고침
 Refresh Records: 새로고침
 Registered at: '등록'
 Registration cancelled.: 참가가 취소되었습니다.
+Reject all this author’s solutions and block new solution submissions in this domain? Existing solutions remain publicly expandable.: 이 도메인에서 작성자의 모든 풀이를 거절하고 새 풀이 제출을 차단할까요? 기존 풀이는 계속 펼쳐 볼 수 있습니다.
+Rejected: 거절
+Rejected and author blocked: 거절 및 작성자 풀이 차단
 Rejudge: 재채점
 Rejudge all submissions: 모든 제출 재채점
 Rejudge problems: 재채점
@@ -611,6 +619,7 @@ Reset: 재설정
 Reset Password: 비밀번호 재설정
 Reset Password or Find Username: 비밀번호 재설정 또는 ID 찾기
 Restart: 다시 시작
+Reviewed by: 검토자
 Role: 역할
 'Role {1} already exists in domain {0}.': '역할 {1}이(가) 이미 {0}에 존재합니다.'
 Role Assignment: 역할
@@ -671,7 +680,11 @@ Sign Up: 회원가입
 Sign up mail has been sent to your email.: 회원가입 이메일을 보냈습니다.
 Sign Up Now: 회원가입
 Size: 크기
+Solution content and replies: 풀이 내용 및 답글
+
+Solution Review: 풀이 검토
 Solutions: 해설
+Solutions for this author are being updated. Please try again.: 이 작성자의 풀이를 업데이트 중입니다. 다시 시도하세요.
 Solutions Liked: 연결된 해설
 Solve: 해결
 Solved: 해결한 문제
@@ -715,6 +728,7 @@ The invitation code to enter to successfully join the domain. You can only use l
 The invitation code you provided is invalid.: 잘못된 초대 코드
 The link will be expired at {0}: 링크가 {0}에 만료될 것입니다.
 The role to assign when user joining the domain.: 사용자가 그룹에 참여할 때 역할
+The solution changed. Reload the page and review it again.: 풀이가 변경되었습니다. 페이지를 새로고침하고 다시 검토하세요.
 The uploaded file is too long.: 업로드한 파일이 너무 깁니다.
 The user is already a member of the domain.: 이미 그룹에 속한 사용자입니다.
 The user is too lazy to leave something here...: 설명이 없습니다... (´・ω・｀)
@@ -754,11 +768,14 @@ training_edit: 학습 수정
 training_main: 학습
 Type: Type
 UI Language: UI 언어
+Unblock solution author: 작성자 풀이 차단 해제
+Unblocking returns this author’s blocked solutions to unreviewed.: 차단을 해제하면 이 작성자의 차단된 풀이가 미검토 상태로 돌아갑니다.
 Uncompleted: 미완료
 Unique: 특별한
 Unknown: 불명
 Unknown field {0}.: 항목 {0} 불명
 Unordered List: 배열
+Unreviewed: 미검토
 Unstar: 북마크 해제
 Unstar Topic: 북마크 해제
 Update: 갱신
@@ -858,3 +875,4 @@ You've already claimed this homework.: 이미 숙제를 받음
 You've already voted.: 이미 투표함
 Your permission: 당신의 권한
 Your role: 당신의 역할
+Your solution submissions are blocked in this domain.: 이 도메인에서 풀이 제출이 차단되었습니다.

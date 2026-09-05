@@ -555,6 +555,27 @@ export interface ContestPrintDoc extends Document {
     status: PrintTaskStatus;
 }
 
+/** Numeric values also define public solution ordering. */
+export enum SolutionReviewStatus {
+    Blocked = -1,
+    Rejected = 0,
+    Pending = 1,
+    Approved = 2,
+    Featured = 3,
+}
+
+export interface ProblemSolutionDoc extends Document {
+    docId: ObjectId;
+    parentId: number;
+    content: string;
+    reply: { _id: ObjectId, owner: number, content: string }[];
+    vote: number;
+    reviewStatus: SolutionReviewStatus;
+    revision: number;
+    reviewedBy?: number;
+    reviewedAt?: Date;
+}
+
 export interface ContestSolutionDoc extends Document {
     docType: document['TYPE_CONTEST_SOLUTION'];
     docId: ObjectId;

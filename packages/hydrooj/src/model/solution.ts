@@ -1,14 +1,131 @@
 import { ObjectId } from 'mongodb';
-import { SolutionNotFoundError } from '../error';
+import {
+    SolutionNotFoundError, SolutionReviewBusyError, SolutionReviewConflictError, SolutionSubmissionBlockedError, ValidationError,
+} from '../error';
+import { SolutionReviewStatus } from '../interface';
 import bus from '../service/bus';
 import * as document from './document';
+import domain from './domain';
 
 class SolutionModel {
-    static add(domainId: string, pid: number, owner: number, content: string) {
-        return document.add(
-            domainId, content, owner, document.TYPE_PROBLEM_SOLUTION,
-            null, document.TYPE_PROBLEM, pid, { reply: [], vote: 0 },
+    static async migrateLegacy() {
+        await document.coll.updateMany(
+            { docType: document.TYPE_PROBLEM_SOLUTION, reviewStatus: { $exists: false } },
+            { $set: { reviewStatus: SolutionReviewStatus.Approved, revision: 0 } },
         );
+    }
+
+    static readonly reviewLabels = {
+        [SolutionReviewStatus.Featured]: 'Featured Solution',
+        [SolutionReviewStatus.Approved]: 'Approved',
+        [SolutionReviewStatus.Pending]: 'Unreviewed',
+        [SolutionReviewStatus.Rejected]: 'Rejected',
+        [SolutionReviewStatus.Blocked]: 'Rejected and author blocked',
+    };
+
+    static async isBlocked(domainId: string, uid: number) {
+        return !!(await domain.collUser.findOne({ domainId, uid }))?.solutionBlocked;
+    }
+
+    // A database lease serializes solution writes for an author across server processes.
+    // Persist bulk transitions before applying them, so a retry can finish interrupted work.
+    private static async withAuthor<T>(domainId: string, uid: number, action: () => Promise<T>): Promise<T> {
+        await domain.collUser.updateOne({ domainId, uid }, { $setOnInsert: { domainId, uid } }, { upsert: true });
+        const token = new ObjectId();
+        const lease = () => new Date(Date.now() + 300_000);
+        const locked = await domain.collUser.findOneAndUpdate({
+            domainId, uid,
+            $or: [{ solutionLock: { $exists: false } }, { solutionLockUntil: { $lt: new Date() } }],
+        }, { $set: { solutionLock: token, solutionLockUntil: lease() } });
+        if (!locked) throw new SolutionReviewBusyError();
+        const heartbeat = setInterval(() => {
+            domain.collUser.updateOne({ domainId, uid, solutionLock: token }, { $set: { solutionLockUntil: lease() } })
+                .catch(() => {});
+        }, 30_000);
+        try {
+            await this.finishTransition(domainId, uid);
+            return await action();
+        } finally {
+            clearInterval(heartbeat);
+            await domain.collUser.updateOne({ domainId, uid, solutionLock: token }, {
+                $unset: { solutionLock: '', solutionLockUntil: '' },
+            });
+        }
+    }
+
+    private static async finishTransition(domainId: string, uid: number) {
+        const author = await domain.collUser.findOne({ domainId, uid });
+        const transition = author?.solutionReviewTransition;
+        if (!transition) return;
+        const filter: any = { domainId, docType: document.TYPE_PROBLEM_SOLUTION, owner: uid };
+        if (!transition.blocked) filter.reviewStatus = SolutionReviewStatus.Blocked;
+        await document.coll.updateMany(filter, {
+            $set: {
+                reviewStatus: transition.blocked ? SolutionReviewStatus.Blocked : SolutionReviewStatus.Pending,
+                reviewedBy: transition.reviewer,
+                reviewedAt: transition.at,
+            },
+            $inc: { revision: 1 },
+        });
+        await domain.collUser.updateOne({ domainId, uid }, { $unset: { solutionReviewTransition: '' } });
+    }
+
+    static async add(domainId: string, pid: number, owner: number, content: string) {
+        return this.withAuthor(domainId, owner, async () => {
+            if (await this.isBlocked(domainId, owner)) throw new SolutionSubmissionBlockedError();
+            return document.add(
+                domainId, content, owner, document.TYPE_PROBLEM_SOLUTION,
+                null, document.TYPE_PROBLEM, pid,
+                { reply: [], vote: 0, reviewStatus: SolutionReviewStatus.Pending, revision: 0 },
+            );
+        });
+    }
+
+    static ensureParent(doc: { parentId: number }, pid: number, domainId: string, psid: ObjectId) {
+        if (doc.parentId !== pid) throw new SolutionNotFoundError(domainId, psid);
+    }
+
+    static async review(domainId: string, psid: ObjectId, revision: number, status: SolutionReviewStatus, reviewer: number) {
+        const outcomes = [
+            SolutionReviewStatus.Featured, SolutionReviewStatus.Approved, SolutionReviewStatus.Rejected, SolutionReviewStatus.Blocked,
+        ];
+        if (!outcomes.includes(status)) {
+            throw new ValidationError('status');
+        }
+        const original = await this.get(domainId, psid);
+        return this.withAuthor(domainId, original.owner, async () => {
+            const doc = await this.get(domainId, psid);
+            if (doc.revision !== revision) throw new SolutionReviewConflictError();
+            if (status === SolutionReviewStatus.Blocked) {
+                await this.setBlocked(domainId, doc.owner, true, reviewer);
+                return this.get(domainId, psid);
+            }
+            if (await this.isBlocked(domainId, doc.owner)) throw new SolutionSubmissionBlockedError();
+            const updated = await document.coll.findOneAndUpdate(
+                { domainId, docType: document.TYPE_PROBLEM_SOLUTION, docId: psid, revision },
+                { $set: { reviewStatus: status, reviewedBy: reviewer, reviewedAt: new Date() }, $inc: { revision: 1 } },
+                { returnDocument: 'after' },
+            );
+            if (!updated) throw new SolutionReviewConflictError();
+            return updated;
+        });
+    }
+
+    private static async setBlocked(domainId: string, uid: number, blocked: boolean, reviewer: number) {
+        const at = new Date();
+        await domain.setUserInDomain(domainId, uid, {
+            solutionBlocked: blocked,
+            solutionBlockedBy: reviewer,
+            solutionBlockedAt: at,
+            solutionReviewTransition: { blocked, reviewer, at },
+        });
+        await this.finishTransition(domainId, uid);
+    }
+
+    static async unblock(domainId: string, uid: number, reviewer: number) {
+        return this.withAuthor(domainId, uid, async () => {
+            if (await this.isBlocked(domainId, uid)) await this.setBlocked(domainId, uid, false, reviewer);
+        });
     }
 
     static async get(domainId: string, psid: ObjectId) {
@@ -24,15 +141,33 @@ class SolutionModel {
             .toArray();
     }
 
-    static edit(domainId: string, psid: ObjectId, content: string) {
-        return document.set(domainId, document.TYPE_PROBLEM_SOLUTION, psid, { content });
+    static async edit(domainId: string, psid: ObjectId, content: string) {
+        const original = await this.get(domainId, psid);
+        return this.withAuthor(domainId, original.owner, async () => {
+            const doc = await this.get(domainId, psid);
+            if (doc.content === content) return doc;
+            const blocked = await this.isBlocked(domainId, doc.owner);
+            const $set = { content, reviewStatus: blocked ? SolutionReviewStatus.Blocked : SolutionReviewStatus.Pending };
+            const $unset = blocked ? undefined : { reviewedBy: '' as const, reviewedAt: '' as const };
+            await bus.parallel('document/set', domainId, document.TYPE_PROBLEM_SOLUTION, psid, $set, $unset);
+            return document.coll.findOneAndUpdate(
+                { domainId, docType: document.TYPE_PROBLEM_SOLUTION, docId: psid },
+                {
+                    $set,
+                    $inc: { revision: 1 },
+                    ...($unset ? { $unset } : {}),
+                },
+                { returnDocument: 'after' },
+            );
+        });
     }
 
     static async del(domainId: string, psid: ObjectId) {
-        return await Promise.all([
+        const doc = await this.get(domainId, psid);
+        return this.withAuthor(domainId, doc.owner, () => Promise.all([
             document.deleteOne(domainId, document.TYPE_PROBLEM_SOLUTION, psid),
             document.deleteMultiStatus(domainId, document.TYPE_PROBLEM_SOLUTION, { docId: psid }),
-        ]);
+        ]));
     }
 
     static count(domainId: string, query: any) {
@@ -43,7 +178,11 @@ class SolutionModel {
         return document.getMulti(
             domainId, document.TYPE_PROBLEM_SOLUTION,
             { parentType: document.TYPE_PROBLEM, parentId: pid, ...query },
-        ).sort({ vote: -1 });
+        ).sort({ reviewStatus: -1, vote: -1, docId: -1 });
+    }
+
+    static getReviewQueue(domainId: string, query: any = {}) {
+        return document.getMulti(domainId, document.TYPE_PROBLEM_SOLUTION, query).sort({ docId: 1 });
     }
 
     static getByUser(domainId: string, uid: number) {

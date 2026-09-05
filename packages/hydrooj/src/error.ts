@@ -153,3 +153,7 @@ export const DiscussionNotFoundError = Err('DiscussionNotFoundError', DocumentNo
 export const DiscussionNodeNotFoundError = Err('DiscussionNodeNotFoundError', DocumentNotFoundError, 'Discussion node {1} not found.');
 
 export const NotLaunchedByPM2Error = Err('NotLaunchedByPM2Error', BadRequestError, 'Not launched by PM2.');
+
+export const SolutionSubmissionBlockedError = Err('SolutionSubmissionBlockedError', ForbiddenError, 'Your solution submissions are blocked in this domain.');
+export const SolutionReviewConflictError = Err('SolutionReviewConflictError', UserFacingError, 'The solution changed. Reload the page and review it again.', 409);
+export const SolutionReviewBusyError = Err('SolutionReviewBusyError', UserFacingError, 'Solutions for this author are being updated. Please try again.', 409);

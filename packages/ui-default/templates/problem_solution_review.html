@@ -1,0 +1,66 @@
+{% extends "layout/basic.html" %}
+{% import "components/user.html" as user with context %}
+{% block content %}
+<div class="row"><div class="columns">
+  <div class="section">
+    <div class="section__header"><h1 class="section__title">{{ _('Solution Review') }}</h1></div>
+    <div class="section__body">
+      <form method="get">
+        <label>{{ _('Status') }}
+          <select class="inline select" name="status">
+            {% for value, label in {pending: 'Unreviewed', featured: 'Featured Solution', approved: 'Approved', rejected: 'Rejected', blocked: 'Rejected and author blocked', all: 'All', authors: 'Blocked solution authors'} %}
+              <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ _(label) }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>{{ _('Problem ID') }} <input class="inline textbox" name="pid" value="{{ pid|default('') }}"></label>
+        <label>{{ _('User ID') }} <input class="inline textbox" type="number" min="1" name="uid" value="{{ uid|default('') }}"></label>
+        <button class="primary rounded button" type="submit">{{ _('Filter') }}</button>
+      </form>
+      <a href="{{ url('problem_solution_review') }}?status=authors">{{ _('Blocked solution authors') }}</a>
+    </div>
+  </div>
+  {% for doc in docs %}
+  <div class="section">
+    <div class="section__header">
+      {% if status == 'authors' %}
+        {{ user.render_inline(udict[doc.uid]) }}
+      {% else %}
+        <a href="{{ url('problem_solution_detail', pid=doc.parentId, sid=doc.docId) }}">{{ pdict[doc.parentId].title|default(doc.parentId) }}</a>
+        {{ user.render_inline(udict[doc.owner]) }}
+        <strong>{{ _(reviewLabels[doc.reviewStatus]) }}</strong>
+        {% if doc.reviewedBy %}
+          <span class="supplementary">{{ _('Reviewed by') }} {{ user.render_inline(udict[doc.reviewedBy]) }} {{ datetimeSpan(doc.reviewedAt)|safe }}</span>
+        {% endif %}
+      {% endif %}
+    </div>
+    <div class="section__body">
+      {% if status != 'authors' %}
+        <div class="typo richmedia" data-emoji-enabled>{{ doc.content|markdown|safe }}</div>
+      {% endif %}
+      {% if status == 'authors' or doc.reviewStatus == -1 %}
+        <form method="post">
+          <input type="hidden" name="operation" value="unblock">
+          <input type="hidden" name="uid" value="{{ doc.uid if status == 'authors' else doc.owner }}">
+          <p>{{ _('Unblocking returns this author’s blocked solutions to unreviewed.') }}</p>
+          <button class="rounded button" type="submit">{{ _('Unblock solution author') }}</button>
+        </form>
+      {% else %}
+        <form method="post">
+          <input type="hidden" name="operation" value="review">
+          <input type="hidden" name="psid" value="{{ doc.docId }}">
+          <input type="hidden" name="revision" value="{{ doc.revision }}">
+          <button class="rounded primary button" type="submit" name="status" value="3">{{ _('Featured Solution') }}</button>
+          <button class="rounded button" type="submit" name="status" value="2">{{ _('Approved') }}</button>
+          <button class="rounded button" type="submit" name="status" value="0">{{ _('Rejected') }}</button>
+          <button class="rounded button" type="submit" name="status" value="-1" onclick="return confirm({{ _('Reject all this author’s solutions and block new solution submissions in this domain? Existing solutions remain publicly expandable.')|json|escape }});">{{ _('Rejected and author blocked') }}</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+    <div class="section"><div class="section__body">{{ _('No solutions match these filters.') }}</div></div>
+  {% endfor %}
+  {{ paginator.render(page, pcount, 'status=' + status + ('&pid=' + pid if pid else '') + ('&uid=' + uid if uid else '')) }}
+</div></div>
+{% endblock %}

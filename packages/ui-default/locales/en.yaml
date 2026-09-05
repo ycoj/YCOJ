@@ -11,8 +11,10 @@ AI data generation model: AI data generation model
 API key: API key
 API model ID: API model ID
 API type: API type
+Approved: Approved
 Banned: Banned
 Base URL: Base URL
+Blocked solution authors: Blocked solution authors
 Can be Extended For: Extension
 Contest Solutions: Contest Solutions
 contest_solution_create: Create Solution
@@ -29,7 +31,9 @@ Expiration Date: Expiration Date
 Expiration date is required.: Expiration date is required.
 Expired and automatically banned: Expired and automatically banned
 Expired; ban pending next access: Expired; ban pending next access
+Featured Solution: Featured Solution
 'File IO: {0}': 'File IO: {0}'
+Filter: Filter
 Handled Requests: Req
 Hint::icon::difficulty: The difficulty of the problems in Hydro will be calculated by algorithm, depending on current submission, sometimes the difficulty may not so exact.
 Hint::icon::switch_account: As a superadmin, you can switch to anyone's account.
@@ -41,6 +45,7 @@ Maximum output tokens: Maximum output tokens
 Model: Model
 New model: New model
 New provider: New provider
+No solutions match these filters.: No solutions match these filters.
 No users found.: No users found.
 no_translation_warn: <blockquote class="warn">This part of content is under translation.</blockquote>
 Not supported: Not supported
@@ -66,6 +71,7 @@ preliminary_create: New Preliminary-round Paper
 preliminary_detail: Preliminary-round Paper
 preliminary_edit: Edit Preliminary-round Paper
 preliminary_main: Preliminary Round Training
+Problem ID: Problem ID
 problem_create: Problem Create
 problem_edit: Problem Edit
 problem_import: Import Problem
@@ -93,8 +99,12 @@ ranking: Ranking
 Reasoning support: Reasoning support
 record_detail: Record Detail
 record_main: Record
+Reject all this author’s solutions and block new solution submissions in this domain? Existing solutions remain publicly expandable.: Reject all this author’s solutions and block new solution submissions in this domain? Existing solutions remain publicly expandable.
+Rejected: Rejected
+Rejected and author blocked: Rejected and author blocked
 Remove model: Remove model
 Remove provider: Remove provider
+Reviewed by: Reviewed by
 rpDetailText_contest: Contest
 rpDetailText_problem: Problem
 Search by UID, username, or email: Search by UID, username, or email
@@ -110,16 +120,25 @@ setting_info_domain: Personal Info
 setting_preference: Preference
 setting_privacy: Privacy
 setting_usage: Usage Preference
+Solution content and replies: Solution content and replies
+
+Solution Review: Solution Review
+Solutions for this author are being updated. Please try again.: Solutions for this author are being updated. Please try again.
 sort::default: Default
 sort::recent: Recent
 Supported: Supported
 tasks_list: Task list
+The solution changed. Reload the page and review it again.: The solution changed. Reload the page and review it again.
 timeago_locale: en_US
 'Tip: You are entering sudo mode.': 'Tip: You are entering <a href="https://docs.github.com/articles/sudo-mode">sudo mode</a>.'
 training_create: Training Create
 training_edit: Training Edit
 training_main: Training
+Unblock solution author: Unblock solution author
+Unblocking returns this author’s blocked solutions to unreviewed.: Unblocking returns this author’s blocked solutions to unreviewed.
+Unreviewed: Unreviewed
 Use a positive number to extend or a negative number to shorten.: Use a positive number to extend or a negative number to shorten.
+User ID: User ID
 user_detail: User Detail
 user_login: Login
 user_logout: Logout
@@ -129,3 +148,4 @@ View all contest solutions: View all contest solutions
 wiki_help: Help
 You can also upload your avatar to Gravatar and it will be automatically updated here.: You can also upload your avatar to <a href="https://gravatar.com/">Gravatar</a> and it will be automatically updated here.
 Your account has expired. Please contact your teacher or coach!: Your account has expired. Please contact your teacher or coach!
+Your solution submissions are blocked in this domain.: Your solution submissions are blocked in this domain.
