@@ -9,7 +9,6 @@ import type {
 import {
     normalizePreliminaryAnswers, normalizePreliminaryDefinition, scorePreliminaryAnswers,
 } from '../lib/preliminary';
-import db from '../service/db';
 import * as document from './document';
 
 const PAPER = document.TYPE_PRELIMINARY_PAPER;
@@ -115,18 +114,15 @@ export async function submit(
     const graded = scorePreliminaryAnswers(revision, answers);
     const submittedAt = new Date();
 
-    const session = db.client.startSession();
+    let attemptId: ObjectId;
+    let attempt: PreliminaryAttemptDoc;
     try {
-        let attemptId: ObjectId;
-        let attempt: PreliminaryAttemptDoc;
-        await session.withTransaction(async () => {
-            const currentPaper = await document.coll.findOne(
-                { domainId, docType: PAPER, docId: paperId, published: true },
-                { session },
-            );
-            if (!currentPaper) throw new PreliminaryPaperNotPublishedError(paperId);
+        const currentPaper = await document.coll.findOne(
+            { domainId, docType: PAPER, docId: paperId, published: true },
+        );
+        if (!currentPaper) throw new PreliminaryPaperNotPublishedError(paperId);
 
-            attemptId = await document.add(
+        attemptId = await document.add(
                 domainId, '', owner, ATTEMPT, null, PAPER, paperId,
                 {
                     paperId,
@@ -138,19 +134,19 @@ export async function submit(
                 },
             );
 
-            const claimed = await document.coll.findOneAndUpdate(
+        const claimed = await document.coll.findOneAndUpdate(
                 { domainId, docType: PAPER, docId: paperId, published: true },
                 { $inc: { nAttempt: 1 } },
-                { returnDocument: 'after', session },
+                { returnDocument: 'after' },
             ) as PreliminaryPaperDoc;
 
-            if (!claimed) throw new PreliminaryPaperNotPublishedError(paperId);
+        if (!claimed) throw new PreliminaryPaperNotPublishedError(paperId);
 
-            attempt = await document.get(domainId, ATTEMPT, attemptId);
-        });
+        attempt = await document.get(domainId, ATTEMPT, attemptId);
         return attempt;
-    } finally {
-        await session.endSession();
+    } catch (error) {
+        if (attemptId) await document.deleteOne(domainId, ATTEMPT, attemptId);
+        throw error;
     }
 }
 
