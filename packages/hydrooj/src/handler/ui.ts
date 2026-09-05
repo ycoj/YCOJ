@@ -18,6 +18,7 @@ export class NavHandler extends Handler {
         this.response.body.user = {
             ...udoc.serialize(this) as any,
             realnameStatus: getRealnameStatus(udoc),
+            realnameSubmittedAt: udoc.realnameSubmittedAt,
             modType: this.user.hasPriv(PRIV.PRIV_MOD_BADGE) ? 'su' : this.user.hasPerm(PERM.PERM_MOD_BADGE) ? 'mod' : null,
             tfa: udoc.tfa,
             authn: udoc.authn,

@@ -78,6 +78,32 @@ describe('App', () => {
         Root.creditionals = cookie;
     });
 
+    it('Navigation JSON exposes the first realname submission time during grace', async () => {
+        await global.Hydro.model.user.setById(2, { realnameStatus: 'none' });
+        try {
+            await agent.post('/home/realname')
+                .set('Accept', 'application/json')
+                .send({ realName: 'Test User', school: 'Test School' })
+                .expect(200);
+            const nav = await agent.get('/ui/nav').set('Accept', 'application/json').expect(200);
+            const result = await agent.get('/home/realname/result').set('Accept', 'application/json').expect(200);
+            assert.equal(nav.body.user.realnameStatus, 'pending');
+            assert.equal(typeof nav.body.user.realnameSubmittedAt, 'string');
+            const submittedAt = new Date(nav.body.user.realnameSubmittedAt).getTime();
+            assert.ok(Number.isFinite(submittedAt));
+            assert.equal(result.body.inGrace, true);
+            assert.equal(new Date(result.body.graceUntil).getTime(), submittedAt + 7 * 24 * 60 * 60 * 1000);
+
+            await agent.post('/home/realname')
+                .set('Accept', 'application/json')
+                .send({ realName: 'Test User', school: 'Updated School' })
+                .expect(200);
+            const updated = await agent.get('/ui/nav').set('Accept', 'application/json').expect(200);
+            assert.equal(updated.body.user.realnameSubmittedAt, nav.body.user.realnameSubmittedAt);
+        } finally {
+            await global.Hydro.model.user.setById(2, { realnameStatus: 'approved' });
+        }
+    });
     it('Ranking JSON includes public user metrics', async () => {
         await global.Hydro.model.domain.updateUserInDomain('system', 2, {
             $set: {
