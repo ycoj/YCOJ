@@ -79,8 +79,15 @@ describe('App', () => {
     });
 
     it('Navigation JSON exposes the first realname submission time during grace', async () => {
-        await global.Hydro.model.user.setById(2, { realnameStatus: 'none' });
+        const originalUser = await global.Hydro.model.user.getById('system', 2);
+        const originalState = {
+            realnameStatus: originalUser.realnameStatus,
+            realnameSubmittedAt: originalUser.realnameSubmittedAt,
+            realName: originalUser.realName,
+            realnameSchool: originalUser.realnameSchool,
+        };
         try {
+            await global.Hydro.model.user.setById(2, { realnameStatus: 'none' });
             await agent.post('/home/realname')
                 .set('Accept', 'application/json')
                 .send({ realName: 'Test User', school: 'Test School' })
@@ -101,7 +108,22 @@ describe('App', () => {
             const updated = await agent.get('/ui/nav').set('Accept', 'application/json').expect(200);
             assert.equal(updated.body.user.realnameSubmittedAt, nav.body.user.realnameSubmittedAt);
         } finally {
-            await global.Hydro.model.user.setById(2, { realnameStatus: 'approved' });
+            const restoreFields: any = {};
+            if (originalState.realnameStatus !== undefined) restoreFields.realnameStatus = originalState.realnameStatus;
+            if (originalState.realnameSubmittedAt !== undefined) restoreFields.realnameSubmittedAt = originalState.realnameSubmittedAt;
+            if (originalState.realName !== undefined) restoreFields.realName = originalState.realName;
+            if (originalState.realnameSchool !== undefined) restoreFields.realnameSchool = originalState.realnameSchool;
+            const unsetFields: any = {};
+            if (originalState.realnameStatus === undefined) unsetFields.realnameStatus = '';
+            if (originalState.realnameSubmittedAt === undefined) unsetFields.realnameSubmittedAt = '';
+            if (originalState.realName === undefined) unsetFields.realName = '';
+            if (originalState.realnameSchool === undefined) unsetFields.realnameSchool = '';
+            const update: any = {};
+            if (Object.keys(restoreFields).length > 0) update.$set = restoreFields;
+            if (Object.keys(unsetFields).length > 0) update.$unset = unsetFields;
+            if (Object.keys(update).length > 0) {
+                await global.Hydro.model.user.coll.updateOne({ _id: 2 }, update);
+            }
         }
     });
     it('Ranking JSON includes public user metrics', async () => {

@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 import { PERM, PRIV } from '@hydrooj/common';
 import { Context } from '../context';
 import { NotFoundError } from '../error';
-import { getRealnameStatus } from '../lib/realname';
+import { getRealnameStatus, getRealnameSubmittedAt } from '../lib/realname';
 import * as contest from '../model/contest';
 import ProblemModel from '../model/problem';
 import { langs } from '../model/setting';
@@ -15,10 +15,11 @@ export class NavHandler extends Handler {
     async get({ domainId }) {
         this.response.body.navItems = global.Hydro.ui.getNodes('Nav').filter((x) => x.checker(this));
         const udoc = await user.getById(domainId, this.user._id);
+        const submittedAt = getRealnameSubmittedAt(udoc);
         this.response.body.user = {
             ...udoc.serialize(this) as any,
             realnameStatus: getRealnameStatus(udoc),
-            realnameSubmittedAt: udoc.realnameSubmittedAt,
+            realnameSubmittedAt: submittedAt ? submittedAt.toISOString() : null,
             modType: this.user.hasPriv(PRIV.PRIV_MOD_BADGE) ? 'su' : this.user.hasPerm(PERM.PERM_MOD_BADGE) ? 'mod' : null,
             tfa: udoc.tfa,
             authn: udoc.authn,
