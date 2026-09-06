@@ -119,6 +119,7 @@ Attendee Manage: 參賽者管理
 Authenticator: 認證器
 Authenticators: 認證器
 author: 作者
+Author: 作者
 Auto configure: 自動配置
 Auto detect: 自動檢測
 Auto hide problems during the contest: 在比賽過程中自動隱藏題目
@@ -143,6 +144,8 @@ Belongs to: 屬於
 Bind Awards: 綁定獎項
 Bio: 個人簡介
 Bio Visibility: 個人簡介可見性
+Blocked at: 封鎖時間
+Blocked by: 封鎖人
 Blocked solution authors: 已封鎖題解的作者
 Bold: 加粗
 Boom!: 炸了！
@@ -677,6 +680,7 @@ New model: 新模型
 New Paper: 新建試卷
 New Password: 新密碼
 New provider: 新提供者
+New Solutions Today: 今日新增題解數量
 New Training Plan: 新訓練計劃
 'No': 否
 No {0} at current.: 當前沒有{0}。
@@ -765,6 +769,7 @@ Path {0} not found.: 路徑 {0} 不存在。
 Peak Memory: 峰值記憶體
 Peak Time: 峰值時間
 Pending: 待審核
+Pending Review: 待審核題解數量
 perm_contest: 比賽
 perm_discussion: 討論
 perm_general: 一般
@@ -815,6 +820,7 @@ Privacy: 隱私
 Privilege: 許可權
 Problem: 題目
 Problem {1} not found.: 題目 {1} 不存在。
+Problem / User Info: 題目 / 使用者資訊
 Problem Category: 標籤
 Problem Data: 題目資料
 Problem ID: 題目編號
@@ -834,6 +840,7 @@ problem_edit: 編輯題目
 problem_import: 匯入題目
 problem_main: 題庫
 problem_solution: 題解
+problem_solution_review: 題解審核
 problem_submit: 遞交程式碼
 problem_type.communication: 通訊題
 problem_type.default: 傳統題
@@ -1039,7 +1046,9 @@ Sign Up Now: 現在註冊
 'Single Choice': 單選題
 Single-choice Questions: 單項選擇題
 Size: 大小
+Solution Content: 題解內容
 Solution content and replies: 題解內容與回覆
+Solution Data Overview: 題解資料總覽
 
 Solution Review: 題解審核
 Solutions: 題解
@@ -1160,6 +1169,7 @@ Toggle Records Panel: 切換評測記錄面板
 Tools: 工具
 Total: 總計
 Total Score: 總分
+Total Solutions: 總題解數量
 Total Time: 總耗時
 Total Time (Seconds): 總耗時 (秒)
 Training: 訓練
@@ -1175,6 +1185,7 @@ Two Factor Authentication: 兩步驗證
 Two Factor Authentication Code: 兩步驗證碼
 Type: 型別
 UI Language: 使用者介面語言
+Unapproved solutions: 未通過的題解
 Unblock solution author: 解除題解封鎖
 Unblocking returns this author’s blocked solutions to unreviewed.: 解除封鎖後，該作者被封鎖的題解將恢復為未審核。
 Uncompleted: 未完成

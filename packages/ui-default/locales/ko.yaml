@@ -67,6 +67,7 @@ Attend Contest: 대회 참가
 Attend contests: 대회 참가
 Attended: 참가함
 author: 저자
+Author: 작성자
 Base URL: 기본 URL
 Be Copied: 복사됨
 Begin at: 시작
@@ -75,6 +76,8 @@ Begin Time: 시작 시각
 Belongs to: 소유
 Bio: 소개
 Bio Visibility: 소개 공개
+Blocked at: 차단 시각
+Blocked by: 차단자
 Blocked solution authors: 풀이가 차단된 작성자
 Bold: 굵게
 Boom!: 펑!
@@ -452,6 +455,7 @@ New file: 새 파일
 New model: 새 모델
 New Password: 새 비밀번호
 New provider: 새 제공자
+New Solutions Today: 오늘 신규 풀이 수
 New Training Plan: 새 학습 계획
 'No': 아니오
 No comments so far...: 아직 댓글이 없네요...
@@ -511,6 +515,7 @@ Password reset mail has been sent to your email.: 비밀번호 재설정 이메�
 Passwords don't match.: 비밀번호가 틀렸습니다.
 Path {0} not found.: 경로 {0}을(를) 찾을 수 없습니다.
 Peak Memory: 메모리
+Pending Review: 검토 대기 풀이 수
 perm_contest: 대회
 perm_discussion: 토론
 perm_general: 일반
@@ -536,6 +541,7 @@ Pretest?: 프리테스트?
 Privacy: 개인정보
 Problem: 문제
 Problem {1} not found.: 문제 {1}을(를) 찾을 수 없습니다.
+Problem / User Info: 문제 / 사용자 정보
 Problem Data: 문제 데이터
 Problem ID: 문제 ID
 Problem ID List: 문제 ID 목록
@@ -549,6 +555,7 @@ problem_edit: 문제 수정
 problem_import: 문제 가져오기
 problem_main: 문제
 problem_solution: 문제 해설
+problem_solution_review: 풀이 검토
 problem_submit: 제출
 problem-category-delim: '|'
 problem-subcategory-delim: 、
@@ -680,7 +687,9 @@ Sign Up: 회원가입
 Sign up mail has been sent to your email.: 회원가입 이메일을 보냈습니다.
 Sign Up Now: 회원가입
 Size: 크기
+Solution Content: 풀이 내용
 Solution content and replies: 풀이 내용 및 답글
+Solution Data Overview: 풀이 데이터 개요
 
 Solution Review: 풀이 검토
 Solutions: 해설
@@ -759,6 +768,7 @@ Toggle Preview: 미리보기
 Toggle Records Panel: 점수 목록
 Total: 합산
 Total Score: 총 점수
+Total Solutions: 전체 풀이 수
 Total Time: 총 시간
 Total Time (Seconds): 총 시간 (s)
 Training: 학습
@@ -768,6 +778,7 @@ training_edit: 학습 수정
 training_main: 학습
 Type: Type
 UI Language: UI 언어
+Unapproved solutions: 승인되지 않은 풀이
 Unblock solution author: 작성자 풀이 차단 해제
 Unblocking returns this author’s blocked solutions to unreviewed.: 차단을 해제하면 이 작성자의 차단된 풀이가 미검토 상태로 돌아갑니다.
 Uncompleted: 미완료

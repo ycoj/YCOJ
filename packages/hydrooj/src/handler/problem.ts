@@ -865,11 +865,10 @@ export class ProblemSolutionReviewHandler extends Handler {
         this.checkPerm(PERM.PERM_DELETE_PROBLEM_SOLUTION);
     }
 
-    @param('page', Types.PositiveInt, true)
     @param('status', Types.Range(['pending', 'featured', 'approved', 'rejected', 'blocked', 'all', 'authors']), true)
     @param('pid', Types.ProblemId, true)
     @param('uid', Types.PositiveInt, true)
-    async get(domainId: string, page = 1, status = 'pending', pid?: string | number, uid?: number) {
+    async get(domainId: string, status = 'pending', pid?: string | number, uid?: number) {
         const states = {
             pending: SolutionReviewStatus.Pending,
             featured: SolutionReviewStatus.Featured,
@@ -885,15 +884,26 @@ export class ProblemSolutionReviewHandler extends Handler {
         const cursor = authors
             ? domain.getMultiUserInDomain(domainId, { solutionBlocked: true, ...(uid ? { uid } : {}) })
                 .project({ _id: 0, domainId: 1, uid: 1, solutionBlocked: 1, solutionBlockedBy: 1, solutionBlockedAt: 1 }).sort({ uid: 1 })
-            : solution.getReviewQueue(domainId, filter);
-        const [docs, pcount, count] = await this.paginate(cursor, page, 'solution');
-        const uids = authors ? docs.map((doc) => doc.uid) : docs.flatMap((doc) => [doc.owner, doc.reviewedBy].filter(Boolean));
+            : null;
+        const docs = authors ? await cursor.toArray() : [(await solution.claimReview(domainId, filter, this.user._id))].filter(Boolean);
+        const pcount = docs.length; const count = docs.length;
+        const uids = authors
+            ? docs.flatMap((doc) => [doc.uid, doc.solutionBlockedBy].filter(Boolean))
+            : docs.flatMap((doc) => [doc.owner, doc.reviewedBy].filter(Boolean));
         const udict = await user.getList(domainId, uids);
         const pdict = authors ? {} : await problem.getList(domainId, docs.map((doc) => doc.parentId), true, false);
+        const dayStart = new Date();
+        dayStart.setHours(0, 0, 0, 0);
+        const [totalSolutions, newToday, pendingReview] = await Promise.all([
+            solution.count(domainId, {}),
+            solution.count(domainId, { _id: { $gte: ObjectId.createFromTime(dayStart.getTime() / 1000) } }),
+            solution.count(domainId, { reviewStatus: SolutionReviewStatus.Pending }),
+        ]);
         this.response.template = 'problem_solution_review.html';
         this.response.body = {
-            docs, page, pcount, count, udict, pdict, status, pid, uid,
+            docs, page: 1, pcount, count, udict, pdict, status, pid, uid,
             reviewLabels: solution.reviewLabels,
+            stats: { totalSolutions, newToday, pendingReview },
         };
     }
 

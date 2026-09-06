@@ -95,15 +95,16 @@ class SolutionModel {
         const original = await this.get(domainId, psid);
         return this.withAuthor(domainId, original.owner, async () => {
             const doc = await this.get(domainId, psid);
-            if (doc.revision !== revision) throw new SolutionReviewConflictError();
+            if (doc.revision !== revision || doc.reviewLock !== reviewer || !doc.reviewLockUntil || doc.reviewLockUntil < new Date()) throw new SolutionReviewConflictError();
             if (status === SolutionReviewStatus.Blocked) {
                 await this.setBlocked(domainId, doc.owner, true, reviewer);
+                await document.coll.updateOne({ domainId, docType: document.TYPE_PROBLEM_SOLUTION, docId: psid }, { $unset: { reviewLock: '', reviewLockUntil: '' } });
                 return this.get(domainId, psid);
             }
             if (await this.isBlocked(domainId, doc.owner)) throw new SolutionSubmissionBlockedError();
             const updated = await document.coll.findOneAndUpdate(
                 { domainId, docType: document.TYPE_PROBLEM_SOLUTION, docId: psid, revision },
-                { $set: { reviewStatus: status, reviewedBy: reviewer, reviewedAt: new Date() }, $inc: { revision: 1 } },
+                { $set: { reviewStatus: status, reviewedBy: reviewer, reviewedAt: new Date() }, $unset: { reviewLock: '', reviewLockUntil: '' }, $inc: { revision: 1 } },
                 { returnDocument: 'after' },
             );
             if (!updated) throw new SolutionReviewConflictError();
@@ -183,6 +184,14 @@ class SolutionModel {
 
     static getReviewQueue(domainId: string, query: any = {}) {
         return document.getMulti(domainId, document.TYPE_PROBLEM_SOLUTION, query).sort({ docId: 1 });
+    }
+
+    static async claimReview(domainId: string, query: any, reviewer: number) {
+        const now = new Date();
+        return document.coll.findOneAndUpdate({ domainId, docType: document.TYPE_PROBLEM_SOLUTION, ...query,
+            $or: [{ reviewLockUntil: { $exists: false } }, { reviewLockUntil: { $lt: now } }, { reviewLock: reviewer }] },
+        { $set: { reviewLock: reviewer, reviewLockUntil: new Date(now.getTime() + 60_000) } },
+        { sort: { docId: 1 }, returnDocument: 'after' });
     }
 
     static getByUser(domainId: string, uid: number) {

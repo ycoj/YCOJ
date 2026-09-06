@@ -1,0 +1,94 @@
+.solution-review__overview-header
+  display: flex
+  align-items: center
+  justify-content: space-between
+  flex-wrap: wrap
+  gap: rem(8px 16px)
+
+  .section__title
+    margin: 0
+
+.solution-review__stats
+  display: grid
+  grid-template-columns: repeat(3, minmax(0, 1fr))
+  margin: 0
+  padding: rem(8px 0 12px)
+
+.solution-review__stat
+  min-width: 0
+  padding: rem(0 24px)
+
+  &:first-child
+    padding-left: 0
+
+  & + &
+    border-left: 1px solid rgba(128, 128, 128, 0.2)
+
+  dt
+    display: flex
+    align-items: center
+    gap: rem(8px)
+    font-size: rem(13px)
+    line-height: 1.5
+    color: $text-2-color
+
+  .icon
+    flex-shrink: 0
+    font-size: rem(16px)
+
+  dd
+    margin: rem(12px 0 0)
+    font-size: rem(32px)
+    font-weight: 600
+    font-variant-numeric: tabular-nums
+    line-height: 1.2
+    overflow-wrap: anywhere
+
+  &--today dd
+    color: #278065
+
+  &--pending dd
+    color: #b06b14
+
+.solution-review__actions .menu__link
+  display: flex
+  align-items: flex-start
+  white-space: normal
+  overflow-wrap: anywhere
+
+  .icon
+    flex-shrink: 0
+
+  &:focus-visible
+    outline: 2px solid $primary-color
+    outline-offset: -2px
+
+.theme--dark
+  .solution-review__stat dt
+    color: #bdbdbd
+
+  .solution-review__stat--today dd
+    color: #75c9ac
+
+  .solution-review__stat--pending dd
+    color: #efbd75
+
++below(480px)
+  .solution-review__stats
+    grid-template-columns: minmax(0, 1fr)
+    padding: 0
+
+  .solution-review__stat
+    display: flex
+    align-items: center
+    justify-content: space-between
+    gap: rem(16px)
+    padding: rem(16px 0)
+
+    & + &
+      border-left: 0
+      border-top: 1px solid rgba(128, 128, 128, 0.2)
+
+    dd
+      margin: 0
+      font-size: rem(28px)

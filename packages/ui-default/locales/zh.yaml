@@ -119,6 +119,7 @@ Attendee Manage: 参赛者管理
 Authenticator: 认证器
 Authenticators: 认证器
 author: 作者
+Author: 作者
 Auto configure: 自动配置
 Auto detect: 自动检测
 Auto hide problems during the contest: 在比赛过程中自动隐藏题目
@@ -143,6 +144,8 @@ Belongs to: 属于
 Bind Awards: 绑定奖项
 Bio: 个人简介
 Bio Visibility: 个人简介可见性
+Blocked at: 屏蔽时间
+Blocked by: 屏蔽人
 Blocked solution authors: 已屏蔽题解的作者
 Bold: 加粗
 Boom!: 炸了！
@@ -680,6 +683,7 @@ New model: 新模型
 New Paper: 新建试卷
 New Password: 新密码
 New provider: 新提供商
+New Solutions Today: 今日新增题解数量
 New Training Plan: 新训练计划
 'No': 否
 No {0} at current.: 当前没有{0}。
@@ -768,6 +772,7 @@ Path {0} not found.: 路径 {0} 不存在。
 Peak Memory: 峰值内存
 Peak Time: 峰值时间
 Pending: 待审核
+Pending Review: 待审核题解数量
 perm_contest: 比赛
 perm_discussion: 讨论
 perm_general: 一般
@@ -818,6 +823,7 @@ Privacy: 隐私
 Privilege: 权限
 Problem: 题目
 Problem {1} not found.: 题目 {1} 不存在。
+Problem / User Info: 题目 / 用户信息
 Problem Category: 标签
 Problem Data: 题目数据
 Problem ID: 题目编号
@@ -837,6 +843,7 @@ problem_edit: 编辑题目
 problem_import: 导入题目
 problem_main: 题库
 problem_solution: 题解
+problem_solution_review: 题解审核
 problem_submit: 递交代码
 problem_type.communication: 通信题
 problem_type.default: 传统题
@@ -1044,7 +1051,9 @@ Sign Up Now: 现在注册
 'Single Choice': 单选题
 Single-choice Questions: 单项选择题
 Size: 大小
+Solution Content: 题解内容
 Solution content and replies: 题解内容与回复
+Solution Data Overview: 题解数据总览
 
 Solution Review: 题解审核
 Solutions: 题解
@@ -1165,6 +1174,7 @@ Toggle Records Panel: 切换评测记录面板
 Tools: 工具
 Total: 总计
 Total Score: 总分数
+Total Solutions: 总题解数量
 Total Time: 总耗时
 Total Time (Seconds): 总耗时 (秒)
 Training: 训练
@@ -1180,6 +1190,7 @@ Two Factor Authentication: 两步验证
 Two Factor Authentication Code: 两步验证码
 Type: 类型
 UI Language: 用户界面语言
+Unapproved solutions: 未通过的题解
 Unblock solution author: 解除题解屏蔽
 Unblocking returns this author’s blocked solutions to unreviewed.: 解除屏蔽后，该作者被屏蔽的题解将恢复为未审核。
 Uncompleted: 未完成
@@ -1273,11 +1284,11 @@ Visible to registered users: 对注册用户可见
 Visit: 查看
 Vote: 投票
 Vote problem solutions: 为题解投票
-warn::admin:unsupportedbrowser: "身为超级管理员，您仍在使用过于老旧的浏览器。
+warn::admin:unsupportedbrowser: '身为超级管理员，您仍在使用过于老旧的浏览器。
 
   这些浏览器可能不支持 Hydro 管理面板的部分功能，
 
-  我们强烈建议您升级到最新的 Chrome 浏览器。"
+  我们强烈建议您升级到最新的 Chrome 浏览器。'
 We will check code similarity after this contest.: 我们会在赛后检查代码相似度。
 WeChat: 微信
 WeChat Visibility: 微信可见性

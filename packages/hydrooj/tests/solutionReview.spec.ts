@@ -73,6 +73,7 @@ describe('problem solution review', () => {
         let doc = await solution.get('review', id);
         assert.equal(doc.reviewStatus, Review.Pending);
         assert.equal(doc.revision, 0);
+        await solution.claimReview('review', { docId: id }, 99);
         await solution.review('review', id, 0, Review.Featured, 99);
         doc = await solution.get('review', id);
         assert.equal(doc.reviewStatus, Review.Featured);
@@ -85,8 +86,10 @@ describe('problem solution review', () => {
         assert.equal(doc.reviewStatus, Review.Pending);
         assert.equal(doc.reviewedBy, undefined);
         await assert.rejects(solution.review('review', id, 1, Review.Approved, 99), { name: 'SolutionReviewConflictError' });
+        await solution.claimReview('review', { docId: id }, 99);
         await solution.review('review', id, doc.revision, Review.Rejected, 99);
         doc = await solution.get('review', id);
+        await solution.claimReview('review', { docId: id }, 99);
         await solution.review('review', id, doc.revision, Review.Approved, 99);
         assert.equal((await solution.get('review', id)).reviewStatus, Review.Approved);
         await assert.rejects(solution.review('review', id, 4, Review.Pending, 99), { name: 'ValidationError' });
@@ -109,7 +112,9 @@ describe('problem solution review', () => {
         const a = await solution.add('blocking', 1, 30, 'one');
         const b = await solution.add('blocking', 2, 30, 'two');
         const other = await solution.add('other-domain', 1, 30, 'elsewhere');
+        await solution.claimReview('blocking', { docId: b }, 99);
         await solution.review('blocking', b, 0, Review.Featured, 99);
+        await solution.claimReview('blocking', { docId: a }, 99);
         await solution.review('blocking', a, 0, Review.Blocked, 99);
         assert.equal((await solution.get('blocking', b)).reviewStatus, Review.Blocked);
         assert.equal((await solution.get('other-domain', other)).reviewStatus, Review.Pending);
@@ -117,6 +122,7 @@ describe('problem solution review', () => {
         await assert.rejects(solution.add('blocking', 3, 30, 'new'), { name: 'SolutionSubmissionBlockedError' });
         await solution.add('other-domain', 2, 30, 'allowed');
         const blocked = await solution.get('blocking', b);
+        await solution.claimReview('blocking', { docId: b }, 99);
         await assert.rejects(solution.review('blocking', b, blocked.revision, Review.Approved, 99), { name: 'SolutionSubmissionBlockedError' });
         await solution.edit('blocking', b, 'edited');
         assert.equal((await solution.get('blocking', b)).reviewStatus, Review.Blocked);

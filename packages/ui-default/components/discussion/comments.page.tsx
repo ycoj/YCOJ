@@ -46,7 +46,6 @@ async function destroyReplyContainer($parent) {
 
 function onClickDummyBox(ev) {
   const $evTarget = $(ev.currentTarget);
-  $evTarget.closest('.dczcomments__item').find('details.solution-content').prop('open', true);
 
   if (CommentBox.get($evTarget)) {
     CommentBox.get($evTarget).focus();
@@ -73,7 +72,6 @@ function onClickDummyBox(ev) {
 
 async function onCommentClickReplyComment(ev, options: any = {}) {
   const $evTarget = $(ev.currentTarget);
-  $evTarget.closest('.dczcomments__item').find('details.solution-content').prop('open', true);
 
   if (CommentBox.get($evTarget)) {
     // If comment box is already expanded,
@@ -108,7 +106,6 @@ async function onCommentClickReplyComment(ev, options: any = {}) {
 
 async function onCommentClickReplyReply(ev) {
   const $evTarget = $(ev.currentTarget);
-  $evTarget.closest('.dczcomments__item').find('details.solution-content').prop('open', true);
   const $mediaBody = $evTarget.closest('.media__body');
   const uid = $mediaBody
     .find('.user-profile-name')
@@ -122,7 +119,6 @@ async function onCommentClickReplyReply(ev) {
 
 async function onCommentClickEdit(mode, ev) {
   const $evTarget = $(ev.currentTarget);
-  $evTarget.closest('.dczcomments__item').find('details.solution-content').prop('open', true);
 
   if (CommentBox.get($evTarget)) {
     CommentBox.get($evTarget).focus();
@@ -169,7 +165,6 @@ async function onCommentClickDelete(type, ev) {
   if (!await confirm(i18n(message))) return;
 
   const $evTarget = $(ev.currentTarget);
-  $evTarget.closest('.dczcomments__item').find('details.solution-content').prop('open', true);
   const form = JSON.parse($evTarget.attr('data-form'));
 
   await request.post('', form);

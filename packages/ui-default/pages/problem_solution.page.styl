@@ -1,0 +1,95 @@
+.solution-list__entries
+  box-sizing: border-box
+
+.solution-list__entry-header
+  display: flex
+  align-items: flex-start
+  justify-content: space-between
+  flex-wrap: wrap
+  gap: rem(8px 16px)
+  margin-bottom: rem(16px)
+
+  .dczcomments__supplementary
+    display: flex
+    align-items: center
+    flex-wrap: wrap
+    gap: rem(6px)
+    margin: 0
+
+  .dczcomments__operations
+    display: flex
+    gap: rem(8px)
+
+.solution-list__entries .solution-review-status
+  display: inline-flex
+  align-items: center
+  gap: rem(4px)
+  padding: rem(2px 8px)
+  border-radius: rem(3px)
+  font-size: rem(12px)
+  line-height: 1.5
+  background: rgba(128, 128, 128, 0.1)
+  color: $text-2-color
+
+  &--3
+    background: rgba(176, 107, 20, 0.1)
+    color: #946015
+
+  &--2
+    background: rgba(39, 128, 101, 0.1)
+    color: #278065
+
+.solution-list__unapproved
+  box-sizing: border-box
+  margin-top: rem(16px)
+  border-top: 1px solid rgba(128, 128, 128, 0.2)
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2)
+
+.solution-list__summary
+  display: flex
+  align-items: center
+  gap: rem(10px)
+  padding: rem(16px 8px)
+  cursor: pointer
+  list-style: none
+  font-size: rem(14px)
+  line-height: 1.5
+
+  &::-webkit-details-marker
+    display: none
+
+  &:hover
+    background: rgba(128, 128, 128, 0.06)
+
+  &:focus-visible
+    outline: 2px solid $primary-color
+    outline-offset: -2px
+
+  > .icon
+    flex-shrink: 0
+
+  .solution-list__unapproved[open] > & > .icon
+    transform: rotate(90deg)
+
+.solution-list__count
+  margin-left: auto
+  color: $text-2-color
+  font-variant-numeric: tabular-nums
+
+.solution-list__entry .dczcomments__replies
+  margin-left: 0
+  padding-left: rem(16px)
+  border-left: 2px solid rgba(128, 128, 128, 0.15)
+
+  &:empty
+    display: none
+
+.theme--dark
+  .solution-list__count, .solution-list__entries .solution-review-status
+    color: #bdbdbd
+
+  .solution-list__entries .solution-review-status--3
+    color: #efbd75
+
+  .solution-list__entries .solution-review-status--2
+    color: #75c9ac

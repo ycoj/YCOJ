@@ -8,7 +8,7 @@ All paths are domain-relative: on a non-system domain prefix them with `/d/{doma
 - [Problem creation and editing](problem-create-edit.md)
 - [Problem files and downloads](problem-files.md)
 - [Problem solutions](problem-solutions.md)
-- [Problem solution review and domain-wide author blocks](problem-solution-review.md)
+- [Problem solution review and domain-wide author blocks](problem-solution-review.md): GET claims one solution for 60 seconds; review requires the current reviewer's valid claim; includes domain statistics and an unpaginated blocked-author list
 - [Hydro, FPS, QDUOJ, and HOJ imports](problem-import-archives.md)
 - [ZSHFOJ import](problem-import-zshfoj.md)
 - [Problem API operations](problem-api.md)

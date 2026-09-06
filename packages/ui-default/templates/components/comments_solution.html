@@ -80,9 +80,30 @@
   </div>
 </li>
 {% endif %}
-{%- for doc in docs -%}
+</ul>
+{% set approvedSolutions = [] %}
+{% set otherSolutions = [] %}
+{% for doc in docs %}
+  {% if doc.reviewStatus >= 2 %}
+    {% set ignored = approvedSolutions.push(doc) %}
+  {% else %}
+    {% set ignored = otherSolutions.push(doc) %}
+  {% endif %}
+{% endfor %}
+{% for group in [approvedSolutions, otherSolutions] %}
+{% if group.length %}
+{% if loop.index == 2 %}
+<details class="solution-list__unapproved">
+  <summary class="solution-list__summary">
+    <span class="icon icon-chevron_right" aria-hidden="true"></span>
+    <span>{{ _('Unapproved solutions') }}</span>
+    <span class="solution-list__count">{{ group.length }}</span>
+  </summary>
+{% endif %}
+<ul class="dczcomments__list view--solution solution-list__entries">
+{%- for doc in group -%}
   {% set udoc = udict[doc.owner] %}
-  <li class="dczcomments__item">
+  <li class="dczcomments__item solution-list__entry" data-solution-id="{{ doc._id }}">
   <div class="media">
     <div class="media__left top">
       <div class="vote vote--discussion">
@@ -99,10 +120,10 @@
       </div>
     </div>
     <div class="media__body top">
-      <div class="clearfix">
+      <div class="solution-list__entry-header">
         <div class="supplementary dczcomments__supplementary">
           {{ user.render_inline(udoc) }} @ {{ datetimeSpan(doc._id)|safe }}
-          <strong class="solution-review-status">{{ _(reviewLabels[doc.reviewStatus]) }}</strong>
+          <span class="solution-review-status solution-review-status--{{ doc.reviewStatus }}">{% if doc.reviewStatus == 3 %}<span class="icon icon-star" aria-hidden="true"></span> {% endif %}{{ _(reviewLabels[doc.reviewStatus]) }}</span>
         </div>
         <div class="dczcomments__operations nojs--hide">
         {% if pdoc %}
@@ -127,8 +148,6 @@
         {% endif %}
         </div>
       </div>
-      <details class="solution-content" {% if doc.reviewStatus >= 2 %}open{% endif %}>
-        <summary>{{ _('Solution content and replies') }} — {{ _(reviewLabels[doc.reviewStatus]) }}</summary>
       <div class="typo richmedia" data-emoji-enabled data-raw-url="{{ url('problem_solution_raw', pid=doc.parentId, psid=doc._id) }}">
         {{ doc['content']|markdown|safe }}
       </div>
@@ -168,10 +187,14 @@
         </li>
       {%- endfor -%}
       </ul>
-      </details>
     </div>
   </div>
 </li>
 {%- endfor -%}
 </ul>
+{% if loop.index == 2 %}
+</details>
+{% endif %}
+{% endif %}
+{% endfor %}
 {% endmacro %}

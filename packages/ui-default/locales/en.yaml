@@ -77,6 +77,7 @@ problem_edit: Problem Edit
 problem_import: Import Problem
 problem_main: Problem Set
 problem_solution: Problem Solution
+problem_solution_review: Solution Review
 problem_submit: Problem Submit
 problem_type.communication: 'Type: Communication'
 problem_type.default: 'Type: Default'
@@ -134,6 +135,7 @@ timeago_locale: en_US
 training_create: Training Create
 training_edit: Training Edit
 training_main: Training
+Unapproved solutions: Unapproved solutions
 Unblock solution author: Unblock solution author
 Unblocking returns this author’s blocked solutions to unreviewed.: Unblocking returns this author’s blocked solutions to unreviewed.
 Unreviewed: Unreviewed

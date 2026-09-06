@@ -1,66 +1,129 @@
 {% extends "layout/basic.html" %}
 {% import "components/user.html" as user with context %}
 {% block content %}
-<div class="row"><div class="columns">
-  <div class="section">
-    <div class="section__header"><h1 class="section__title">{{ _('Solution Review') }}</h1></div>
-    <div class="section__body">
-      <form method="get">
-        <label>{{ _('Status') }}
-          <select class="inline select" name="status">
-            {% for value, label in {pending: 'Unreviewed', featured: 'Featured Solution', approved: 'Approved', rejected: 'Rejected', blocked: 'Rejected and author blocked', all: 'All', authors: 'Blocked solution authors'} %}
-              <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ _(label) }}</option>
-            {% endfor %}
-          </select>
-        </label>
-        <label>{{ _('Problem ID') }} <input class="inline textbox" name="pid" value="{{ pid|default('') }}"></label>
-        <label>{{ _('User ID') }} <input class="inline textbox" type="number" min="1" name="uid" value="{{ uid|default('') }}"></label>
-        <button class="primary rounded button" type="submit">{{ _('Filter') }}</button>
-      </form>
-      <a href="{{ url('problem_solution_review') }}?status=authors">{{ _('Blocked solution authors') }}</a>
-    </div>
-  </div>
-  {% for doc in docs %}
-  <div class="section">
-    <div class="section__header">
-      {% if status == 'authors' %}
-        {{ user.render_inline(udict[doc.uid]) }}
-      {% else %}
-        <a href="{{ url('problem_solution_detail', pid=doc.parentId, sid=doc.docId) }}">{{ pdict[doc.parentId].title|default(doc.parentId) }}</a>
-        {{ user.render_inline(udict[doc.owner]) }}
-        <strong>{{ _(reviewLabels[doc.reviewStatus]) }}</strong>
-        {% if doc.reviewedBy %}
-          <span class="supplementary">{{ _('Reviewed by') }} {{ user.render_inline(udict[doc.reviewedBy]) }} {{ datetimeSpan(doc.reviewedAt)|safe }}</span>
+{% set doc = docs[0] %}
+<div class="row">
+  <div class="medium-9 columns">
+    <div class="section">
+      <div class="section__header solution-review__overview-header">
+        <h1 class="section__title">{{ _('Solution Data Overview') }}</h1>
+        {% if status == 'authors' %}
+          <a class="tool-button" href="{{ url('problem_solution_review') }}">{{ _('Solution Review') }}</a>
+        {% else %}
+          <a class="tool-button" href="{{ url('problem_solution_review') }}?status=authors">{{ _('Blocked solution authors') }}</a>
         {% endif %}
-      {% endif %}
+      </div>
+      <div class="section__body">
+        <dl class="solution-review__stats">
+          <div class="solution-review__stat">
+            <dt><span class="icon icon-comment--text" aria-hidden="true"></span>{{ _('Total Solutions') }}</dt>
+            <dd>{{ stats.totalSolutions }}</dd>
+          </div>
+          <div class="solution-review__stat solution-review__stat--today">
+            <dt><span class="icon icon-add" aria-hidden="true"></span>{{ _('New Solutions Today') }}</dt>
+            <dd>{{ stats.newToday }}</dd>
+          </div>
+          <div class="solution-review__stat solution-review__stat--pending">
+            <dt><span class="icon icon-hourglass" aria-hidden="true"></span>{{ _('Pending Review') }}</dt>
+            <dd>{{ stats.pendingReview }}</dd>
+          </div>
+        </dl>
+      </div>
     </div>
-    <div class="section__body">
-      {% if status != 'authors' %}
-        <div class="typo richmedia" data-emoji-enabled>{{ doc.content|markdown|safe }}</div>
-      {% endif %}
-      {% if status == 'authors' or doc.reviewStatus == -1 %}
-        <form method="post">
-          <input type="hidden" name="operation" value="unblock">
-          <input type="hidden" name="uid" value="{{ doc.uid if status == 'authors' else doc.owner }}">
-          <p>{{ _('Unblocking returns this author’s blocked solutions to unreviewed.') }}</p>
-          <button class="rounded button" type="submit">{{ _('Unblock solution author') }}</button>
-        </form>
-      {% else %}
-        <form method="post">
-          <input type="hidden" name="operation" value="review">
-          <input type="hidden" name="psid" value="{{ doc.docId }}">
-          <input type="hidden" name="revision" value="{{ doc.revision }}">
-          <button class="rounded primary button" type="submit" name="status" value="3">{{ _('Featured Solution') }}</button>
-          <button class="rounded button" type="submit" name="status" value="2">{{ _('Approved') }}</button>
-          <button class="rounded button" type="submit" name="status" value="0">{{ _('Rejected') }}</button>
-          <button class="rounded button" type="submit" name="status" value="-1" onclick="return confirm({{ _('Reject all this author’s solutions and block new solution submissions in this domain? Existing solutions remain publicly expandable.')|json|escape }});">{{ _('Rejected and author blocked') }}</button>
-        </form>
-      {% endif %}
+    <div class="section">
+      <div class="section__header">
+        <h1 class="section__title">{{ _('Blocked solution authors') if status == 'authors' else _('Solution Content') }}</h1>
+        {% if doc and status != 'authors' %}
+          <div class="section__tools">
+            <a class="tool-button" href="{{ url('problem_solution_detail', pid=doc.parentId, sid=doc.docId) }}">{{ _('View') }}</a>
+          </div>
+        {% endif %}
+      </div>
+      <div class="section__body">
+        {% if not doc %}
+          {{ _('No solutions match these filters.') }}
+        {% elif status == 'authors' %}
+          <p class="supplementary">{{ _('Unblocking returns this author’s blocked solutions to unreviewed.') }}</p>
+        {% else %}
+          <div class="typo richmedia" data-emoji-enabled>{{ doc.content|markdown|safe }}</div>
+        {% endif %}
+      </div>
     </div>
   </div>
-  {% else %}
-    <div class="section"><div class="section__body">{{ _('No solutions match these filters.') }}</div></div>
-  {% endfor %}
-  {{ paginator.render(page, pcount, 'status=' + status + ('&pid=' + pid if pid else '') + ('&uid=' + uid if uid else '')) }}
-</div></div>
+  <div class="medium-3 columns">
+    {% if doc %}
+      <div class="section side">
+        <div class="section__header"><h1 class="section__title">{{ _('Problem / User Info') }}</h1></div>
+        <div class="section__body typo no-media">
+          {% if status == 'authors' %}
+            <dl>
+              <dt>{{ _('User ID') }}</dt>
+              <dd>{{ user.render_inline(udict[doc.uid]) }}</dd>
+              <dt>{{ _('Blocked at') }}</dt>
+              <dd>{{ datetimeSpan(doc.solutionBlockedAt)|safe }}</dd>
+              {% if doc.solutionBlockedBy %}
+                <dt>{{ _('Blocked by') }}</dt>
+                <dd>{{ user.render_inline(udict[doc.solutionBlockedBy]) }}</dd>
+              {% endif %}
+            </dl>
+          {% else %}
+            <dl>
+              <dt>{{ _('Problem') }}</dt>
+              <dd><a href="{{ url('problem_detail', pid=doc.parentId) }}">{{ pdict[doc.parentId].title|default(doc.parentId) }}</a></dd>
+              <dt>{{ _('Author') }}</dt>
+              <dd>{{ user.render_inline(udict[doc.owner]) }}</dd>
+              <dt>{{ _('Status') }}</dt>
+              <dd><strong>{{ _(reviewLabels[doc.reviewStatus]) }}</strong></dd>
+              <dt>{{ _('Vote') }}</dt>
+              <dd>{{ doc.vote }}</dd>
+              <dt>{{ _('Submitted') }}</dt>
+              <dd>{{ datetimeSpan(doc._id)|safe }}</dd>
+              {% if doc.reviewedBy %}
+                <dt>{{ _('Reviewed by') }}</dt>
+                <dd>{{ user.render_inline(udict[doc.reviewedBy]) }} {{ datetimeSpan(doc.reviewedAt)|safe }}</dd>
+              {% endif %}
+            </dl>
+          {% endif %}
+        </div>
+      </div>
+      <div class="section side">
+        <div class="section__header"><h1 class="section__title">{{ _('Actions') }}</h1></div>
+        <div class="solution-review__actions">
+          {% if status == 'authors' or doc.reviewStatus == -1 %}
+            <form method="post">
+              <input type="hidden" name="operation" value="unblock">
+              <input type="hidden" name="uid" value="{{ doc.uid if status == 'authors' else doc.owner }}">
+              <ol class="menu">
+                <li class="menu__item"><button class="menu__link" type="submit">
+                  <span class="icon icon-check" aria-hidden="true"></span><span>{{ _('Unblock solution author') }}</span>
+                </button></li>
+              </ol>
+            </form>
+          {% else %}
+            <form method="post">
+              <input type="hidden" name="operation" value="review">
+              <input type="hidden" name="psid" value="{{ doc.docId }}">
+              <input type="hidden" name="revision" value="{{ doc.revision }}">
+              <ol class="menu">
+                <li class="menu__item"><button class="menu__link highlight" type="submit" name="status" value="3">
+                  <span class="icon icon-star" aria-hidden="true"></span><span>{{ _('Featured Solution') }}</span>
+                </button></li>
+                <li class="menu__item"><button class="menu__link" type="submit" name="status" value="2">
+                  <span class="icon icon-check" aria-hidden="true"></span><span>{{ _('Approve') }}</span>
+                </button></li>
+                <li class="menu__item"><button class="menu__link" type="submit" name="status" value="0">
+                  <span class="icon icon-close" aria-hidden="true"></span><span>{{ _('Reject') }}</span>
+                </button></li>
+                <li class="menu__seperator" role="separator"></li>
+                <li class="menu__item"><button class="menu__link" type="submit" name="status" value="-1" onclick="return confirm({{ _('Reject all this author’s solutions and block new solution submissions in this domain? Existing solutions remain publicly expandable.')|json|escape }});">
+                  <span class="icon icon-block" aria-hidden="true"></span><span>{{ _('Rejected and author blocked') }}</span>
+                </button></li>
+              </ol>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}
