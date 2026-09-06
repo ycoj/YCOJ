@@ -14,6 +14,10 @@ export const HitokotoUnavailableError = Err(
     'External Hitokoto service unavailable. Please try again later.', 503,
 );
 export const AiGenerationDisabledError = Err('AiGenerationDisabledError', UserFacingError, 'AI test-data generation is disabled.', 503);
+export const HtmlToMarkdownCapacityError = Err(
+    'HtmlToMarkdownCapacityError', UserFacingError,
+    'HTML-to-Markdown conversion capacity reached. Please try again later.', 503,
+);
 export const AiGenerationAlreadyActiveError = Err(
     'AiGenerationAlreadyActiveError', UserFacingError,
     'An AI test-data generation task is already active for this problem.', 409,

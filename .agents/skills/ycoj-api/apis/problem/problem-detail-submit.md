@@ -39,7 +39,7 @@ GET normally renders `problem_detail.html`; `pjax=true` returns a title/fragment
 
 ## `operation=html_to_markdown`
 
-Converts the problem's own stored `content` (read server-side from the problem document addressed by the route) from HTML to Markdown with the configured administrator AI provider, without saving or otherwise modifying the problem. The request body carries no HTML; the conversion always uses the current content of the problem whose handler is invoked. The caller must own the problem with `PERM_EDIT_PROBLEM_SELF` or hold `PERM_EDIT_PROBLEM`. `profileId` selects a configured provider/model; when omitted, the configured HTML-to-Markdown conversion profile is used. AI generation must be enabled and the selected profile must be valid. The stored content is limited to 200,000 characters.
+Starts an asynchronous conversion of the problem's own stored `content` from HTML to Markdown, without saving or otherwise modifying the problem. The request body carries no HTML. Content and resolved model configuration are snapshotted at submission. The caller must own the problem with `PERM_EDIT_PROBLEM_SELF` or hold `PERM_EDIT_PROBLEM`. `profileId` selects a configured provider/model; when omitted, the configured HTML-to-Markdown conversion profile is used. AI generation must be enabled and the selected profile must be valid. The stored content is limited to 200,000 characters; oversized content returns `ValidationError` before accepting a job.
 
 ```http
 POST /p/P1000 HTTP/1.1
@@ -51,14 +51,45 @@ Cookie: sid=…
 ```
 
 ```ts
-type HtmlToMarkdownResponse = { markdown: string };
+// HTTP 202; replaces the previous synchronous { markdown } response.
+type HtmlToMarkdownResponse = { jobId: string; status: 'pending' };
 ```
 
 ````json
-{"markdown":"## Input\n\n```input{1}\n1 2\n```"}
+{"jobId":"08305266-8767-4556-8f2e-e398cf3d9ecf","status":"pending"}
 ````
 
-The prompt requires Markdown structure, LaTeX math (`$...$` and `$$...$$`), and paired sample fences named ````input{x}```` and ````output{x}````; the model must return Markdown only. Provider or configuration errors are returned as the corresponding API error.
+The prompt requires Markdown structure, LaTeX math (`$...$` and `$$...$$`), and paired sample fences named ````input{x}```` and ````output{x}````; the model must return Markdown only. Configuration and permission errors remain immediate API errors. Capacity exhaustion returns HTTP 503 `HtmlToMarkdownCapacityError`. Provider failures are reported by polling with a generic error message, never provider diagnostics or credentials.
+
+## GET `/p/:pid/html-to-markdown/:jobId`
+
+Polls an in-memory conversion job. Uses the same problem visibility and edit permissions as submission, including contest-context checks when `tid` is supplied. Only the submitting user can retrieve the job, and its domain and numeric problem ID must match the route. Unknown, expired, or mismatched jobs return HTTP 404 `NotFoundError` after permission checks.
+
+```ts
+type HtmlToMarkdownPollParams = { pid: number | string; jobId: string };
+type HtmlToMarkdownPollQuery = { tid?: string };
+type HtmlToMarkdownPollResponse = { jobId: string } & (
+  | { status: 'pending' | 'running' }
+  | { status: 'completed'; markdown: string }
+  | { status: 'failed'; error: string }
+);
+```
+
+```http
+GET /p/P1000/html-to-markdown/08305266-8767-4556-8f2e-e398cf3d9ecf HTTP/1.1
+Accept: application/json
+Cookie: sid=SESSION
+```
+
+HTTP 200, `application/json` (including failed jobs):
+
+```json
+{"jobId":"08305266-8767-4556-8f2e-e398cf3d9ecf","status":"completed","markdown":"## Input\n\nExample input"}
+```
+
+Failure responses contain `error: "HTML-to-Markdown conversion failed."` or `error: "HTML-to-Markdown conversion timed out."`. Conversion times out after 15 minutes; late results are ignored. Terminal results expire after one hour and cleanup runs every minute and on submission/polling. Each server process retains at most 100 jobs. Jobs disappear on process restart or handler disposal; requests must reach the same process in multi-process deployments. There is no persistence, retry, cancellation endpoint, or automatic problem save.
+
+Workflow: submit once, then poll this route approximately once per second while status is `pending` or `running`. Stop on `completed` and use `markdown`, or stop on `failed` and report `error`. Stop on HTTP errors as well; a 404 may indicate expiry, restart, or a different server process. Do not automatically resubmit on a missing job. Save converted content separately through the problem edit API only when intended.
 
 # GET/POST `/p/:pid/submit` and `/p/:pid/hack/:rid`
 

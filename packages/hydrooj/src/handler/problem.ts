@@ -17,7 +17,7 @@ import type { Context } from '../context';
 import {
     AiGenerationAlreadyActiveError, AiGenerationDisabledError, BadRequestError,
     ContestNotAttendedError, ContestNotEndedError, ContestNotFoundError, ContestNotLiveError,
-    FileLimitExceededError, FileTooLargeError, HackFailedError, NoProblemError, NotFoundError,
+    FileLimitExceededError, FileTooLargeError, HackFailedError, HtmlToMarkdownCapacityError, NoProblemError, NotFoundError,
     PermissionError, ProblemAlreadyExistError, ProblemAlreadyUsedByContestError, ProblemConfigError,
     ProblemIsReferencedError, ProblemNotAllowCopyError, ProblemNotAllowLanguageError, ProblemNotAllowPretestError,
     ProblemNotFoundError, RecordNotFoundError, SolutionNotFoundError, ValidationError,
@@ -25,7 +25,8 @@ import {
 import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, SolutionReviewStatus, User,
 } from '../interface';
-import { convertHtmlToMarkdown } from '../lib/ai/html2md/converter';
+import { convertHtmlToMarkdown, MAX_HTML_TO_MARKDOWN_LENGTH } from '../lib/ai/html2md/converter';
+import { HtmlToMarkdownJobs } from '../lib/ai/html2md/jobs';
 import { getHtmlToMarkdownConfig } from '../lib/ai/html2md/runtime';
 import { validateHtmlToMarkdownConfig } from '../lib/ai/html2md/validation';
 import { ACTIVE_AI_GENERATION_FILTER, canGenerateTestdata, isDuplicateKeyError } from '../lib/ai/testdata/policy';
@@ -60,6 +61,7 @@ import {
 import { ContestDetailBaseHandler } from './contest';
 
 const logger = new Logger('problem');
+const htmlToMarkdownJobs = new HtmlToMarkdownJobs(convertHtmlToMarkdown);
 
 export const parseCategory = (value: string) => value.replace(/，/g, ',').split(',').map((e) => e.trim());
 
@@ -487,7 +489,27 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
         if (!this.user.own(this.pdoc, PERM.PERM_EDIT_PROBLEM_SELF)) this.checkPerm(PERM.PERM_EDIT_PROBLEM);
         const config = getHtmlToMarkdownConfig(profileId);
         validateHtmlToMarkdownConfig(config);
-        this.response.body = { markdown: await convertHtmlToMarkdown(config, this.pdoc.content) };
+        if (this.pdoc.content.length > MAX_HTML_TO_MARKDOWN_LENGTH) {
+            throw new ValidationError('content', `HTML content exceeds ${MAX_HTML_TO_MARKDOWN_LENGTH} characters.`);
+        }
+        const result = htmlToMarkdownJobs.submit(
+            { domainId, pid: this.pdoc.docId, uid: this.user._id }, config, this.pdoc.content,
+        );
+        if (!result) throw new HtmlToMarkdownCapacityError();
+        this.response.status = 202;
+        this.response.type = 'application/json';
+        this.response.body = result;
+    }
+}
+
+export class ProblemHtmlToMarkdownHandler extends ProblemDetailHandler {
+    @route('jobId', Types.String)
+    async get(domainId: string, jobId: string) {
+        if (!this.user.own(this.pdoc, PERM.PERM_EDIT_PROBLEM_SELF)) this.checkPerm(PERM.PERM_EDIT_PROBLEM);
+        const result = htmlToMarkdownJobs.get(jobId, { domainId, pid: this.pdoc.docId, uid: this.user._id });
+        if (!result) throw new NotFoundError(jobId);
+        this.response.type = 'application/json';
+        this.response.body = result;
     }
 }
 
@@ -1331,6 +1353,15 @@ declare module '@hydrooj/framework' {
 }
 
 export async function apply(ctx: Context) {
+    ctx.effect(() => {
+        const timer = setInterval(() => htmlToMarkdownJobs.cleanup(), 60_000);
+        timer.unref();
+        return () => {
+            clearInterval(timer);
+            htmlToMarkdownJobs.dispose();
+        };
+    });
+    ctx.Route('problem_html_to_markdown', '/p/:pid/html-to-markdown/:jobId', ProblemHtmlToMarkdownHandler);
     ctx.Route('problem_main', '/p', ProblemMainHandler, PERM.PERM_VIEW_PROBLEM);
     ctx.Route('problem_random', '/problem/random', ProblemRandomHandler, PERM.PERM_VIEW_PROBLEM);
     ctx.Route('problem_solution_review', '/p/solution-review', ProblemSolutionReviewHandler, PERM.PERM_DELETE_PROBLEM_SOLUTION);
