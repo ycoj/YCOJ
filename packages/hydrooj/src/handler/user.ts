@@ -12,7 +12,7 @@ import {
     UserNotFoundError, ValidationError, VerifyPasswordError,
 } from '../error';
 import { TokenDoc, Udoc, User } from '../interface';
-import { ACCOUNT_EXPIRE_BAN_REASON, isAccountExpired } from '../lib/accountExpiration';
+import { ACCOUNT_EXPIRE_BAN_REASON, accountExpireDate, isAccountExpired } from '../lib/accountExpiration';
 import avatar from '../lib/avatar';
 import { CHECKIN_TIMEZONE, toCheckinRecord } from '../lib/checkin';
 import { sendMail } from '../lib/mail';
@@ -464,6 +464,8 @@ class UserDetailHandler extends Handler {
         this.response.template = 'user_detail.html';
         this.response.body = {
             isSelfProfile, udoc, sdoc, pdocs, tags, tdocs,
+            accountExpireDate: udoc.accountExpireAt
+                ? accountExpireDate(udoc.accountExpireAt, this.user.timeZone) : '',
             awardRecords: udoc.oierId ? await oier.getRecords(udoc.oierId) : [],
             checkinHistory: {
                 timezone: CHECKIN_TIMEZONE,

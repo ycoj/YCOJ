@@ -33,6 +33,9 @@
                 {{ _('currently offline') }}.
               {% endif %}
               </p>
+              {% if accountExpireDate %}
+                <p>{{ _('Expiration Date') }}: {{ accountExpireDate }}</p>
+              {% endif %}
               <p>{{ _('Solved {0} problems, RP: {1} (No. {2})').format(udoc.nAccept|default(0), udoc['rp']|default(0.0)|round(2), udoc['rank']|default('?')) }}</p>
               {% if udoc._id != 1 and not udoc.hasPriv(PRIV.PRIV_USER_PROFILE) %}
                 <p>{{ _('This user was banned.') }}</p>
