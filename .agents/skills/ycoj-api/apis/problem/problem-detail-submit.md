@@ -59,7 +59,7 @@ type HtmlToMarkdownResponse = { jobId: string; status: 'pending' };
 {"jobId":"08305266-8767-4556-8f2e-e398cf3d9ecf","status":"pending"}
 ````
 
-The prompt requires Markdown structure, LaTeX math (`$...$` and `$$...$$`), and paired sample fences named ````input{x}```` and ````output{x}````; the model must return Markdown only. Configuration and permission errors remain immediate API errors. Capacity exhaustion returns HTTP 503 `HtmlToMarkdownCapacityError`. Provider failures are reported by polling with a generic error message, never provider diagnostics or credentials.
+The prompt requires Markdown structure, LaTeX math (`$...$` and `$$...$$`), and paired sample fences named ````input{x}```` and ````output{x}````; the model must return Markdown only. Configuration and permission errors remain immediate API errors. Capacity exhaustion returns HTTP 503 `HtmlToMarkdownCapacityError`; each `{ domainId, pid, uid }` owner is also limited to 10 retained jobs so one problem editor cannot consume the shared queue. Provider failures are reported by polling with a generic error message, never provider diagnostics or credentials.
 
 ## GET `/p/:pid/html-to-markdown/:jobId`
 

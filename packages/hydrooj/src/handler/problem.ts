@@ -503,6 +503,23 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
 }
 
 export class ProblemHtmlToMarkdownHandler extends ProblemDetailHandler {
+    @route('pid', Types.ProblemId, true)
+    @param('tid', Types.ObjectId, true)
+    async _prepare(domainId: string, pid: number | string, tid?: ObjectId) {
+        this.pdoc = await problem.get(domainId, pid, ['docId', 'owner', 'hidden']);
+        if (!this.pdoc) throw new ProblemNotFoundError(domainId, pid);
+        if (tid) {
+            if (!this.tdoc?.pids?.includes(this.pdoc.docId)) throw new ContestNotFoundError(domainId, tid);
+            if (contest.isNotStarted(this.tdoc)) throw new ContestNotLiveError(tid);
+            if (!contest.isDone(this.tdoc, this.tsdoc) && (!this.tsdoc?.attend || !this.tsdoc.startAt)) {
+                throw new ContestNotAttendedError(tid);
+            }
+        } else if (!problem.canViewBy(this.pdoc, this.user)) {
+            throw new PermissionError(PERM.PERM_VIEW_PROBLEM_HIDDEN);
+        }
+        if (!this.user.own(this.pdoc, PERM.PERM_EDIT_PROBLEM_SELF)) this.checkPerm(PERM.PERM_EDIT_PROBLEM);
+    }
+
     @route('jobId', Types.String)
     async get(domainId: string, jobId: string) {
         if (!this.user.own(this.pdoc, PERM.PERM_EDIT_PROBLEM_SELF)) this.checkPerm(PERM.PERM_EDIT_PROBLEM);

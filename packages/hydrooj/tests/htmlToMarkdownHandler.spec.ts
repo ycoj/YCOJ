@@ -130,8 +130,10 @@ describe('HTML-to-Markdown API', () => {
         const submit = handler();
         submit.user.own = () => false;
         submit.checkPerm = () => undefined;
-        // One completed job remains from the first test.
+        // One completed job remains from the first test. Use distinct problems so the
+        // global capacity check, rather than the per-owner admission limit, is tested.
         for (let i = 0; i < 99; i++) {
+            submit.pdoc.docId = i + 2;
             // eslint-disable-next-line no-await-in-loop
             await submit.postHtmlToMarkdown('test');
             assert.equal(submit.response.status, 202);
