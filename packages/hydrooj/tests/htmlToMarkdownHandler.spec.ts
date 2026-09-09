@@ -1,155 +1,261 @@
 import assert from 'assert';
-import { describe, it } from 'node:test';
+import { MongoClient, ObjectId } from 'mongodb';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import { after, before, beforeEach, describe, it } from 'node:test';
 
 function mockModule(request: string, exports: unknown) {
-    const filename = require.resolve(request);
-    require.cache[filename] = { exports } as NodeJS.Module;
+    require.cache[require.resolve(request)] = { exports } as NodeJS.Module;
 }
 
-class TestError extends Error { }
+Object.assign(global, { Hydro: { model: {}, ui: {} }, app: { get: () => undefined } });
 
-mockModule('../src/error', new Proxy({
-    ProblemConfigError: TestError,
-    ProblemNotAllowLanguageError: TestError,
-    ProblemNotAllowPretestError: TestError,
-    ValidationError: TestError,
-    FileTooLargeError: TestError,
-}, { get: (target, property: string) => target[property] || TestError }));
-mockModule('../src/context', {});
-mockModule('../src/logger', { Logger: class { warn() { } } });
-mockModule('../src/handler/contest', {
-    ContestDetailBaseHandler: class { },
-});
-mockModule('../src/service/server', {
-    Handler: class { },
-    param: () => (_target: unknown, _name: string, descriptor: PropertyDescriptor) => descriptor,
-    post: () => (_target: unknown, _name: string, descriptor: PropertyDescriptor) => descriptor,
-    query: () => (_target: unknown, _name: string, descriptor: PropertyDescriptor) => descriptor,
-    route: () => (_target: unknown, _name: string, descriptor: PropertyDescriptor) => descriptor,
-    Query: () => (_target: unknown, _name: string, descriptor: PropertyDescriptor) => descriptor,
-    Types: new Proxy({}, { get: () => (..._args: unknown[]) => ({}) }),
-});
-mockModule('../src/model/builtin', { PERM: {}, PRIV: {}, STATUS: {} });
-mockModule('../src/model/contest', { });
-mockModule('../src/model/discussion', { });
-mockModule('../src/model/domain', { });
-mockModule('../src/model/oplog', { });
-const recordMock = { STAT_QUERY: {}, add: async () => ({}) };
-mockModule('../src/model/problem', {});
-mockModule('../src/model/record', recordMock);
-mockModule('../src/model/setting', {
-    langs: { 'cc.cc14': {} },
-    SETTINGS_BY_KEY: { codeLang: { range: {} } },
-});
-mockModule('../src/model/solution', { });
-mockModule('../src/model/storage', { });
-mockModule('../src/model/system', { get: () => 0 });
-mockModule('../src/model/task', { });
-mockModule('../src/model/user', { });
-let resolveConversion: (markdown: string) => void;
-let conversions = 0;
-mockModule('../src/lib/ai/html2md/converter', {
-    MAX_HTML_TO_MARKDOWN_LENGTH: 200_000,
-    convertHtmlToMarkdown: async () => {
-        conversions++;
-        return new Promise<string>((resolve) => { resolveConversion = resolve; });
-    },
-});
-mockModule('../src/lib/ai/html2md/runtime', { getHtmlToMarkdownConfig: () => ({}) });
-let invalidConfig = false;
-mockModule('../src/lib/ai/html2md/validation', {
-    validateHtmlToMarkdownConfig: () => { if (invalidConfig) throw new TestError('invalid config'); },
-});
-mockModule('../src/lib/ai/testdata/policy', { });
-mockModule('../src/lib/ai/testdata/request', { });
-mockModule('../src/lib/ai/testdata/runtime', { });
-mockModule('../src/lib/ai/testdata/trace', { });
-mockModule('../src/lib/ai/testdata/validation', { });
-mockModule('@hydrooj/utils/lib/search', {});
+// Real framework decorators + Handler so arg/route validation runs for real (no Proxy stubs).
+mockModule('../src/service/server', require('@hydrooj/framework'));
+mockModule('../src/service/db', { collection: () => null });
 
-Object.assign(global, { Hydro: { model: {}, ui: {} } });
-const { ProblemDetailHandler, ProblemHtmlToMarkdownHandler, apply } = require('../src/handler/problem');
-const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
+const { ValidationError, PermissionError, NotFoundError, HtmlToMarkdownCapacityError } = require('../src/error');
+const { PERM } = { PERM: { PERM_EDIT_PROBLEM: 1n << 6n, PERM_EDIT_PROBLEM_SELF: 1n << 7n, PERM_VIEW_PROBLEM_HIDDEN: 1n << 5n } };
+mockModule('../src/model/builtin', { PERM });
 
-function handler(prototype = ProblemDetailHandler.prototype) {
-    return Object.assign(Object.create(prototype), {
-        pdoc: { docId: 1, content: '<p>Original</p>' },
-        user: { _id: 2, own: () => true },
-        checkPerm: () => { throw new TestError('forbidden'); },
+mockModule('../src/lib/ai/html2md/runtime', { getHtmlToMarkdownConfig: () => ({ enabled: true }) });
+mockModule('../src/lib/ai/html2md/validation', { validateHtmlToMarkdownConfig: () => undefined });
+
+let problemStore: Record<string, any> = {};
+const problem = {
+    get: async (_domainId: string, pid: number | string) => problemStore[String(pid)] ?? null,
+    canViewBy: (pdoc: any, user: any) => !pdoc.hidden || user.own(pdoc) || user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN),
+};
+mockModule('../src/model/problem', { __esModule: true, default: problem });
+
+const contest = {
+    get: async () => ({ _id: 't1', pids: [1000] }),
+    getStatus: async () => ({ attend: true, startAt: new Date() }),
+    isNotStarted: () => false,
+    isDone: () => false,
+};
+mockModule('../src/model/contest', contest);
+
+let mongod: MongoMemoryServer;
+let client: MongoClient;
+let collection: any;
+let jobModel: any;
+let jobsRunner: any;
+let ensureJobIndexes: any;
+let handler: any;
+
+before(async () => {
+    mongod = await MongoMemoryServer.create();
+    client = await MongoClient.connect(mongod.getUri());
+    delete require.cache[require.resolve('../src/model/htmlToMarkdownJob')];
+    ({ HtmlToMarkdownJobModel: jobModel, ensureJobIndexes } = require('../src/model/htmlToMarkdownJob'));
+    ({ HtmlToMarkdownJobs: jobsRunner } = require('../src/lib/ai/html2md/jobs'));
+    handler = require('../src/handler/problemHtmlToMarkdown');
+});
+
+after(async () => {
+    await client?.close();
+    await mongod?.stop();
+});
+
+class FakeUser {
+    _id: number;
+    editable: boolean;
+    viewerHidden: boolean;
+    constructor(uid: number, { editable = true, viewerHidden = false } = {}) {
+        this._id = uid;
+        this.editable = editable;
+        this.viewerHidden = viewerHidden;
+    }
+
+    own(doc: any, perm?: bigint) {
+        if (perm !== undefined && !this.editable) return false;
+        return doc.owner === this._id;
+    }
+
+    hasPerm(...perms: bigint[]) {
+        return perms.some((perm) => (perm === PERM.PERM_EDIT_PROBLEM && this.editable)
+            || (perm === PERM.PERM_VIEW_PROBLEM_HIDDEN && this.viewerHidden));
+    }
+}
+
+function makeHandler(HandlerClass: any, user: FakeUser, jobs: any, jobId?: string) {
+    return Object.assign(Object.create(HandlerClass.prototype), {
+        user,
+        args: { domainId: 'test' },
+        ctx: { get: (name: string) => (name === 'htmlToMarkdownJobs' ? jobs : undefined) },
+        request: {
+            params: jobId ? { pid: '1000', jobId } : { pid: '1000' },
+            query: {},
+            body: {},
+        },
         response: {},
+        checkPerm: (...perms: bigint[]) => { if (!user.hasPerm(...perms)) throw new PermissionError(...perms); },
     });
 }
 
-describe('HTML-to-Markdown API', () => {
-    it('returns 202 before conversion finishes and polls without saving the problem', async () => {
-        const submit = handler();
-        await submit.postHtmlToMarkdown('test');
-        assert.equal(submit.response.status, 202);
-        assert.equal(submit.response.body.status, 'pending');
-        const { jobId } = submit.response.body;
-        const poll = handler(ProblemHtmlToMarkdownHandler.prototype);
-        await poll.get('test', jobId);
-        assert.equal(poll.response.body.status, 'pending');
-        await tick();
-        await poll.get('test', jobId);
-        assert.equal(poll.response.body.status, 'running');
-        resolveConversion('# Converted');
-        await tick();
-        await poll.get('test', jobId);
-        assert.deepEqual(poll.response.body, { jobId, status: 'completed', markdown: '# Converted' });
-        assert.equal(poll.response.type, 'application/json');
-        assert.equal(submit.pdoc.content, '<p>Original</p>');
-        poll.user._id = 3;
-        await assert.rejects(poll.get('test', jobId), TestError);
-        poll.user._id = 2;
-        await assert.rejects(poll.get('other', jobId), TestError);
-        poll.pdoc.docId = 3;
-        await assert.rejects(poll.get('test', jobId), TestError);
-        await assert.rejects(poll.get('test', 'missing'), TestError);
+async function newJobs(capacity: number, capacityPerOwner: number, convert: any) {
+    collection = client.db(`handler-${new ObjectId().toHexString()}`).collection('html_to_markdown_job');
+    await ensureJobIndexes(collection);
+    // eslint-disable-next-line new-cap
+    const store = new jobModel(collection, capacity, capacityPerOwner);
+    // eslint-disable-next-line new-cap
+    return new jobsRunner(convert, { store, timeoutMs: 1000, retentionMs: 1000 });
+}
+
+// The runner reaches the handlers through the htmlToMarkdownJobs service that apply(ctx) provides.
+// Tests use the same seam: they hand their runner to apply on a stub context whose provide/get
+// mirror the service lookup, and sweep/dispose register on that exact provided instance.
+let injected: any;
+const disposers: (() => void)[] = [];
+async function injectJobs(jobs: any) {
+    if (injected === jobs) return;
+    for (const dispose of disposers.splice(0)) dispose();
+    injected = jobs;
+    await handler.apply({
+        effect: (cb: any) => { disposers.push(cb()); },
+        Route: () => undefined,
+        get: (name: string) => (name === 'htmlToMarkdownJobs' ? jobs : undefined),
+        provide: () => undefined,
+    });
+}
+
+async function submit(jobs: any, user: FakeUser) {
+    await injectJobs(jobs);
+    const submitHandler = makeHandler(handler.ProblemHtmlToMarkdownSubmitHandler, user, jobs);
+    await submitHandler.post({ domainId: 'test' });
+    return submitHandler;
+}
+
+async function pollGet(jobs: any, user: FakeUser, jobId: string) {
+    await injectJobs(jobs);
+    const poll = makeHandler(handler.ProblemHtmlToMarkdownHandler, user, jobs, jobId);
+    await poll._prepare({ domainId: 'test' });
+    await poll.get({ domainId: 'test' });
+    return poll;
+}
+
+async function pollUntil(jobs: any, user: FakeUser, jobId: string, done: (body: any) => boolean) {
+    for (let i = 0; i < 100; i++) {
+        // eslint-disable-next-line no-await-in-loop
+        const poll = await pollGet(jobs, user, jobId);
+        if (done(poll.response.body)) return poll;
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    throw new Error(`poll did not settle for ${jobId}`);
+}
+
+describe('HTML-to-Markdown handler contract', () => {
+    beforeEach(async () => {
+        problemStore = { 1000: { docId: 1000, owner: 2, hidden: false, content: '<p>Original</p>' } };
     });
 
-    it('checks edit permission on both endpoints and rejects invalid input before conversion', async () => {
-        const before = conversions;
-        const submit = handler();
-        submit.user.own = () => false;
-        await assert.rejects(submit.postHtmlToMarkdown('test'), /forbidden/);
-        const poll = handler(ProblemHtmlToMarkdownHandler.prototype);
-        poll.user.own = () => false;
-        await assert.rejects(poll.get('test', 'unknown'), /forbidden/);
-        submit.user.own = () => true;
-        invalidConfig = true;
-        await assert.rejects(submit.postHtmlToMarkdown('test'), /invalid config/);
-        invalidConfig = false;
-        submit.pdoc.content = 'x'.repeat(200_001);
-        await assert.rejects(submit.postHtmlToMarkdown('test'), TestError);
-        await tick();
-        assert.equal(conversions, before);
+    after(async () => {
+        for (const dispose of disposers.splice(0)) dispose();
     });
 
-    it('accepts non-owner editors and rejects jobs when capacity is exhausted', async () => {
-        const submit = handler();
-        submit.user.own = () => false;
-        submit.checkPerm = () => undefined;
-        // One completed job remains from the first test. Use distinct problems so the
-        // global capacity check, rather than the per-owner admission limit, is tested.
-        for (let i = 0; i < 99; i++) {
-            submit.pdoc.docId = i + 2;
-            // eslint-disable-next-line no-await-in-loop
-            await submit.postHtmlToMarkdown('test');
-            assert.equal(submit.response.status, 202);
-        }
-        await assert.rejects(submit.postHtmlToMarkdown('test'), TestError);
+    it('admits through the POST route and returns 202 + job schema', async () => {
+        let resolve: (md: string) => void;
+        const jobs = await newJobs(100, 10, () => new Promise<string>((r) => { resolve = r; }));
+        const submitted = await submit(jobs, new FakeUser(2));
+        assert.equal(submitted.response.status, 202);
+        assert.equal(submitted.response.type, 'application/json');
+        assert.deepEqual(Object.keys(submitted.response.body).sort(), ['jobId', 'status']);
+        assert.equal(submitted.response.body.status, 'pending');
+        const { jobId } = submitted.response.body;
+
+        // Pending is admitted; the in-process claim then moves it to running. Assert the in-flight set.
+        const first = (await pollGet(jobs, new FakeUser(2), jobId)).response.body;
+        assert.ok(['pending', 'running'].includes(first.status), `unexpected first poll: ${first.status}`);
+        resolve('# Converted');
+        const done = await pollUntil(jobs, new FakeUser(2), jobId, (body) => body.status === 'completed');
+        assert.deepEqual(done.response.body, { jobId, status: 'completed', markdown: '# Converted' });
+        assert.equal(done.response.type, 'application/json');
+        await jobs.drain();
     });
 
-    it('registers polling and releases jobs on disposal', async () => {
-        let dispose: () => void;
-        const routes: string[] = [];
-        await apply({
-            effect: (callback) => { dispose = callback(); },
-            Route: (_name, path) => routes.push(path),
-            inject: async () => {},
+    it('polls a job persisted by another worker directly from the shared store', async () => {
+        let resolve: (md: string) => void;
+        const jobs = await newJobs(100, 10, () => new Promise<string>((r) => { resolve = r; }));
+        const { jobId } = await jobs.submit({ domainId: 'test', pid: 1000, uid: 2 }, {} as any, '<p>x</p>');
+        // eslint-disable-next-line new-cap
+        const other = new jobModel(collection);
+        const persisted = await other.get(jobId, { domainId: 'test', pid: 1000, uid: 2 });
+        assert.ok(persisted);
+        assert.ok(['pending', 'running'].includes(persisted.status));
+        assert.equal(await other.get(jobId, { domainId: 'test', pid: 1000, uid: 3 }), null);
+        resolve('# shared');
+        await jobs.drain();
+    });
+
+    it('rejects a non-editor poll with PermissionError (403) before reading the job', async () => {
+        const jobs = await newJobs(100, 10, async () => '# x');
+        const poll = makeHandler(handler.ProblemHtmlToMarkdownHandler, new FakeUser(99, { editable: false }), jobs, 'any-job');
+        await assert.rejects(poll._prepare({ domainId: 'test' }), (e: any) => e instanceof PermissionError && e.code === 403);
+        await jobs.drain();
+    });
+
+    it('returns NotFoundError (404) for unknown or foreign-owned jobs', async () => {
+        const jobs = await newJobs(100, 10, async () => '# x');
+        await assert.rejects(pollGet(jobs, new FakeUser(2), 'unknown-job'), (e: any) => e instanceof NotFoundError && e.code === 404);
+        const { jobId } = await jobs.submit({ domainId: 'test', pid: 1000, uid: 2 }, {} as any, '<p>x</p>');
+        await assert.rejects(pollGet(jobs, new FakeUser(3), jobId), NotFoundError);
+        await jobs.drain();
+    });
+
+    it('rejects submission without edit permission and does not admit a job', async () => {
+        let calls = 0;
+        const jobs = await newJobs(100, 10, () => {
+            calls += 1;
+            return Promise.resolve('#x');
         });
+        await assert.rejects(submit(jobs, new FakeUser(3, { editable: false })),
+            (e: any) => e instanceof PermissionError && e.code === 403);
+        assert.equal(calls, 0);
+        await jobs.drain();
+    });
+
+    it('fails oversized content with ValidationError before admitting a job', async () => {
+        let calls = 0;
+        const jobs = await newJobs(100, 10, () => {
+            calls += 1;
+            return Promise.resolve('#x');
+        });
+        problemStore[1000] = { docId: 1000, owner: 2, hidden: false, content: 'x'.repeat(200_001) };
+        await assert.rejects(submit(jobs, new FakeUser(2)), (e: any) => e instanceof ValidationError);
+        assert.equal(calls, 0);
+        await jobs.drain();
+    });
+
+    it('returns HtmlToMarkdownCapacityError (503) once the owner is at capacity', async () => {
+        let resolve: (md: string) => void;
+        const jobs = await newJobs(100, 1, () => new Promise<string>((r) => { resolve = r; }));
+        const first = await submit(jobs, new FakeUser(2));
+        assert.equal(first.response.status, 202);
+        await assert.rejects(submit(jobs, new FakeUser(2)),
+            (e: any) => e instanceof HtmlToMarkdownCapacityError && e.code === 503);
+        resolve('# done');
+        await jobs.drain();
+    });
+
+    it('registers both documented routes with lean handlers on the shared runner', async () => {
+        const routes: string[] = [];
+        const disposed: any[] = [];
+        let provided: any;
+        await handler.apply({
+            effect: (cb: any) => { disposed.push(cb()); },
+            Route: (_name: string, path: string) => routes.push(path),
+            get: (name: string) => (name === 'htmlToMarkdownJobs' ? provided : undefined),
+            provide: (name: string, value: any) => {
+                if (name === 'htmlToMarkdownJobs') provided = value;
+            },
+        });
+        assert.ok(routes.includes('/p/:pid/html-to-markdown'));
         assert.ok(routes.includes('/p/:pid/html-to-markdown/:jobId'));
-        dispose();
+        assert.ok(provided, 'apply provides the runner on the context');
+        const { Handler } = require('@hydrooj/framework');
+        assert.ok(Object.getPrototypeOf(handler.ProblemHtmlToMarkdownHandler) === Handler);
+        assert.ok(Object.getPrototypeOf(handler.ProblemHtmlToMarkdownSubmitHandler) === Handler);
+        for (const dispose of disposed) dispose();
     });
 });

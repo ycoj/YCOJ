@@ -36,9 +36,6 @@ function stripMarkdownWrapper(markdown: string) {
 }
 
 export async function convertHtmlToMarkdown(config: AiModelRuntimeConfig, html: string, signal?: AbortSignal) {
-    if (html.length > MAX_HTML_TO_MARKDOWN_LENGTH) {
-        throw new Error(`HTML content exceeds ${MAX_HTML_TO_MARKDOWN_LENGTH} characters.`);
-    }
     const provider = createOpenAI({
         name: config.providerId || 'hydro-ai',
         baseURL: config.baseUrl,

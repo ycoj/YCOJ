@@ -4,7 +4,7 @@ All paths are domain-relative: on a non-system domain prefix them with `/d/{doma
 
 - [Problem set and random selection](problem-set.md)
 - [Legacy category compatibility redirect](problem-category-compat.md)
-- [Problem detail, actions, submission, hacking, and statistics](problem-detail-submit.md): includes asynchronous HTML-to-Markdown submission (HTTP 202), per-owner queue admission, and GET `/p/:pid/html-to-markdown/:jobId` polling; submission and hack contest context validates `tid` from query or body parameters
+- [Problem detail, actions, submission, hacking, and statistics](problem-detail-submit.md): includes asynchronous HTML-to-Markdown submission via POST `/p/:pid/html-to-markdown` (HTTP 202) backed by a persistent, cluster-shared job store with atomic per-owner (10) and global (100) capacity, and GET `/p/:pid/html-to-markdown/:jobId` polling that any worker can serve; the submit and poll contest context validates a decorated `tid` (query or body) into a real ObjectId and loads the contest inside the route
 - [Problem creation and editing](problem-create-edit.md)
 - [Problem files and downloads](problem-files.md)
 - [Problem solutions](problem-solutions.md)

@@ -1,109 +1,88 @@
-import { randomUUID } from 'crypto';
+import {
+    HTML_TO_MARKDOWN_TIMEOUT_MESSAGE,
+    htmlToMarkdownJob, type HtmlToMarkdownJobModel, type HtmlToMarkdownJobOwner, type HtmlToMarkdownJobResult,
+} from '../../../model/htmlToMarkdownJob';
 import type { AiModelRuntimeConfig } from '../runtime';
 
-export type HtmlToMarkdownJobResult = { jobId: string } & (
-    { status: 'pending' | 'running' }
-    | { status: 'completed', markdown: string }
-    | { status: 'failed', error: string }
-);
+const FAILURE_MESSAGE = 'HTML-to-Markdown conversion failed.';
 
-interface JobOwner {
-    domainId: string;
-    pid: number;
-    uid: number;
-}
-
-interface Job extends JobOwner {
-    result: HtmlToMarkdownJobResult;
-    expiresAt?: number;
-    timer?: ReturnType<typeof setTimeout>;
-    controller?: AbortController;
-}
+export const HTML_TO_MARKDOWN_TIMEOUT_MS = 900_000;
+export const HTML_TO_MARKDOWN_RETENTION_MS = 3_600_000;
 
 interface HtmlToMarkdownJobsOptions {
-    capacity?: number;
-    capacityPerOwner?: number;
-    retentionMs?: number;
     timeoutMs?: number;
+    retentionMs?: number;
+    store?: HtmlToMarkdownJobModel;
 }
 
+type ConvertFn = (config: AiModelRuntimeConfig, html: string, signal: AbortSignal) => Promise<string>;
+
+// In-process conversion runner over a shared, cross-worker job store. Persistence, capacity, and the
+// pending -> running claim live in the store; this class only executes the model call for jobs this
+// process admitted and guards against double-running a job another worker already claimed.
 export class HtmlToMarkdownJobs {
-    private jobs = new Map<string, Job>();
-    private options: Required<HtmlToMarkdownJobsOptions>;
+    private timeoutMs: number;
+    private retentionMs: number;
+    private store: HtmlToMarkdownJobModel;
+    private controllers = new Map<string, AbortController>();
+    private active = new Set<Promise<void>>();
 
     constructor(
-        private convert: (config: AiModelRuntimeConfig, html: string, signal: AbortSignal) => Promise<string>,
+        private convert: ConvertFn,
         options: HtmlToMarkdownJobsOptions = {},
     ) {
-        this.options = {
-            capacity: 100,
-            capacityPerOwner: 10,
-            retentionMs: 3600_000,
-            timeoutMs: 900_000,
-            ...options,
-        };
+        this.timeoutMs = options.timeoutMs ?? HTML_TO_MARKDOWN_TIMEOUT_MS;
+        this.retentionMs = options.retentionMs ?? HTML_TO_MARKDOWN_RETENTION_MS;
+        this.store = options.store ?? htmlToMarkdownJob;
     }
 
-    private countOwnerJobs(owner: JobOwner) {
-        let count = 0;
-        for (const job of this.jobs.values()) {
-            if (job.domainId === owner.domainId && job.pid === owner.pid && job.uid === owner.uid) count++;
+    async submit(owner: HtmlToMarkdownJobOwner, config: AiModelRuntimeConfig, html: string): Promise<HtmlToMarkdownJobResult | null> {
+        const jobId = await this.store.submit(owner, { config: { ...config }, html });
+        if (!jobId) return null;
+        const running = this.run(jobId, { ...config }, html).finally(() => this.active.delete(running));
+        this.active.add(running);
+        return { jobId, status: 'pending' };
+    }
+
+    async drain() {
+        while (this.active.size) {
+            const pending = [...this.active];
+            // eslint-disable-next-line no-await-in-loop
+            await Promise.all(pending);
         }
-        return count;
     }
 
-    submit(owner: JobOwner, config: AiModelRuntimeConfig, html: string): HtmlToMarkdownJobResult | null {
-        this.cleanup();
-        if (this.jobs.size >= this.options.capacity || this.countOwnerJobs(owner) >= this.options.capacityPerOwner) return null;
-        const jobId = randomUUID();
-        const result: HtmlToMarkdownJobResult = { jobId, status: 'pending' };
-        const job: Job = { ...owner, result };
-        this.jobs.set(jobId, job);
-        const snapshot = { ...config };
-        setImmediate(() => {
-            if (this.jobs.get(jobId) !== job) return;
-            job.result = { jobId, status: 'running' };
-            job.controller = new AbortController();
-            job.timer = setTimeout(() => {
-                job.controller?.abort();
-                this.finish(job, { jobId, status: 'failed', error: 'HTML-to-Markdown conversion timed out.' });
-            }, this.options.timeoutMs);
-            job.timer.unref();
-            Promise.resolve().then(() => this.convert(snapshot, html, job.controller.signal)).then(
-                (markdown) => this.finish(job, { jobId, status: 'completed', markdown }),
-                () => this.finish(job, { jobId, status: 'failed', error: 'HTML-to-Markdown conversion failed.' }),
-            );
-        });
-        return { ...result };
-    }
-
-    private finish(job: Job, result: HtmlToMarkdownJobResult) {
-        if (this.jobs.get(result.jobId) !== job || job.result.status !== 'running') return;
-        clearTimeout(job.timer);
-        job.timer = undefined;
-        job.controller = undefined;
-        job.result = result;
-        job.expiresAt = Date.now() + this.options.retentionMs;
-    }
-
-    get(jobId: string, owner: JobOwner): HtmlToMarkdownJobResult | null {
-        this.cleanup();
-        const job = this.jobs.get(jobId);
-        if (!job || job.domainId !== owner.domainId || job.pid !== owner.pid || job.uid !== owner.uid) return null;
-        return { ...job.result };
-    }
-
-    cleanup() {
-        for (const [id, job] of this.jobs) {
-            if (job.expiresAt !== undefined && job.expiresAt <= Date.now()) this.jobs.delete(id);
+    private async run(jobId: string, config: AiModelRuntimeConfig, html: string) {
+        if (!await this.store.claim(jobId)) return;
+        const controller = new AbortController();
+        this.controllers.set(jobId, controller);
+        const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+        timer.unref();
+        try {
+            const markdown = await this.convert(config, html, controller.signal);
+            if (controller.signal.aborted) throw new Error(HTML_TO_MARKDOWN_TIMEOUT_MESSAGE);
+            await this.store.finish(jobId, { markdown }, this.retentionMs);
+        } catch {
+            const error = controller.signal.aborted ? HTML_TO_MARKDOWN_TIMEOUT_MESSAGE : FAILURE_MESSAGE;
+            await this.store.finish(jobId, { error }, this.retentionMs);
+        } finally {
+            clearTimeout(timer);
+            this.controllers.delete(jobId);
         }
+    }
+
+    async get(jobId: string, owner: HtmlToMarkdownJobOwner): Promise<HtmlToMarkdownJobResult | null> {
+        return this.store.view(jobId, owner, { timeoutMs: this.timeoutMs, retentionMs: this.retentionMs });
+    }
+
+    async sweep() {
+        const now = new Date();
+        await this.store.reclaimStalled(this.timeoutMs, this.retentionMs, now);
+        await this.store.deleteExpired(now);
     }
 
     dispose() {
-        for (const job of this.jobs.values()) {
-            clearTimeout(job.timer);
-            job.controller?.abort();
-        }
-        this.jobs.clear();
+        for (const controller of this.controllers.values()) controller.abort();
+        this.controllers.clear();
     }
 }

@@ -1,6 +1,6 @@
 # YCOJ API documents
 
-This is the routing index for the backend contracts present in the repository snapshot on 2026-09-06. It covers all 155 literal HTTP route registrations, five literal connection registrations, and the indirectly registered `/api/:op` HTTP/connection transport. Routes from optional packages or conditional configuration are documented but exist at runtime only when their package or feature is enabled.
+This is the routing index for the backend contracts present in the repository snapshot on 2026-09-08. It covers all 157 literal HTTP route registrations (every `Route('name', '/path', Handler)` call in the packages, including destructured `Route` from `ctx.inject` but not capture routes), five literal connection registrations, and the indirectly registered `/api/:op` HTTP/connection transport. Routes from optional packages or conditional configuration are documented but exist at runtime only when their package or feature is enabled.
 
 The default base URL is `https://ycoj.cc/`. Every documented route is relative to that base. Prefix a path with `/d/{domainId}` when selecting a domain by URL rather than host; for example, `/p` in domain `school` becomes `https://ycoj.cc/d/school/p`.
 
