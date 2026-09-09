@@ -3,6 +3,7 @@ import { Collection, Filter, IndexDescription, ObjectId } from 'mongodb';
 import db from '../service/db';
 
 export type BackgroundTaskStatus = 'pending' | 'running' | 'completed' | 'failed';
+export const BACKGROUND_TASK_TIMEOUT_MESSAGE = 'Background task timed out.';
 export interface BackgroundTaskOwner { domainId: string; pid: number; uid: number }
 export interface BackgroundTaskDoc {
     _id: ObjectId; jobId: string; type: string; domainId: string; pid: number; uid: number;
@@ -48,12 +49,12 @@ export class BackgroundTaskModel {
         const doc = await this.get(jobId, type, owner); if (!doc) return null; const now = Date.now();
         if (doc.expiresAt && doc.expiresAt.getTime() <= now) { await this.coll.deleteOne({ _id: doc._id }); return null; }
         if ((doc.status === 'pending' || doc.status === 'running') && now - (doc.status === 'running' ? doc.claimedAt! : doc.createdAt).getTime() > timeoutMs) {
-            await this.coll.updateOne({ jobId, type, status: { $in: ['pending', 'running'] } }, { $set: { status: 'failed', error: 'Background task timed out.', finishedAt: new Date(), expiresAt: new Date(now + retentionMs) } });
-            doc.status = 'failed'; doc.error = 'Background task timed out.';
+            await this.coll.updateOne({ jobId, type, status: { $in: ['pending', 'running'] } }, { $set: { status: 'failed', error: BACKGROUND_TASK_TIMEOUT_MESSAGE, finishedAt: new Date(), expiresAt: new Date(now + retentionMs) } });
+            doc.status = 'failed'; doc.error = BACKGROUND_TASK_TIMEOUT_MESSAGE;
         } return doc;
     }
     deleteExpired(now = new Date()) { return this.coll.deleteMany({ expiresAt: { $lte: now } }); }
-    reclaimStalled(type: string, timeoutMs: number, retentionMs: number, now = new Date()) { const d = new Date(now.getTime() - timeoutMs); return this.coll.updateMany({ type, $or: [{ status: 'running', claimedAt: { $lt: d } }, { status: 'pending', createdAt: { $lt: d } }] }, { $set: { status: 'failed', error: 'Background task timed out.', finishedAt: now, expiresAt: new Date(now.getTime() + retentionMs) } }); }
+    reclaimStalled(type: string, timeoutMs: number, retentionMs: number, now = new Date()) { const d = new Date(now.getTime() - timeoutMs); return this.coll.updateMany({ type, $or: [{ status: 'running', claimedAt: { $lt: d } }, { status: 'pending', createdAt: { $lt: d } }] }, { $set: { status: 'failed', error: BACKGROUND_TASK_TIMEOUT_MESSAGE, finishedAt: now, expiresAt: new Date(now.getTime() + retentionMs) } }); }
 }
 export const backgroundTaskModel = new BackgroundTaskModel();
 export async function apply(ctx: any) { await ctx.db.ensureIndexes(backgroundTaskModel.coll, ...BACKGROUND_TASK_INDEXES); }

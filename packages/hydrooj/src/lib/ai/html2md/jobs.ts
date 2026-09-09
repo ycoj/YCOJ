@@ -1,3 +1,4 @@
+import { Logger } from '../../../logger';
 import {
     HTML_TO_MARKDOWN_TIMEOUT_MESSAGE,
     htmlToMarkdownJob, type HtmlToMarkdownJobModel, type HtmlToMarkdownJobOwner, type HtmlToMarkdownJobResult,
@@ -5,6 +6,7 @@ import {
 import type { AiModelRuntimeConfig } from '../runtime';
 
 const FAILURE_MESSAGE = 'HTML-to-Markdown conversion failed.';
+const logger = new Logger('html-to-markdown');
 
 export const HTML_TO_MARKDOWN_TIMEOUT_MS = 900_000;
 export const HTML_TO_MARKDOWN_RETENTION_MS = 3_600_000;
@@ -37,9 +39,13 @@ export class HtmlToMarkdownJobs {
     }
 
     async submit(owner: HtmlToMarkdownJobOwner, config: AiModelRuntimeConfig, html: string): Promise<HtmlToMarkdownJobResult | null> {
-        const jobId = await this.store.submit(owner, { config: { ...config }, html });
+        const persistedConfig = { ...config };
+        delete persistedConfig.apiKey;
+        const jobId = await this.store.submit(owner, { config: persistedConfig, html });
         if (!jobId) return null;
-        const running = this.run(jobId, { ...config }, html).finally(() => this.active.delete(running));
+        const running = this.run(jobId, { ...config }, html)
+            .catch((error) => { logger.error('Job %s failed:', jobId, error); })
+            .finally(() => this.active.delete(running));
         this.active.add(running);
         return { jobId, status: 'pending' };
     }

@@ -824,7 +824,6 @@ declare module './service/db' {
         'contest.balloon': ContestBalloonDoc;
         lock: LockDoc;
         paste: import('./model/paste').PasteDoc;
-        html_to_markdown_job: import('./model/htmlToMarkdownJob').HtmlToMarkdownJobDoc;
         background_task: import('./model/backgroundTask').BackgroundTaskDoc;
         oier: import('./model/oier').OierDoc;
         'oier.record': import('./model/oier').OierRecordDoc;

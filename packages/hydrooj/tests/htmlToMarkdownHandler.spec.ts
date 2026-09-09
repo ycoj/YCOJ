@@ -15,14 +15,17 @@ mockModule('../src/service/db', { collection: () => null });
 
 const { ValidationError, PermissionError, NotFoundError, HtmlToMarkdownCapacityError } = require('../src/error');
 const { PERM } = { PERM: { PERM_EDIT_PROBLEM: 1n << 6n, PERM_EDIT_PROBLEM_SELF: 1n << 7n, PERM_VIEW_PROBLEM_HIDDEN: 1n << 5n } };
-mockModule('../src/model/builtin', { PERM });
+mockModule('../src/model/builtin', { PERM, PERMS: [] });
 
 mockModule('../src/lib/ai/html2md/runtime', { getHtmlToMarkdownConfig: () => ({ enabled: true }) });
 mockModule('../src/lib/ai/html2md/validation', { validateHtmlToMarkdownConfig: () => undefined });
 
 let problemStore: Record<string, any> = {};
 const problem = {
-    get: async (_domainId: string, pid: number | string) => problemStore[String(pid)] ?? null,
+    get: async (_domainId: string, pid: number | string, projection: string[]) => {
+        const doc = problemStore[String(pid)];
+        return doc ? Object.fromEntries(projection.map((key) => [key, doc[key]])) : null;
+    },
     canViewBy: (pdoc: any, user: any) => !pdoc.hidden || user.own(pdoc) || user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN),
 };
 mockModule('../src/model/problem', { __esModule: true, default: problem });
@@ -68,12 +71,12 @@ class FakeUser {
     }
 
     own(doc: any, perm?: bigint) {
-        if (perm !== undefined && !this.editable) return false;
-        return doc.owner === this._id;
+        if (perm !== undefined && !this.hasPerm(perm)) return false;
+        return doc.owner === this._id || (doc.maintainer || []).includes(this._id);
     }
 
     hasPerm(...perms: bigint[]) {
-        return perms.some((perm) => (perm === PERM.PERM_EDIT_PROBLEM && this.editable)
+        return perms.some((perm) => ([PERM.PERM_EDIT_PROBLEM, PERM.PERM_EDIT_PROBLEM_SELF].includes(perm) && this.editable)
             || (perm === PERM.PERM_VIEW_PROBLEM_HIDDEN && this.viewerHidden));
     }
 }
@@ -94,7 +97,7 @@ function makeHandler(HandlerClass: any, user: FakeUser, jobs: any, jobId?: strin
 }
 
 async function newJobs(capacity: number, capacityPerOwner: number, convert: any) {
-    collection = client.db(`handler-${new ObjectId().toHexString()}`).collection('html_to_markdown_job');
+    collection = client.db(`handler-${new ObjectId().toHexString()}`).collection('background_task');
     await ensureJobIndexes(collection);
     // eslint-disable-next-line new-cap
     const store = new jobModel(collection, capacity, capacityPerOwner);
@@ -156,7 +159,8 @@ describe('HTML-to-Markdown handler contract', () => {
 
     it('admits through the POST route and returns 202 + job schema', async () => {
         let resolve: (md: string) => void;
-        const jobs = await newJobs(100, 10, () => new Promise<string>((r) => { resolve = r; }));
+        const converted = new Promise<string>((r) => { resolve = r; });
+        const jobs = await newJobs(100, 10, () => converted);
         const submitted = await submit(jobs, new FakeUser(2));
         assert.equal(submitted.response.status, 202);
         assert.equal(submitted.response.type, 'application/json');
@@ -176,7 +180,8 @@ describe('HTML-to-Markdown handler contract', () => {
 
     it('polls a job persisted by another worker directly from the shared store', async () => {
         let resolve: (md: string) => void;
-        const jobs = await newJobs(100, 10, () => new Promise<string>((r) => { resolve = r; }));
+        const converted = new Promise<string>((r) => { resolve = r; });
+        const jobs = await newJobs(100, 10, () => converted);
         const { jobId } = await jobs.submit({ domainId: 'test', pid: 1000, uid: 2 }, {} as any, '<p>x</p>');
         // eslint-disable-next-line new-cap
         const other = new jobModel(collection);
@@ -186,6 +191,19 @@ describe('HTML-to-Markdown handler contract', () => {
         assert.equal(await other.get(jobId, { domainId: 'test', pid: 1000, uid: 3 }), null);
         resolve('# shared');
         await jobs.drain();
+    });
+
+    it('allows a maintainer with self-edit permission to submit and poll a hidden problem', async () => {
+        problemStore[1000].hidden = true;
+        problemStore[1000].maintainer = [3];
+        const user = new FakeUser(3);
+        user.hasPerm = (...perms: bigint[]) => perms.includes(PERM.PERM_EDIT_PROBLEM_SELF);
+        const jobs = await newJobs(100, 10, async () => '# maintained');
+        const submitted = await submit(jobs, user);
+        assert.equal(submitted.response.status, 202);
+        await jobs.drain();
+        const poll = await pollGet(jobs, user, submitted.response.body.jobId);
+        assert.equal(poll.response.body.markdown, '# maintained');
     });
 
     it('rejects a non-editor poll with PermissionError (403) before reading the job', async () => {
@@ -229,7 +247,8 @@ describe('HTML-to-Markdown handler contract', () => {
 
     it('returns HtmlToMarkdownCapacityError (503) once the owner is at capacity', async () => {
         let resolve: (md: string) => void;
-        const jobs = await newJobs(100, 1, () => new Promise<string>((r) => { resolve = r; }));
+        const converted = new Promise<string>((r) => { resolve = r; });
+        const jobs = await newJobs(100, 1, () => converted);
         const first = await submit(jobs, new FakeUser(2));
         assert.equal(first.response.status, 202);
         await assert.rejects(submit(jobs, new FakeUser(2)),

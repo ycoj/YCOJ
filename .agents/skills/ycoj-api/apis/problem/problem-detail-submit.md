@@ -84,6 +84,8 @@ A legacy `POST /p/:pid` with `{"operation":"html_to_markdown"}` is no longer an 
 
 The prompt requires Markdown structure, LaTeX math (`$...$` and `$$...$$`), and paired sample fences named ````input{x}```` and ````output{x}````; the model must return Markdown only. Configuration and permission errors remain immediate API errors. The admitting process runs the model call in-process and is the only process that ever issues the `pending` → `running` claim for that job, so a job cannot be replayed on another worker. Capacity is enforced cluster-wide and atomically against races using unique slot indexes: at most 100 live jobs total and at most 10 per `{ domainId, pid, uid }` owner; exceeding either returns HTTP 503 `HtmlToMarkdownCapacityError`. Provider failures are reported by polling with a generic error message, never provider diagnostics or credentials.
 
+Ownership checks on both conversion routes include users listed in the problem's `maintainer` array. Owners and maintainers still need `PERM_EDIT_PROBLEM_SELF`; other editors need `PERM_EDIT_PROBLEM`. Outside contest context, hidden-problem visibility also recognizes owners and maintainers. The persisted payload contains HTML and non-sensitive model configuration, excluding `apiKey`; the converter receives the full configuration in process memory.
+
 # GET `/p/:pid/html-to-markdown/:jobId` — poll async HTML-to-Markdown conversion
 
 Polls a persistent conversion job from the shared store, so the request may be served by any worker (no affinity to the submitting process is required). Uses the same problem visibility, contest-context, and edit-permission checks as submission, including `tid` from the query string or body, and runs them once per request. Only the submitting user can retrieve the job, and its domain and numeric problem ID must match the route. Unknown, expired, or mismatched jobs return HTTP 404 `NotFoundError` after permission checks.
@@ -104,7 +106,7 @@ Accept: application/json
 Cookie: sid=SESSION
 ```
 
-HTTP 200, `application/json` (including failed jobs). `pending` is legitimately observable while the admitted job waits in the shared database before the admitting process claims it; `running` means the admitting process is executing the model call:
+HTTP 200, `application/json` (including failed jobs). A completed `markdown` value may be an empty string, which is preserved as a successful result. `pending` is legitimately observable while the admitted job waits in the shared database before the admitting process claims it; `running` means the admitting process is executing the model call:
 
 ```json
 {"jobId":"08305266-8767-4556-8f2e-e398cf3d9ecf","status":"completed","markdown":"## Input\n\nExample input"}

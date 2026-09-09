@@ -10,6 +10,8 @@ function mockModule(request: string, exports: unknown) {
 Object.assign(global, { Hydro: { model: {}, ui: {} } });
 mockModule('../../src/service/db', { collection: () => null });
 const { ensureJobIndexes, HtmlToMarkdownJobModel } = require('../../src/model/htmlToMarkdownJob');
+const { HtmlToMarkdownJobs } = require('../../src/lib/ai/html2md/jobs');
+const { BackgroundTaskService } = require('../../src/lib/background/runner');
 
 let mongod: MongoMemoryServer;
 let client: MongoClient;
@@ -26,7 +28,7 @@ after(async () => {
 
 function freshStore(capacity = 100, capacityPerOwner = 10) {
     const db = client.db(`html2md-${new ObjectId().toHexString()}`);
-    const collection = db.collection('html_to_markdown_job');
+    const collection = db.collection('background_task');
     return { store: new HtmlToMarkdownJobModel(collection, capacity, capacityPerOwner), collection };
 }
 
@@ -76,6 +78,31 @@ describe('HTML-to-Markdown job store', () => {
         assert.equal((await store.markFailed(jobId, 'stale', RETENTION)).matchedCount, 0);
     });
 
+    it('persists empty markdown results', async () => {
+        const jobId = await store.submit(owner);
+        await store.claim(jobId);
+        await store.finish(jobId, { markdown: '' }, RETENTION);
+        assert.deepEqual((await store.get(jobId, owner)).result, { markdown: '' });
+        assert.deepEqual(await store.view(jobId, owner, { timeoutMs: TIMEOUT, retentionMs: RETENTION }),
+            { jobId, status: 'completed', markdown: '' });
+    });
+
+    it('keeps the API key in memory while persisting other config and HTML', async () => {
+        const config = { enabled: true, profileId: 'test', apiKey: 'test-secret', model: 'test-model' };
+        const html = '<p>test</p>';
+        const jobs = new HtmlToMarkdownJobs(async (receivedConfig, receivedHtml) => {
+            assert.deepEqual(receivedConfig, config);
+            assert.equal(receivedHtml, html);
+            return '# test';
+        }, { store });
+        const { jobId } = await jobs.submit(owner, config, html);
+        await jobs.drain();
+        const doc = await store.get(jobId, owner);
+        assert.equal(doc.status, 'completed');
+        assert.deepEqual(doc.payload, { config: { enabled: true, profileId: 'test', model: 'test-model' }, html });
+        assert.equal(config.apiKey, 'test-secret');
+    });
+
     it('caps each owner atomically without exceeding the shared pool', async () => {
         const { store: capped } = freshStore(50, 3);
         await ensureJobIndexes(capped.coll);
@@ -101,10 +128,11 @@ describe('HTML-to-Markdown job store', () => {
     it('retains terminal results only until the retention window elapses', async () => {
         const jobId = await store.submit(owner);
         await store.claim(jobId);
-        await store.finish(jobId, { markdown: '# Keep' }, 25);
-        assert.equal((await store.view(jobId, owner, { timeoutMs: TIMEOUT, retentionMs: 25 })).status, 'completed');
-        await wait(45);
-        assert.equal(await store.view(jobId, owner, { timeoutMs: TIMEOUT, retentionMs: 25 }), null);
+        const retentionMs = 1000;
+        await store.finish(jobId, { markdown: '# Keep' }, retentionMs);
+        assert.equal((await store.view(jobId, owner, { timeoutMs: TIMEOUT, retentionMs })).status, 'completed');
+        await wait(retentionMs + 100);
+        assert.equal(await store.view(jobId, owner, { timeoutMs: TIMEOUT, retentionMs }), null);
         assert.ok(await store.submit(owner));
     });
 
@@ -129,4 +157,61 @@ describe('HTML-to-Markdown job store', () => {
         assert.equal((await store.get(stalled, owner)).status, 'failed');
         assert.equal(await store.get(finished, owner), null);
     });
+});
+
+describe('background runner failures', () => {
+    for (const outcome of ['completed', 'failed', 'timeout']) {
+        it(`runs the claimed payload and preserves ${outcome} results`, async () => {
+            const finished = [];
+            let received;
+            const jobs = new BackgroundTaskService({
+                submit: async () => 'test-job',
+                claim: async () => ({ payload: 'claimed payload' }),
+                finish: async (...args) => { finished.push(args); },
+            }).register({
+                type: 'test', timeoutMs: outcome === 'timeout' ? 1 : TIMEOUT, retentionMs: RETENTION,
+                run: async (payload) => {
+                    received = payload;
+                    if (outcome === 'failed') throw new Error('conversion failed');
+                    if (outcome === 'timeout') await wait(20);
+                    return '# result';
+                },
+            });
+            await jobs.submit('test', owner, 'submitted payload');
+            await jobs.drain();
+            assert.equal(received, 'claimed payload');
+            assert.deepEqual(finished, [['test-job', 'test', outcome === 'completed'
+                ? { result: '# result' }
+                : { error: outcome === 'timeout' ? 'Background task timed out.' : 'Background task failed.' }, RETENTION]]);
+        });
+    }
+
+    for (const kind of ['html-to-markdown', 'generic']) {
+        for (const failure of ['claim', 'finish']) {
+            it(`${kind} consumes ${failure} failures and drains cleanly`, async () => {
+                let finishCalls = 0;
+                const store = {
+                    submit: async () => 'test-job',
+                    claim: async () => {
+                        if (failure === 'claim') throw new Error('claim unavailable');
+                        return { payload: 'claimed payload' };
+                    },
+                    finish: async () => { finishCalls++; throw new Error('finish unavailable'); },
+                };
+                const jobs = kind === 'html-to-markdown'
+                    ? new HtmlToMarkdownJobs(async () => '# result', { store })
+                    : new BackgroundTaskService(store).register({
+                        type: 'test', timeoutMs: TIMEOUT, retentionMs: RETENTION,
+                        run: async (payload) => { assert.equal(payload, 'claimed payload'); return '# result'; },
+                    });
+                if (kind === 'html-to-markdown') await jobs.submit(owner, {}, 'html');
+                else await jobs.submit('test', owner, 'submitted payload');
+                await jobs.drain();
+                await new Promise((resolve) => setImmediate(resolve));
+                assert.equal(finishCalls, failure === 'claim' ? 0 : 2);
+                assert.equal(jobs.active.size, 0);
+                assert.equal(jobs.controllers.size, 0);
+            });
+        }
+    }
 });

@@ -23,7 +23,7 @@ import type { Projection } from '../typeutils';
 export async function resolveEditableProblem(
     ctx: { user: User, checkPerm: (perm: bigint) => void },
     domainId: string, pid: number | string, tid?: ObjectId,
-    projection: Projection<ProblemDoc> = ['docId', 'owner', 'hidden'],
+    projection: Projection<ProblemDoc> = ['docId', 'owner', 'maintainer', 'hidden'],
 ): Promise<ProblemDoc> {
     const pdoc = await problem.get(domainId, pid, projection);
     if (!pdoc) throw new ProblemNotFoundError(domainId, pid);
@@ -69,7 +69,7 @@ export class ProblemHtmlToMarkdownSubmitHandler extends Handler {
     async post(domainId: string, pid: number | string, tid?: ObjectId, profileId = '') {
         const pdoc = await resolveEditableProblem(
             this, domainId, pid, tid,
-            ['docId', 'owner', 'hidden', 'content'],
+            ['docId', 'owner', 'maintainer', 'hidden', 'content'],
         );
         const config = getHtmlToMarkdownConfig(profileId);
         validateHtmlToMarkdownConfig(config);
