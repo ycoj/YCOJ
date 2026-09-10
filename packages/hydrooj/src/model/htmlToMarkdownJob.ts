@@ -11,7 +11,8 @@ export type HtmlToMarkdownJobView = HtmlToMarkdownJobResult;
 export const HTML_TO_MARKDOWN_CAPACITY = 100;
 export const HTML_TO_MARKDOWN_CAPACITY_PER_OWNER = 10;
 export const HTML_TO_MARKDOWN_TIMEOUT_MESSAGE = 'HTML-to-Markdown conversion timed out.';
-const TYPE = 'html-to-markdown';
+export const HTML_TO_MARKDOWN_TASK_TYPE = 'html-to-markdown';
+const TYPE = HTML_TO_MARKDOWN_TASK_TYPE;
 function asView(d: BackgroundTaskDoc): HtmlToMarkdownJobResult { if (d.status === 'completed') return { jobId: d.jobId, status: 'completed', markdown: d.result?.markdown ?? '' }; if (d.status === 'failed') return { jobId: d.jobId, status: 'failed', error: d.error ?? '' }; return { jobId: d.jobId, status: d.status }; }
 export class HtmlToMarkdownJobModel {
     constructor(public coll: Collection<BackgroundTaskDoc> = backgroundTaskModel.coll, public capacity = HTML_TO_MARKDOWN_CAPACITY, public capacityPerOwner = HTML_TO_MARKDOWN_CAPACITY_PER_OWNER) {}

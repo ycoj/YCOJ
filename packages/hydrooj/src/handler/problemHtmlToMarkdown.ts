@@ -52,7 +52,8 @@ declare module 'cordis' {
 
 // The single runner instance is owned by the cordis context: apply(ctx) below creates it (or
 // accepts one provided earlier on the context — the only injection seam), and the sweep, dispose,
-// and both handlers all read that exact same service instance.
+// and both handlers all read that exact same service instance. HtmlToMarkdownJobs is a thin
+// adapter that registers the conversion definition on a BackgroundTaskService.
 function getJobs(handler: Handler): HtmlToMarkdownJobs {
     const jobs = handler.ctx.get('htmlToMarkdownJobs');
     if (!jobs) throw new Error('HTML-to-Markdown job runner is not registered.');
