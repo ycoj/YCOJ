@@ -136,6 +136,45 @@ describe('HTML-to-Markdown job store', () => {
         assert.ok(await store.submit(owner));
     });
 
+    it('frees the slot as soon as a job completes, not on expiry', async () => {
+        const { store: capped } = freshStore(1, 1);
+        await ensureJobIndexes(capped.coll);
+        const first = await capped.submit(owner);
+        assert.equal(await capped.submit(owner), null, 'the single slot is held while the job is in flight');
+        await capped.claim(first);
+        await capped.finish(first, { markdown: '# done' }, RETENTION);
+        assert.ok(await capped.submit(owner), 'settling the job frees its slot immediately');
+        assert.equal((await capped.view(first, owner, { timeoutMs: TIMEOUT, retentionMs: RETENTION })).status, 'completed',
+            'the result stays pollable within the retention window');
+    });
+
+    it('frees the slot when a job settles as failed', async () => {
+        const { store: capped } = freshStore(1, 1);
+        await ensureJobIndexes(capped.coll);
+        const first = await capped.submit(owner);
+        await capped.claim(first);
+        await capped.finish(first, { error: 'boom' }, RETENTION);
+        assert.ok(await capped.submit(owner), 'a failed job frees its slot immediately');
+        assert.deepEqual(await capped.view(first, owner, { timeoutMs: TIMEOUT, retentionMs: RETENTION }),
+            { jobId: first, status: 'failed', error: 'boom' });
+    });
+
+    it('frees the slot when a stalled job is reclaimed or timed out on read', async () => {
+        const { store: capped, collection: col } = freshStore(1, 1);
+        await ensureJobIndexes(capped.coll);
+        const reclaimed = await capped.submit(owner);
+        await capped.claim(reclaimed);
+        await col.updateOne({ jobId: reclaimed }, { $set: { claimedAt: new Date(Date.now() - 5000) } });
+        await capped.reclaimStalled(1000, RETENTION);
+        const onRead = await capped.submit(owner);
+        assert.ok(onRead, 'reclaimStalled frees the slot');
+
+        await capped.claim(onRead);
+        await col.updateOne({ jobId: onRead }, { $set: { claimedAt: new Date(Date.now() - 500) } });
+        await capped.view(onRead, owner, { timeoutMs: 100, retentionMs: RETENTION });
+        assert.ok(await capped.submit(owner), 'read-timeout frees the slot');
+    });
+
     it('treats a stalled job as timed out on read and frees its slot', async () => {
         const jobId = await store.submit(owner);
         await collection.updateOne({ jobId }, { $set: { createdAt: new Date(Date.now() - 200) } });

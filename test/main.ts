@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { writeFileSync } from 'fs';
+import net from 'net';
 import autocannon from 'autocannon';
 import {
     after, before, describe, it,
@@ -331,11 +332,17 @@ describe('App', () => {
 
     it('HTML-to-Markdown: returns 503 once an owner reaches the per-owner cap', async () => {
         const AI_PROVIDER_CONFIG_KEY = 'ai.providerConfig';
+        // A server that accepts connections but never answers keeps the in-flight jobs holding
+        // their capacity slots; a fast-failing endpoint would release slots on failure instead.
+        const hangingSockets = new Set<net.Socket>();
+        const hanging = net.createServer((socket) => hangingSockets.add(socket));
+        await new Promise((resolve) => hanging.listen(0, '127.0.0.1', resolve));
+        const hangPort = hanging.address().port;
         const providerConfig = {
             version: 1,
             providers: [{
                 id: 'html2mdtest', name: 'Test', apiType: 'openai-completions',
-                baseUrl: 'http://127.0.0.1:9/v1', apiKey: 'test-key',
+                baseUrl: `http://127.0.0.1:${hangPort}/v1`, apiKey: 'test-key',
                 models: [{
                     id: 'testmodel', name: 'T', model: 'test-model', reasoning: false,
                     thinkingLevel: 'high', contextTokens: 16_000, maxTokens: 2_000,
@@ -356,6 +363,8 @@ describe('App', () => {
             assert.equal(overflow.status, 503);
             assert.equal(overflow.body.error.name, 'HtmlToMarkdownCapacityError');
         } finally {
+            for (const socket of hangingSockets) socket.destroy();
+            hanging.close();
             await global.Hydro.model.system.set('aiGeneration.enabled', false);
             await global.Hydro.model.system.del(AI_PROVIDER_CONFIG_KEY);
         }
