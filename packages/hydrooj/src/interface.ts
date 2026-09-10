@@ -824,6 +824,7 @@ declare module './service/db' {
         'contest.balloon': ContestBalloonDoc;
         lock: LockDoc;
         paste: import('./model/paste').PasteDoc;
+        background_task: import('./model/backgroundTask').BackgroundTaskDoc;
         oier: import('./model/oier').OierDoc;
         'oier.record': import('./model/oier').OierRecordDoc;
         'oier.school': import('./model/oier').OierSchoolDoc;
@@ -859,6 +860,8 @@ export interface Model {
     storage: typeof import('./model/storage').default;
     rp: typeof import('./script/rating').RpTypes;
     paste: typeof import('./model/paste').default;
+    htmlToMarkdownJob: import('./model/htmlToMarkdownJob').HtmlToMarkdownJobModel;
+    backgroundTask: import('./model/backgroundTask').BackgroundTaskModel;
     oier: typeof import('./model/oier');
 }
 

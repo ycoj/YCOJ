@@ -1,5 +1,6 @@
 import assert from 'assert';
 import { writeFileSync } from 'fs';
+import net from 'net';
 import autocannon from 'autocannon';
 import {
     after, before, describe, it,
@@ -248,6 +249,125 @@ describe('App', () => {
         assert.equal(rootDetail.body.pdoc.content, 'secret-from-root\n');
         assert.equal(peerDetail.body.pdoc.content, 'secret-from-root\n');
         await peer.get(`/paste/${id}/edit`).set('Accept', 'application/json').expect(403);
+    });
+
+    it('HTML-to-Markdown: submits an async job, persists it in the shared store, and polls it', async () => {
+        const AI_PROVIDER_CONFIG_KEY = 'ai.providerConfig';
+        const providerConfig = {
+            version: 1,
+            providers: [{
+                id: 'html2mdtest', name: 'Test', apiType: 'openai-completions',
+                baseUrl: 'http://127.0.0.1:9/v1', apiKey: 'test-key',
+                models: [{
+                    id: 'testmodel', name: 'T', model: 'test-model', reasoning: false,
+                    thinkingLevel: 'high', contextTokens: 16_000, maxTokens: 2_000,
+                }],
+            }],
+            dataGeneration: { providerId: 'html2mdtest', modelId: 'testmodel' },
+            htmlToMarkdown: { providerId: 'html2mdtest', modelId: 'testmodel' },
+        };
+        await global.Hydro.model.system.set('aiGeneration.enabled', true);
+        await global.Hydro.model.system.set(AI_PROVIDER_CONFIG_KEY, providerConfig);
+        try {
+            const pid = await global.Hydro.model.problem.add('system', 'HTML2MD_SYNC', 'HTML to Markdown sync', '<p>hi</p>', 2);
+            // Oversized content is rejected before any job is admitted.
+            const bigPid = await global.Hydro.model.problem.add('system', 'HTML2MD_BIG', 'Big', 'x'.repeat(200_001), 2);
+            const oversized = await agent.post(`/p/${bigPid}/html-to-markdown`).set('Accept', 'application/json')
+                .send({});
+            assert.equal(oversized.status, 403);
+            assert.equal(oversized.body.error.name, 'ValidationError');
+
+            // Submit through the dedicated POST route: HTTP 202 with the pending schema only.
+            const submit = await agent.post(`/p/${pid}/html-to-markdown`).set('Accept', 'application/json')
+                .send({}).expect(202);
+            assert.deepEqual(Object.keys(submit.body).sort(), ['jobId', 'status']);
+            assert.equal(submit.body.status, 'pending');
+            const { jobId } = submit.body;
+
+            // The job lives in the shared DB store, not process memory.
+            const persisted = await global.Hydro.model.htmlToMarkdownJob.coll.findOne({ jobId });
+            assert.ok(persisted, 'job must be persisted for cross-worker polling');
+            assert.equal(persisted.domainId, 'system');
+            assert.equal(persisted.uid, 2);
+
+            // Poll the actual GET route; the shared store must answer from any code path.
+            const poll = await agent.get(`/p/${pid}/html-to-markdown/${jobId}`).set('Accept', 'application/json').expect(200);
+            assert.equal(poll.body.jobId, jobId, 'poll echoes jobId');
+            assert.ok(['pending', 'running', 'failed', 'completed'].includes(poll.body.status), `unexpected poll status: ${poll.body.status}`);
+
+            // Unknown jobs 404 after the permission gate.
+            const missing = await agent.get(`/p/${pid}/html-to-markdown/00000000-0000-4000-8000-000000000000`).set('Accept', 'application/json');
+            assert.equal(missing.status, 404, 'unknown job is 404');
+            assert.equal(missing.body.error.name, 'NotFoundError');
+
+            // A user without edit permission is refused on both endpoints.
+            const peer = supertest.agent(require('hydrooj').httpServer);
+            const register = await peer.post('/register')
+                .send({ mail: 'html2md-peer@example.com' })
+                .expect(302).then((res) => res.headers.location);
+            await peer.post(register).send({ uname: 'html2mdpeer', password: '123456', verifyPassword: '123456' }).expect(302);
+            const peerUser = await global.Hydro.model.user.getByUname('system', 'html2mdpeer');
+            await global.Hydro.model.user.setById(peerUser._id, { realnameStatus: 'approved' });
+            const peerSubmit = await peer.post(`/p/${pid}/html-to-markdown`).set('Accept', 'application/json').send({});
+            assert.equal(peerSubmit.status, 403, 'peer submit without edit permission is 403');
+            const peerPoll = await peer.get(`/p/${pid}/html-to-markdown/${jobId}`).set('Accept', 'application/json');
+            assert.equal(peerPoll.status, 403, 'peer poll without edit permission is 403');
+
+            // Contest context arrives through the decorated tid param (query or body) and is
+            // enforced before a job is admitted.
+            const ghostTid = '000000000000000000000000';
+            const ghostQuery = await agent.post(`/p/${pid}/html-to-markdown?tid=${ghostTid}`)
+                .set('Accept', 'application/json').send({});
+            assert.equal(ghostQuery.status, 404, 'unknown contest tid submit is 404');
+            assert.equal(ghostQuery.body.error.name, 'ContestNotFoundError');
+            const ghostBody = await agent.post(`/p/${pid}/html-to-markdown`)
+                .set('Accept', 'application/json').send({ tid: ghostTid });
+            assert.equal(ghostBody.status, 404, 'body-only unknown contest tid submit is 404');
+            assert.equal(ghostBody.body.error.name, 'ContestNotFoundError');
+        } finally {
+            await global.Hydro.model.system.set('aiGeneration.enabled', false);
+            await global.Hydro.model.system.del(AI_PROVIDER_CONFIG_KEY);
+        }
+    });
+
+    it('HTML-to-Markdown: returns 503 once an owner reaches the per-owner cap', async () => {
+        const AI_PROVIDER_CONFIG_KEY = 'ai.providerConfig';
+        // A server that accepts connections but never answers keeps the in-flight jobs holding
+        // their capacity slots; a fast-failing endpoint would release slots on failure instead.
+        const hangingSockets = new Set<net.Socket>();
+        const hanging = net.createServer((socket) => hangingSockets.add(socket));
+        await new Promise((resolve) => hanging.listen(0, '127.0.0.1', resolve));
+        const hangPort = hanging.address().port;
+        const providerConfig = {
+            version: 1,
+            providers: [{
+                id: 'html2mdtest', name: 'Test', apiType: 'openai-completions',
+                baseUrl: `http://127.0.0.1:${hangPort}/v1`, apiKey: 'test-key',
+                models: [{
+                    id: 'testmodel', name: 'T', model: 'test-model', reasoning: false,
+                    thinkingLevel: 'high', contextTokens: 16_000, maxTokens: 2_000,
+                }],
+            }],
+            dataGeneration: { providerId: 'html2mdtest', modelId: 'testmodel' },
+            htmlToMarkdown: { providerId: 'html2mdtest', modelId: 'testmodel' },
+        };
+        await global.Hydro.model.system.set('aiGeneration.enabled', true);
+        await global.Hydro.model.system.set(AI_PROVIDER_CONFIG_KEY, providerConfig);
+        try {
+            const pid = await global.Hydro.model.problem.add('system', 'HTML2MD_CAP', 'Capacity', '<p>hi</p>', 2);
+            for (let i = 0; i < 10; i++) {
+                // eslint-disable-next-line no-await-in-loop
+                await agent.post(`/p/${pid}/html-to-markdown`).set('Accept', 'application/json').send({}).expect(202);
+            }
+            const overflow = await agent.post(`/p/${pid}/html-to-markdown`).set('Accept', 'application/json').send({});
+            assert.equal(overflow.status, 503);
+            assert.equal(overflow.body.error.name, 'HtmlToMarkdownCapacityError');
+        } finally {
+            for (const socket of hangingSockets) socket.destroy();
+            hanging.close();
+            await global.Hydro.model.system.set('aiGeneration.enabled', false);
+            await global.Hydro.model.system.del(AI_PROVIDER_CONFIG_KEY);
+        }
     });
 
     it('Validates contest attendance for query and body problem mutations', async () => {

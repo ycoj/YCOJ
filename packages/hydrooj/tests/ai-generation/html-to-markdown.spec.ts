@@ -1,7 +1,7 @@
 import assert from 'assert';
 import { describe, it } from 'node:test';
 import {
-    convertHtmlToMarkdown, HTML_TO_MARKDOWN_SYSTEM_PROMPT, MAX_HTML_TO_MARKDOWN_LENGTH,
+    HTML_TO_MARKDOWN_SYSTEM_PROMPT, MAX_HTML_TO_MARKDOWN_LENGTH,
 } from '../../src/lib/ai/html2md/converter';
 
 describe('HTML to Markdown conversion', () => {
@@ -13,10 +13,7 @@ describe('HTML to Markdown conversion', () => {
         assert.match(HTML_TO_MARKDOWN_SYSTEM_PROMPT, /Output only the final Markdown/);
     });
 
-    it('rejects HTML exceeding the request limit before contacting the provider', async () => {
-        await assert.rejects(
-            convertHtmlToMarkdown({} as any, 'x'.repeat(MAX_HTML_TO_MARKDOWN_LENGTH + 1)),
-            /exceeds 200000 characters/,
-        );
+    it('exports the single request-length boundary enforced at the submit handler', () => {
+        assert.equal(MAX_HTML_TO_MARKDOWN_LENGTH, 200_000);
     });
 });

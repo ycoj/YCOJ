@@ -35,10 +35,7 @@ function stripMarkdownWrapper(markdown: string) {
     return trimmed.slice(prefix.length, -'\n```'.length).trim();
 }
 
-export async function convertHtmlToMarkdown(config: AiModelRuntimeConfig, html: string) {
-    if (html.length > MAX_HTML_TO_MARKDOWN_LENGTH) {
-        throw new Error(`HTML content exceeds ${MAX_HTML_TO_MARKDOWN_LENGTH} characters.`);
-    }
+export async function convertHtmlToMarkdown(config: AiModelRuntimeConfig, html: string, signal?: AbortSignal) {
     const provider = createOpenAI({
         name: config.providerId || 'hydro-ai',
         baseURL: config.baseUrl,
@@ -51,6 +48,7 @@ export async function convertHtmlToMarkdown(config: AiModelRuntimeConfig, html: 
         system: HTML_TO_MARKDOWN_SYSTEM_PROMPT,
         prompt: buildPrompt(html),
         maxOutputTokens: config.maxTokens,
+        abortSignal: signal,
     });
     const markdown = stripMarkdownWrapper(result.text);
     if (!markdown) throw new Error('The AI model returned empty Markdown.');

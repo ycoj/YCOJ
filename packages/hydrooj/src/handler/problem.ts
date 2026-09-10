@@ -25,9 +25,6 @@ import {
 import {
     ProblemDoc, ProblemSearchOptions, ProblemStatusDoc, RecordDoc, SolutionReviewStatus, User,
 } from '../interface';
-import { convertHtmlToMarkdown } from '../lib/ai/html2md/converter';
-import { getHtmlToMarkdownConfig } from '../lib/ai/html2md/runtime';
-import { validateHtmlToMarkdownConfig } from '../lib/ai/html2md/validation';
 import { ACTIVE_AI_GENERATION_FILTER, canGenerateTestdata, isDuplicateKeyError } from '../lib/ai/testdata/policy';
 import type { AiGenerationCheckerRequest } from '../lib/ai/testdata/request';
 import {
@@ -480,14 +477,6 @@ export class ProblemDetailHandler extends ContestDetailBaseHandler {
     async postStar(domainId: string, star: boolean) {
         await problem.setStar(domainId, this.pdoc.docId, this.user._id, star);
         this.back({ star });
-    }
-
-    @post('profileId', Schema.string(), true)
-    async postHtmlToMarkdown(domainId: string, profileId = '') {
-        if (!this.user.own(this.pdoc, PERM.PERM_EDIT_PROBLEM_SELF)) this.checkPerm(PERM.PERM_EDIT_PROBLEM);
-        const config = getHtmlToMarkdownConfig(profileId);
-        validateHtmlToMarkdownConfig(config);
-        this.response.body = { markdown: await convertHtmlToMarkdown(config, this.pdoc.content) };
     }
 }
 
