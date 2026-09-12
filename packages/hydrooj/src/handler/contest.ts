@@ -998,5 +998,19 @@ export async function apply(ctx: Context) {
             },
             supportedRules: ['*'],
         });
+        scoreboard.addView('export-data', 'Export data', { tdoc: 'tdoc' }, {
+            async display({ tdoc }) {
+                if (!this.user.own(tdoc) && !this.user.hasPerm(PERM.PERM_EDIT_CONTEST)) {
+                    throw new PermissionError(PERM.PERM_EDIT_CONTEST);
+                }
+                const [, rows, udict, pdict] = await contest.getScoreboard.call(this, tdoc.domainId, tdoc._id, {
+                    isExport: true,
+                    lockAt: this.tdoc.lockAt,
+                    showDisplayName: this.user.hasPerm(PERM.PERM_VIEW_USER_PRIVATE_INFO),
+                });
+                this.response.body = { tdoc, rows, udict, pdict };
+            },
+            supportedRules: ['*'],
+        });
     });
 }
