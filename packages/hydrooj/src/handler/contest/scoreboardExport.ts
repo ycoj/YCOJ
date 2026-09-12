@@ -7,8 +7,9 @@ import user from '../../model/user';
 import type { ContestScoreboardHandler } from '../contest';
 
 export async function getScoreboardExport(this: ContestScoreboardHandler, tdoc: Tdoc, details: boolean) {
-    if (!this.user.own(tdoc) && !this.user.hasPerm(PERM.PERM_EDIT_CONTEST)) {
-        throw new PermissionError(PERM.PERM_EDIT_CONTEST);
+    const editPerm = tdoc.rule === 'homework' ? PERM.PERM_EDIT_HOMEWORK : PERM.PERM_EDIT_CONTEST;
+    if (!this.user.own(tdoc) && !this.user.hasPerm(editPerm)) {
+        throw new PermissionError(editPerm);
     }
     const lockAt = tdoc.unlocked ? undefined : tdoc.lockAt;
     const [, rows, users, pdict] = await contest.getScoreboard.call(this, tdoc.domainId, tdoc._id, {

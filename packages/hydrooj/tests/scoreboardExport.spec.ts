@@ -8,7 +8,7 @@ function mockModule(request: string, exports: unknown) {
 }
 class PermissionError extends Error { }
 mockModule('../src/error', { PermissionError });
-mockModule('../src/model/builtin', { PERM: { PERM_EDIT_CONTEST: 1n } });
+mockModule('../src/model/builtin', { PERM: { PERM_EDIT_CONTEST: 1n, PERM_EDIT_HOMEWORK: 2n } });
 let scoreboardCalls = 0;
 let statusCalls = 0;
 let config;
@@ -48,7 +48,12 @@ mockModule('../src/model/user', {
     },
 });
 const { getScoreboardExport } = require('../src/handler/contest/scoreboardExport');
-const handler = (owner: boolean, editor = false) => ({ user: { own: () => owner, hasPerm: () => editor } });
+const handler = (owner: boolean, editor = false, perms: bigint[] = []) => ({
+    user: {
+        own: () => owner,
+        hasPerm: (p: bigint) => editor || perms.includes(p),
+    },
+});
 
 beforeEach(() => {
     scoreboardCalls = 0;
@@ -67,6 +72,14 @@ describe('scoreboard export JSON', () => {
         await assert.rejects(getScoreboardExport.call(handler(false), tdoc, true), PermissionError);
         assert.equal(scoreboardCalls, 0);
         assert.equal(statusCalls, 0);
+    });
+    it('rejects contest editors on homework but allows homework editors', async () => {
+        const homework = { ...tdoc, rule: 'homework' };
+        await assert.rejects(getScoreboardExport.call(handler(false, false, [1n]), homework, false), PermissionError);
+        assert.equal(scoreboardCalls, 0);
+        const result = await getScoreboardExport.call(handler(false, false, [2n]), homework, false);
+        assert.equal(scoreboardCalls, 1);
+        assert.ok(result.udict[2]);
     });
     it('groups all visible attempts and includes empty participants with a contest-scoped query', async () => {
         const result = await getScoreboardExport.call(handler(false, true), tdoc, true);

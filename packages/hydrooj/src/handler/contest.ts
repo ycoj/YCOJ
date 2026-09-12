@@ -1001,9 +1001,11 @@ export async function apply(ctx: Context) {
         });
         scoreboard.addView('export-data', 'Export data', { tdoc: 'tdoc', details: Types.Boolean }, {
             checker() {
-                return this.user.own(this.tdoc) || this.user.hasPerm(PERM.PERM_EDIT_CONTEST);
+                const editPerm = this.tdoc.rule === 'homework' ? PERM.PERM_EDIT_HOMEWORK : PERM.PERM_EDIT_CONTEST;
+                return this.user.own(this.tdoc) || this.user.hasPerm(editPerm);
             },
             async display({ tdoc, details }) {
+                await this.limitRate('scoreboard_download', 60, 3);
                 this.response.body = await getScoreboardExport.call(this, tdoc, details);
             },
             supportedRules: ['*'],

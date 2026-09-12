@@ -106,7 +106,7 @@ Description: render balloon tasks, optionally only todo items. Request: `type Qu
 
 ### Image export data
 
-`GET /contest/:tid/scoreboard/export-data` and `GET /homework/:tid/scoreboard/export-data` return JSON export data under `Accept: application/json`. Existing route-level scoreboard permissions and visibility checks apply; additionally, the caller must own the event or have `PERM_EDIT_CONTEST`. The view is advertised in `availableViews` only to those callers. Direct unauthorized requests are rejected before export data is loaded.
+`GET /contest/:tid/scoreboard/export-data` and `GET /homework/:tid/scoreboard/export-data` return JSON export data for every request (no template is set), browser or API client alike. Existing route-level scoreboard permissions and visibility checks apply; additionally, the caller must own the event or hold the edit permission for its type — `PERM_EDIT_CONTEST` for contests and `PERM_EDIT_HOMEWORK` for homework. The view is advertised in `availableViews` only to those callers. Direct unauthorized requests are rejected before export data is loaded. Requests are rate-limited like other scoreboard downloads.
 
 Request: `type Query = { tid: ObjectId; details?: boolean }`; example: `GET /contest/665f00000000000000000001/scoreboard/export-data?details=true`. `details` uses the standard Boolean validator and defaults to false.
 

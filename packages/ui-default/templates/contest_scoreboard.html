@@ -15,7 +15,7 @@
           <span class="icon icon-download"></span> {{ _('Export as {0}').format(ext) }}
         </a>
       {%- endfor -%}
-      {% for id, name in availableViews %}{% if not ['html', 'csv', 'default', 'ghost'].includes(id) %}
+      {% for id, name in availableViews %}{% if not ['html', 'csv', 'default', 'ghost', 'export-data'].includes(id) %}
         <a class="button" target="_blank" href="{{ url(type + '_scoreboard_view', tid=tdoc.docId, view=id) }}">
           <span class="icon icon-copy"></span> {{ _(name) }}
         </a>
