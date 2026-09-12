@@ -1006,7 +1006,9 @@ export async function apply(ctx: Context) {
                 const [, rows, udict, pdict] = await contest.getScoreboard.call(this, tdoc.domainId, tdoc._id, {
                     isExport: true,
                     lockAt: this.tdoc.lockAt,
-                    showDisplayName: this.user.hasPerm(PERM.PERM_VIEW_USER_PRIVATE_INFO),
+                    showDisplayName: this.user.hasPerm(PERM.PERM_VIEW_USER_PRIVATE_INFO)
+                        || this.user.own(tdoc)
+                        || this.user.hasPerm(PERM.PERM_EDIT_CONTEST),
                 });
                 this.response.body = { tdoc, rows, udict, pdict };
             },
