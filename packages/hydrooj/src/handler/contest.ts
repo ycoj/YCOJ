@@ -32,6 +32,7 @@ import {
 import { ContestDetailBaseHandler } from './contest/base';
 import { ContestBulkSubmitHandler } from './contest/bulkSubmit';
 import { ContestManagementBaseHandler } from './contest/managementBase';
+import { getScoreboardExport } from './contest/scoreboardExport';
 import { ContestSolutionDetailHandler, ContestSolutionEditHandler, loadContestSolutions } from './contest/solution';
 
 export { ContestDetailBaseHandler } from './contest/base';
@@ -995,6 +996,17 @@ export async function apply(ctx: Context) {
                     isExport: true, lockAt: this.tdoc.lockAt, showDisplayName: this.user.hasPerm(PERM.PERM_VIEW_USER_PRIVATE_INFO),
                 });
                 this.binary(toCSV(rows.map((r) => r.map((c) => c.value.toString())), { bom: true }), `${this.tdoc.title}.csv`);
+            },
+            supportedRules: ['*'],
+        });
+        scoreboard.addView('export-data', 'Export data', { tdoc: 'tdoc', details: Types.Boolean }, {
+            checker() {
+                const editPerm = this.tdoc.rule === 'homework' ? PERM.PERM_EDIT_HOMEWORK : PERM.PERM_EDIT_CONTEST;
+                return this.user.own(this.tdoc) || this.user.hasPerm(editPerm);
+            },
+            async display({ tdoc, details }) {
+                await this.limitRate('scoreboard_download', 60, 3);
+                this.response.body = await getScoreboardExport.call(this, tdoc, details);
             },
             supportedRules: ['*'],
         });

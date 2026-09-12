@@ -23,3 +23,5 @@ This is the implementation-backed route index; operation names are request-body 
 | `GET/POST /contest/:tid/scoreboard[/:view]` | Scoreboard HTML; unlock operation. |
 
 Decorated parameters and permission checks are documented in [README.md](./README.md). GET responses are HTML unless a PJAX/JSON request asks for the handler body; uploads are multipart and downloads are binary redirects.
+
+`GET /contest/:tid/scoreboard/export-data?details=true` returns authorized image export JSON; see [contract](endpoints.md#image-export-data).

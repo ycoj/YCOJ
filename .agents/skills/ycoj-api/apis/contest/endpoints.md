@@ -75,7 +75,7 @@ Description: render a selected scoreboard view or unlock a hidden scoreboard. On
 Description: alternate route bound to the same print handler for team-print clients. Request: `type Query={tid:ObjectId}`; `GET /contest/665f.../api/printing/team`. Response: `type Response={tdoc:Tdoc}`; `{ "tdoc":{"docId":"665f..."} }` rendered print HTML. POST uses the print operations and response contracts above; with JSON negotiation logical redirects are `{url:string}`.
 
 ## `GET /contest/:tid/scoreboard/:view`
-Description: render the explicitly named scoreboard view. Request: `type Query={tid:ObjectId;view:string}`; `GET /contest/665f.../scoreboard/default`. Response: `type Response=HTML`; example HTML contains the selected scoreboard view and its `tdoc`; JSON/PJAX body shape is delegated to the scoreboard service and is not a stable plain object.
+Description: render the explicitly named scoreboard view. Request: `type Query={tid:ObjectId;view:string}`; `GET /contest/665f.../scoreboard/default`. Response: `type Response=HTML`; example HTML contains the selected scoreboard view and its `tdoc`; JSON/PJAX body shape is delegated to the selected view; `export-data` has the explicit JSON contract below.
 
 ## `GET /contest/create`
 Description: render the contest creation form. Request: `type Query={}`; `GET /contest/create`. Response: `type Response={page_name:"contest_create";groups:unknown[];langs:unknown[]}`; `{ "page_name":"contest_create" }`, HTML `contest_edit.html`.
@@ -103,3 +103,31 @@ Description: render contest users and statuses. Request: `type Query={tid:Object
 
 ## `GET /contest/:tid/balloon`
 Description: render balloon tasks, optionally only todo items. Request: `type Query={tid:ObjectId;todo?:boolean}`; `GET /contest/665f.../balloon?todo=true`. Response: `type Response={tdoc:Tdoc;balloons:unknown[];colors:unknown}`; `{ "tdoc":{"docId":"665f..."},"balloons":[] }`, HTML/PJAX `contest_balloon.html`.
+
+### Image export data
+
+`GET /contest/:tid/scoreboard/export-data` and `GET /homework/:tid/scoreboard/export-data` return JSON export data for every request (no template is set), browser or API client alike. Existing route-level scoreboard permissions and visibility checks apply; additionally, the caller must own the event or hold the edit permission for its type — `PERM_EDIT_CONTEST` for contests and `PERM_EDIT_HOMEWORK` for homework. The view is advertised in `availableViews` only to those callers. Direct unauthorized requests are rejected before export data is loaded. Requests are rate-limited like other scoreboard downloads.
+
+Request: `type Query = { tid: ObjectId; details?: boolean }`; example: `GET /contest/665f00000000000000000001/scoreboard/export-data?details=true`. `details` uses the standard Boolean validator and defaults to false.
+
+Response:
+```ts
+type ExportUser = { _id: number; uname: string; avatar: string; realName: string };
+type Submission = { rid: ObjectId; pid: number; status: number; score: number; submittedAt: string; lang?: string };
+type Response = {
+  tdoc: Tdoc; rows: ScoreboardNode[][]; pdict: ProblemDict;
+  udict: Record<number, ExportUser>;
+  submissions: Record<number, Submission[]>;
+};
+```
+
+Example JSON (other event/problem fields abbreviated):
+```json
+{"tdoc":{"docId":"665f00000000000000000001","title":"Practice"},"rows":[[{"type":"string","value":"User"}],[{"type":"user","raw":2,"value":"alice"}]],"pdict":{},"udict":{"2":{"_id":2,"uname":"alice","avatar":"gravatar:alice@example.com","realName":"张三"}},"submissions":{"2":[{"rid":"665f00000000000000000002","pid":1000,"status":1,"score":100,"submittedAt":"2024-06-04T11:52:32.000Z","lang":"cc"}]}}
+```
+
+Export users are explicit plain objects, so JSON serialization preserves the authorized real name without exporting the User instance or other private profile fields. Missing real names are empty strings. User cells in `rows` still contain usernames; the Next.js image renderer replaces the entire user label with `realName` when selected, falling back to `uname` when empty. Extra email/school/display-name columns are not requested.
+
+Without `details`, `submissions` is `{}` and no status journal query is made. With `details=true`, every exported participant has an array (possibly empty), containing all journal attempts for current event problems sorted by record ID, with timestamps in UTC. Records after `lockAt` are excluded while locked; after `unlocked=true` they are included. Only statuses with `attend > 0` belonging to this event and exported users are queried. No code, judge payloads, or unrelated records are returned.
+
+Image export workflow: the Next.js Node.js route `/api/scoreboard-export/:pageType/:tid` requests this endpoint with the current user session when real names or submission details are selected, handles errors before rendering, and uses its rows/users/problems consistently. PNG rendering and ZIP packaging run on the Next.js server; the browser downloads the binary attachment. For details, render each participant's scoreboard row and complete returned submission list to a separate PNG, then package those PNGs in one ZIP; use UID in filenames to prevent collisions between identical real names. Homework uses the same workflow with the `/homework` prefix. Ordinary image exports may continue to use the default scoreboard response.
