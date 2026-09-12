@@ -1010,6 +1010,14 @@ export async function apply(ctx: Context) {
                         || this.user.own(tdoc)
                         || this.user.hasPerm(PERM.PERM_EDIT_CONTEST),
                 });
+                const exportUsers = await user.getListForRender(
+                    tdoc.domainId,
+                    Object.keys(udict).map(Number),
+                    true,
+                );
+                for (const uid of Object.keys(udict)) {
+                    udict[uid].realName = exportUsers[uid]?.realName || '';
+                }
                 this.response.body = { tdoc, rows, udict, pdict };
             },
             supportedRules: ['*'],
