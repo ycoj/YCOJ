@@ -645,4 +645,11 @@ export const coreScripts: MigrationScript[] = [
         await SolutionModel.migrateLegacy();
         return true;
     },
+    async function _98_99() {
+        const coll = db.collection('document');
+        await coll.updateMany({ docType: document.TYPE_PROBLEM, difficulty: 7 }, { $set: { difficulty: 8 } });
+        await coll.updateMany({ docType: document.TYPE_PROBLEM, difficulty: 6 }, { $set: { difficulty: 7 } });
+        await coll.updateMany({ docType: document.TYPE_PROBLEM, difficulty: 5 }, { $set: { difficulty: 6 } });
+        return true;
+    },
 ];

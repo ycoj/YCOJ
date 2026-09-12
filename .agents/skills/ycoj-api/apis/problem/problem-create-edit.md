@@ -7,7 +7,7 @@ Displays the create page or creates a problem. Requires `PERM_CREATE_PROBLEM`. F
 ## Request format
 
 ```ts
-type CreateBody = { title: string; content: string; pid?: string | number; hidden: boolean; difficulty?: 0|1|2|3|4|5|6|7; tag?: string };
+type CreateBody = { title: string; content: string; pid?: string | number; hidden: boolean; difficulty?: 0|1|2|3|4|5|6|7|8; tag?: string };
 ```
 
 `pid` must match an optional 1–10-character alphanumeric namespace plus `-`, followed by a letter and alphanumerics; numeric values become `P{n}`. `tag` is comma-separated (Chinese commas are accepted).
@@ -43,7 +43,7 @@ Edit a problem statement/metadata or render its configuration page. The caller m
 
 ```ts
 type EditPath = { pid: string | number };
-type EditBody = { title: string; content: string; pid?: string | number; hidden: boolean; tag?: string; difficulty?: 0|1|2|3|4|5|6|7 };
+type EditBody = { title: string; content: string; pid?: string | number; hidden: boolean; tag?: string; difficulty?: 0|1|2|3|4|5|6|7|8 };
 ```
 
 ```http
