@@ -66,6 +66,8 @@ describe('scoreboard export JSON', () => {
         assert.deepStrictEqual(json.udict[2], { _id: 2, uname: 'alice', avatar: '', realName: '张三' });
         assert.equal(json.udict[3].realName, '');
         assert.deepStrictEqual(requestedFields, ['realName']);
+        assert.equal(config.isExport, false);
+        assert.equal(config.showDisplayName, false);
         assert.equal(statusCalls, 0);
     });
     it('rejects unauthorized viewers before reading private data', async () => {

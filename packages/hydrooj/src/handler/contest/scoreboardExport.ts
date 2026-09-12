@@ -13,7 +13,7 @@ export async function getScoreboardExport(this: ContestScoreboardHandler, tdoc: 
     }
     const lockAt = tdoc.unlocked ? undefined : tdoc.lockAt;
     const [, rows, users, pdict] = await contest.getScoreboard.call(this, tdoc.domainId, tdoc._id, {
-        isExport: true, lockAt, showDisplayName: false,
+        isExport: false, lockAt, showDisplayName: false,
     });
     const uids = Object.keys(users).map(Number);
     const exportUsers = await user.getListForRender(tdoc.domainId, uids, ['realName']);
