@@ -15,4 +15,4 @@ Routes are domain-scoped and use contest-style permissions. `PERM_VIEW_HOMEWORK`
 
 Authenticate with `Cookie: sid=...` or `Authorization: Bearer <sid>`. JSON clients should send `Content-Type: application/json`; uploads use `multipart/form-data`.
 
-Image export: `GET /contest/:tid/scoreboard/export-data` and `/homework/:tid/scoreboard/export-data?details=true` provide authorized real names and per-participant submission journals. See [the export contract](../contest/endpoints.md#image-export-data).
+Image export: `GET /contest/:tid/scoreboard/export-data?details=true` and `/homework/:tid/scoreboard/export-data?details=true` provide authorized real names and per-participant submission journals. See [the export contract](../contest/endpoints.md#image-export-data).
