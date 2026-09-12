@@ -21,7 +21,7 @@
 
 {% macro render_difficulty(pdoc, short=false) %}
   {%- set diff = pdoc['difficulty'] -%}
-  {%- if diff != null and diff >= 1 and diff <= 7 -%}
+  {%- if diff != null and diff >= 1 and diff <= 8 -%}
     <span class="difficulty-label" style="color:{{ PROBLEMS_DIFFICULTY_COLOR[diff] }}">
       {{- PROBLEMS_DIFFICULTY_SHORT[diff] if short else PROBLEMS_DIFFICULTY[diff] -}}
     </span>

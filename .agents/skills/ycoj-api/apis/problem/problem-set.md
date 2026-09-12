@@ -13,7 +13,7 @@ type BulkBody =
  | { operation: 'delete' | 'hide' | 'unhide'; pids: number[] };
 ```
 
-`q` is parsed for `category:`, `difficulty:`, and `namespace:` terms. Send `Cookie: sid=…` and `Accept: application/json`; POST accepts form/JSON request data.
+`q` is parsed for `category:`, `difficulty:`, and `namespace:` terms. `difficulty:N` accepts difficulty levels 0–8 (0 = unrated, 1 入门, 2 普及-, 3 普及, 4 普及+/提高-, 5 提高, 6 提高+/省选-, 7 省选/NOI-, 8 NOI/NOI+/CTS). Send `Cookie: sid=…` and `Accept: application/json`; POST accepts form/JSON request data.
 
 ```http
 POST /p HTTP/1.1
