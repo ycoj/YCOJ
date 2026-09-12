@@ -136,6 +136,8 @@ export type User = import('./model/user').User;
 export type Udict = Record<number, User>;
 
 export interface BaseUser {
+    /** Available only when explicitly selected for an authorized private-info response. */
+    realName?: string;
     _id: number;
     uname: string;
     mail: string;

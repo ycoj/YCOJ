@@ -32,6 +32,7 @@ import {
 import { ContestDetailBaseHandler } from './contest/base';
 import { ContestBulkSubmitHandler } from './contest/bulkSubmit';
 import { ContestManagementBaseHandler } from './contest/managementBase';
+import { getScoreboardExport } from './contest/scoreboardExport';
 import { ContestSolutionDetailHandler, ContestSolutionEditHandler, loadContestSolutions } from './contest/solution';
 
 export { ContestDetailBaseHandler } from './contest/base';
@@ -998,27 +999,12 @@ export async function apply(ctx: Context) {
             },
             supportedRules: ['*'],
         });
-        scoreboard.addView('export-data', 'Export data', { tdoc: 'tdoc' }, {
-            async display({ tdoc }) {
-                if (!this.user.own(tdoc) && !this.user.hasPerm(PERM.PERM_EDIT_CONTEST)) {
-                    throw new PermissionError(PERM.PERM_EDIT_CONTEST);
-                }
-                const [, rows, udict, pdict] = await contest.getScoreboard.call(this, tdoc.domainId, tdoc._id, {
-                    isExport: true,
-                    lockAt: this.tdoc.lockAt,
-                    showDisplayName: this.user.hasPerm(PERM.PERM_VIEW_USER_PRIVATE_INFO)
-                        || this.user.own(tdoc)
-                        || this.user.hasPerm(PERM.PERM_EDIT_CONTEST),
-                });
-                const exportUsers = await user.getListForRender(
-                    tdoc.domainId,
-                    Object.keys(udict).map(Number),
-                    true,
-                );
-                for (const uid of Object.keys(udict)) {
-                    udict[uid].realName = exportUsers[uid]?.realName || '';
-                }
-                this.response.body = { tdoc, rows, udict, pdict };
+        scoreboard.addView('export-data', 'Export data', { tdoc: 'tdoc', details: Types.Boolean }, {
+            checker() {
+                return this.user.own(this.tdoc) || this.user.hasPerm(PERM.PERM_EDIT_CONTEST);
+            },
+            async display({ tdoc, details }) {
+                this.response.body = await getScoreboardExport.call(this, tdoc, details);
             },
             supportedRules: ['*'],
         });

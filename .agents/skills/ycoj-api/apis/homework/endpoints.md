@@ -46,3 +46,5 @@ Description: render a named scoreboard view. Request: `type Query={tid:ObjectId;
 
 ## `GET /homework/:tid/code`
 Description: render permitted source-code view through the shared contest code handler. Request: `type Query={tid:ObjectId;all?:boolean}`; `GET /homework/665f.../code?all=false`. Response: `type Response={tdoc:ContestDoc;rdocs:RecordDoc[]}`; `{ "tdoc":{"docId":"665f..."},"rdocs":[] }`, rendered HTML; requires homework view permission and code visibility rules.
+
+The `export-data` view returns a plain JSON export DTO with optional `details:boolean` and requires event ownership or `PERM_EDIT_CONTEST` in addition to the homework scoreboard checks. Request/response types, examples, filtering, and image workflow are shared with [contest image exports](../contest/endpoints.md#image-export-data).
