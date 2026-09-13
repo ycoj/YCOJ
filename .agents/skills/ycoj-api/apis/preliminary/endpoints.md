@@ -11,7 +11,7 @@ interface Question {
   id: string;
   type: QuestionType;
   prompt: string;
-  score: number; // positive integer, maximum 1000
+  score: number; // multiple of 0.5, between 0.5 and 1000
   explanation: string;
   answer: string; // option id, or "true" / "false"
   options?: ChoiceOption[];
@@ -31,7 +31,7 @@ interface QuestionInput {
   id: string;
   type: QuestionType;
   prompt: string;
-  score: number; // positive integer, maximum 1000
+  score: number; // multiple of 0.5, between 0.5 and 1000
   explanation?: string;
   answer: string; // option id, or "true" / "false"
   options?: ChoiceOption[];
@@ -41,7 +41,7 @@ interface PaperDefinitionInput { title: string; content: string; sections: Secti
 type Answers = Record<string, string>;
 ```
 
-IDs use 1-64 ASCII letters, digits, `_`, or `-` and must be unique across sections and questions; option IDs must be unique within their question. A paper has at most 100 sections and 200 questions. Choice questions have at most 26 options. Only program-reading sections accept true/false questions. Publishing additionally requires nonempty section titles, program passages, question prompts, at least two options per choice question, and valid answer references. Explanations are optional in submitted definitions.
+IDs use 1-64 ASCII letters, digits, `_`, or `-` and must be unique across sections and questions; option IDs must be unique within their question. A paper has at most 100 sections and 200 questions. Question scores are multiples of 0.5 from 0.5 to 1000, so totals remain exact. Choice questions have at most 26 options. Only program-reading sections accept true/false questions. Publishing additionally requires nonempty section titles, program passages, question prompts, at least two options per choice question, and valid answer references. Explanations are optional in submitted definitions.
 
 ## `GET /preliminary`
 
