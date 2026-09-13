@@ -332,6 +332,7 @@ export class ContestEditHandler extends Handler {
         this.response.body = {
             rules,
             tdoc: this.tdoc,
+            code: this.tdoc?._code,
             duration: tid ? -beginAt.diff(this.tdoc.endAt, 'hour', true) : 2,
             pids: tid ? this.tdoc.pids.join(',') : '',
             beginAt,
