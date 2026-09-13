@@ -152,7 +152,7 @@ function PreliminaryEditor({ initial, existing, wasPublished }: {
                 const prompt = event.currentTarget.value;
                 updateQuestion(sectionIndex, questionIndex, (value) => ({ ...value, prompt }));
               }} />
-              <input type="number" min="1" max="1000" step="1" className="textbox preliminary-editor__score" title={i18n('Points')} placeholder={i18n('Points')} value={question.score} onChange={(event) => {
+              <input type="number" min="0.5" max="1000" step="0.5" className="textbox preliminary-editor__score" title={i18n('Points')} placeholder={i18n('Points')} value={question.score} onChange={(event) => {
                 const score = Number(event.currentTarget.value);
                 updateQuestion(sectionIndex, questionIndex, (value) => ({ ...value, score }));
               }} />

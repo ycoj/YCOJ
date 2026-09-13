@@ -192,6 +192,21 @@ describe('preliminary paper validation', () => {
         assert.throws(() => normalizePreliminaryDefinition(invalidAnswer, true));
     });
 
+    it('accepts half-point scores and rejects other fractional or out-of-range values', () => {
+        const decimal = structuredClone(definition);
+        decimal.sections[0].questions[0].score = 1.5;
+        decimal.sections[1].questions[0].score = 2.5;
+        const normalized = normalizePreliminaryDefinition(decimal, true);
+        assert.equal(normalized.sections[0].questions[0].score, 1.5);
+        assert.equal(preliminaryTotalScore(normalized), 4);
+
+        for (const bad of [0.25, 1.25, 0, -1, 1000.5, Number.NaN, 'two']) {
+            const invalidScore = structuredClone(definition);
+            invalidScore.sections[0].questions[0].score = bad as number;
+            assert.throws(() => normalizePreliminaryDefinition(invalidScore, true), ValidationError);
+        }
+    });
+
     it('enforces section-specific question types and stable unique ids', () => {
         const invalidType = structuredClone(definition);
         invalidType.sections[0].questions[0] = structuredClone(definition.sections[1].questions[0]);
@@ -212,6 +227,21 @@ describe('preliminary scoring and disclosure', () => {
         assert.deepEqual(graded.results, [
             { questionId: 'choice-1', answer: 'two', correct: true, score: 2, maxScore: 2 },
             { questionId: 'truth-1', correct: false, score: 0, maxScore: 3 },
+        ]);
+    });
+
+    it('awards and totals half-point scores exactly', () => {
+        const decimal = structuredClone(definition);
+        decimal.sections[0].questions[0].score = 1.5;
+        decimal.sections[1].questions[0].score = 2.5;
+        const normalized = normalizePreliminaryDefinition(decimal, true);
+        const answers = normalizePreliminaryAnswers(normalized, { 'choice-1': 'two', 'truth-1': 'false' });
+        const graded = scorePreliminaryAnswers(normalized, answers);
+        assert.equal(graded.score, 1.5);
+        assert.equal(graded.totalScore, 4);
+        assert.deepEqual(graded.results, [
+            { questionId: 'choice-1', answer: 'two', correct: true, score: 1.5, maxScore: 1.5 },
+            { questionId: 'truth-1', answer: 'false', correct: false, score: 0, maxScore: 2.5 },
         ]);
     });
 

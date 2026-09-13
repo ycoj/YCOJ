@@ -77,8 +77,8 @@ export function normalizePreliminaryDefinition(
             const prompt = text(question.prompt ?? '', `${qfield}.prompt`, 16384, requireComplete);
             const explanation = text(question.explanation ?? '', `${qfield}.explanation`, 32768);
             const score = Number(question.score);
-            if (!Number.isSafeInteger(score) || score < 1 || score > 1000) {
-                invalid(`${qfield}.score`, 'Expected an integer from 1 to 1000');
+            if (!Number.isSafeInteger(score * 2) || score < 0.5 || score > 1000) {
+                invalid(`${qfield}.score`, 'Expected a multiple of 0.5 from 0.5 to 1000');
             }
             if (question.type === 'true_false') {
                 if (!['true', 'false'].includes(question.answer as string)) {
