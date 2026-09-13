@@ -398,6 +398,7 @@ describe('App', () => {
         const uid = await global.Hydro.model.user.create(
             'expire-test@example.com', username, password, undefined, '127.0.0.1',
         );
+        await global.Hydro.model.user.setById(uid, { realnameStatus: 'approved' });
         const adminUid = await global.Hydro.model.user.create(
             'expiration-admin@example.com', 'expiration-admin', password, undefined, '127.0.0.1',
         );
@@ -448,6 +449,23 @@ describe('App', () => {
 
         const expiringAgent = supertest.agent(require('hydrooj').httpServer);
         await expiringAgent.post('/login').send({ uname: username, password }).expect(302);
+
+        const finiteExpireDate = (await adminAgent.get('/manage/user-expiration?q=finite-expire-test')
+            .set('Accept', 'application/json').expect(200)).body.udocs
+            .find((udoc: { _id: number }) => udoc._id === finiteUid).accountExpireDate;
+        assert.ok(finiteExpireDate);
+        const adminProfile = await adminAgent.get(`/user/${finiteUid}`)
+            .set('Accept', 'application/json').expect(200);
+        assert.equal(adminProfile.body.accountExpireDate, finiteExpireDate);
+        const selfProfile = await expiringAgent.get(`/user/${uid}`)
+            .set('Accept', 'application/json').expect(200);
+        assert.equal(selfProfile.body.accountExpireDate, '');
+        const otherProfile = await expiringAgent.get(`/user/${finiteUid}`)
+            .set('Accept', 'application/json').expect(200);
+        assert.equal(otherProfile.body.accountExpireDate, null);
+        const guestProfile = await supertest.agent(require('hydrooj').httpServer)
+            .get(`/user/${finiteUid}`).set('Accept', 'application/json').expect(200);
+        assert.equal(guestProfile.body.accountExpireDate, null);
 
         const beforeExpiration = await global.Hydro.model.user.coll.findOne({ _id: uid });
         await global.Hydro.model.user.updateAccountExpirations([{
