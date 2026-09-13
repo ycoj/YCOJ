@@ -1,0 +1,54 @@
+{% extends "layout/basic.html" %}
+{% block content %}
+<div class="row">
+  <div class="medium-8 columns">
+    <div class="section">
+      <div class="section__header">
+        <h1 class="section__title">{{ _('Markdown OCR') }}</h1>
+      </div>
+      {{ noscript_note.render() }}
+      <div class="section__body">
+      {% if not enabled %}
+        <p class="typo supplementary">{{ _('AI Markdown OCR is disabled.') }}</p>
+      {% else %}
+        <p class="typo supplementary">{{ _('Upload a picture or a PDF of a problem statement and convert it into Markdown. PDFs are converted page by page.') }}</p>
+        <div class="row">
+          <div class="medium-8 columns form__item">
+            <label>
+              {{ _('Image or PDF file') }}
+              <input type="file" name="file" accept="{{ imageMediaTypes|join(',') }},application/pdf">
+            </label>
+          </div>
+          {% if profiles.length > 1 %}
+          <div class="medium-4 columns form__item">
+            <label>
+              {{ _('Model') }}
+              <select name="profileId" class="select">
+                {% for profile in profiles %}<option value="{{ profile.id }}">{{ profile.label }}</option>{% endfor %}
+              </select>
+            </label>
+          </div>
+          {% endif %}
+        </div>
+        <p class="typo supplementary">{{ _('Supported: {0}, PDF. Maximum file size: {1} MB; PDFs up to {2} pages.').format(imageMediaTypes|join(', '), maxFileSize // 1048576, maxPages) }}</p>
+        <div class="row"><div class="columns">
+          <button type="button" class="rounded primary button" name="ocr_submit">{{ _('Convert to Markdown') }}</button>
+          <span name="ocr_status" class="typo supplementary" style="margin-left: 10px;" hidden></span>
+        </div></div>
+      {% endif %}
+      </div>
+    </div>
+    <div class="section" name="ocr_result_section" hidden>
+      <div class="section__header">
+        <h1 class="section__title">{{ _('Result') }}</h1>
+        <div class="section__tools">
+          <button type="button" class="rounded button" name="ocr_copy">{{ _('Copy') }}</button>
+        </div>
+      </div>
+      <div class="section__body">
+        <textarea name="ocr_result" class="textbox" rows="24" readonly style="font-family: monospace;"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

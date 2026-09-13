@@ -41,6 +41,7 @@ export interface AiProviderConfig {
     providers: AiProvider[];
     dataGeneration?: AiModelSelection;
     htmlToMarkdown?: AiModelSelection;
+    markdownOcr?: AiModelSelection;
 }
 
 export interface AiModelConfig {
@@ -81,6 +82,7 @@ export function createAiProviderConfigDraft(): AiProviderConfig {
         }],
         dataGeneration: { providerId, modelId },
         htmlToMarkdown: { providerId, modelId },
+        markdownOcr: { providerId, modelId },
     };
 }
 
@@ -175,7 +177,12 @@ export function normalizeAiProviderConfig(value: any, existing?: AiProviderConfi
         ? value.htmlToMarkdown
         : existing?.htmlToMarkdown || dataGeneration;
     const htmlToMarkdown = normalizeAssignment(htmlToMarkdownValue, 'htmlToMarkdown');
-    return { version: 1, providers, dataGeneration, htmlToMarkdown };
+    // Configurations saved before the dedicated OCR model was introduced use the conversion model.
+    const markdownOcrValue = Object.hasOwn(value, 'markdownOcr')
+        ? value.markdownOcr
+        : existing?.markdownOcr || htmlToMarkdown;
+    const markdownOcr = normalizeAssignment(markdownOcrValue, 'markdownOcr');
+    return { version: 1, providers, dataGeneration, htmlToMarkdown, markdownOcr };
 }
 
 export function getAiProviderConfig(value: any): AiProviderConfig | undefined {

@@ -7,7 +7,7 @@ export interface BackgroundTaskDefinition<Payload = any, Result = any> {
     type: string;
     timeoutMs: number;
     retentionMs: number;
-    run(payload: Payload, signal: AbortSignal): Promise<Result>;
+    run(payload: Payload, signal: AbortSignal, jobId: string): Promise<Result>;
     toPublic?(doc: any): any;
     timeoutError?: string;
     failureError?: string;
@@ -87,7 +87,7 @@ export class BackgroundTaskService {
         const timer = setTimeout(() => c.abort(), d.timeoutMs);
         timer.unref();
         try {
-            const result = await d.run(runtimePayload === undefined ? doc.payload : runtimePayload, c.signal);
+            const result = await d.run(runtimePayload === undefined ? doc.payload : runtimePayload, c.signal, id);
             if (c.signal.aborted) throw new Error('timeout');
             await this.store.finish(id, d.type, { result }, d.retentionMs);
         } catch (error) {

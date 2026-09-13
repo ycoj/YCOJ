@@ -18,6 +18,10 @@ export const HtmlToMarkdownCapacityError = Err(
     'HtmlToMarkdownCapacityError', UserFacingError,
     'HTML-to-Markdown conversion capacity reached. Please try again later.', 503,
 );
+export const MarkdownOcrCapacityError = Err(
+    'MarkdownOcrCapacityError', UserFacingError,
+    'Markdown OCR capacity reached. Please try again later.', 503,
+);
 export const AiGenerationAlreadyActiveError = Err(
     'AiGenerationAlreadyActiveError', UserFacingError,
     'An AI test-data generation task is already active for this problem.', 409,

@@ -208,6 +208,7 @@ class AiProviderHandler extends SystemHandler {
         const selections = [
             [current?.dataGeneration, 'data-generation'],
             [current?.htmlToMarkdown, 'HTML-to-Markdown conversion'],
+            [current?.markdownOcr, 'Markdown OCR'],
         ] as const;
         for (const [selection, description] of selections) {
             const selectedProvider = current?.providers.find((item) => item.id === selection?.providerId);

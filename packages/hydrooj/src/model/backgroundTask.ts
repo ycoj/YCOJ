@@ -8,6 +8,8 @@ export interface BackgroundTaskOwner { domainId: string; pid: number; uid: numbe
 export interface BackgroundTaskDoc {
     _id: ObjectId; jobId: string; type: string; domainId: string; pid: number; uid: number;
     status: BackgroundTaskStatus; payload?: any; result?: any; error?: string;
+    // Optional live progress written by the running task; hidden once the job settles.
+    progress?: { done: number, total: number };
     // Capacity slots exist only on in-flight (pending/running) jobs and are unset when the job
     // settles; the slot unique indexes are partial so terminal docs leave them automatically.
     ownerSlot?: number; globalSlot?: number; createdAt: Date; claimedAt?: Date; finishedAt?: Date; expiresAt?: Date;
@@ -54,19 +56,19 @@ export class BackgroundTaskModel {
     }
     claim(jobId: string, type: string, now = new Date()) { return this.coll.findOneAndUpdate({ jobId, type, status: 'pending' }, { $set: { status: 'running', claimedAt: now } }, { returnDocument: 'after' }); }
     finish(jobId: string, type: string, value: { result?: any, error?: string }, retentionMs: number, now = new Date()) {
-        const failed = !!value.error; return this.coll.findOneAndUpdate({ jobId, type, status: 'running' }, { $set: { status: failed ? 'failed' : 'completed', ...(failed ? { error: value.error } : { result: value.result }), finishedAt: now, expiresAt: new Date(now.getTime() + retentionMs) }, $unset: { ownerSlot: '', globalSlot: '', ...(failed ? { result: '' } : { error: '' }) } }, { returnDocument: 'after' });
+        const failed = !!value.error; return this.coll.findOneAndUpdate({ jobId, type, status: 'running' }, { $set: { status: failed ? 'failed' : 'completed', ...(failed ? { error: value.error } : { result: value.result }), finishedAt: now, expiresAt: new Date(now.getTime() + retentionMs) }, $unset: { ownerSlot: '', globalSlot: '', progress: '', ...(failed ? { result: '' } : { error: '' }) } }, { returnDocument: 'after' });
     }
     get(jobId: string, type: string, owner: BackgroundTaskOwner) { return this.coll.findOne({ jobId, type, ...owner }); }
     async view(jobId: string, type: string, owner: BackgroundTaskOwner, timeoutMs: number, retentionMs: number): Promise<BackgroundTaskDoc | null> {
         const doc = await this.get(jobId, type, owner); if (!doc) return null; const now = Date.now();
         if (doc.expiresAt && doc.expiresAt.getTime() <= now) { await this.coll.deleteOne({ _id: doc._id }); return null; }
         if ((doc.status === 'pending' || doc.status === 'running') && now - (doc.status === 'running' ? doc.claimedAt! : doc.createdAt).getTime() > timeoutMs) {
-            await this.coll.updateOne({ jobId, type, status: { $in: ['pending', 'running'] } }, { $set: { status: 'failed', error: BACKGROUND_TASK_TIMEOUT_MESSAGE, finishedAt: new Date(), expiresAt: new Date(now + retentionMs) }, $unset: { ownerSlot: '', globalSlot: '' } });
+            await this.coll.updateOne({ jobId, type, status: { $in: ['pending', 'running'] } }, { $set: { status: 'failed', error: BACKGROUND_TASK_TIMEOUT_MESSAGE, finishedAt: new Date(), expiresAt: new Date(now + retentionMs) }, $unset: { ownerSlot: '', globalSlot: '', progress: '' } });
             doc.status = 'failed'; doc.error = BACKGROUND_TASK_TIMEOUT_MESSAGE;
         } return doc;
     }
     deleteExpired(now = new Date()) { return this.coll.deleteMany({ expiresAt: { $lte: now } }); }
-    reclaimStalled(type: string, timeoutMs: number, retentionMs: number, now = new Date()) { const d = new Date(now.getTime() - timeoutMs); return this.coll.updateMany({ type, $or: [{ status: 'running', claimedAt: { $lt: d } }, { status: 'pending', createdAt: { $lt: d } }] }, { $set: { status: 'failed', error: BACKGROUND_TASK_TIMEOUT_MESSAGE, finishedAt: now, expiresAt: new Date(now.getTime() + retentionMs) }, $unset: { ownerSlot: '', globalSlot: '' } }); }
+    reclaimStalled(type: string, timeoutMs: number, retentionMs: number, now = new Date()) { const d = new Date(now.getTime() - timeoutMs); return this.coll.updateMany({ type, $or: [{ status: 'running', claimedAt: { $lt: d } }, { status: 'pending', createdAt: { $lt: d } }] }, { $set: { status: 'failed', error: BACKGROUND_TASK_TIMEOUT_MESSAGE, finishedAt: now, expiresAt: new Date(now.getTime() + retentionMs) }, $unset: { ownerSlot: '', globalSlot: '', progress: '' } }); }
 }
 export const backgroundTaskModel = new BackgroundTaskModel();
 export async function apply(ctx: any) { await ctx.db.ensureIndexes(backgroundTaskModel.coll, ...BACKGROUND_TASK_INDEXES); }
