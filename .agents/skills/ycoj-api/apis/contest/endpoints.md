@@ -81,7 +81,7 @@ Description: render the explicitly named scoreboard view. Request: `type Query={
 Description: render the contest creation form. Request: `type Query={}`; `GET /contest/create`. Response: `type Response={page_name:"contest_create";groups:unknown[];langs:unknown[]}`; `{ "page_name":"contest_create" }`, HTML `contest_edit.html`.
 
 ## `GET /contest/:tid/edit`
-Description: render an existing contest for editing. Request: `type Query={tid:ObjectId}`; `GET /contest/665f.../edit`. Response: `type Response={page_name:"contest_edit";tdoc:Tdoc;groups:unknown[];langs:unknown[]}`; `{ "page_name":"contest_edit","tdoc":{"docId":"665f..."} }`, HTML `contest_edit.html`.
+Description: render an existing contest for editing. Request: `type Query={tid:ObjectId}`; `GET /contest/665f.../edit`. Response: `type Response={page_name:"contest_edit";tdoc:Tdoc;code?:string;groups:unknown[];langs:unknown[]}`; `{ "page_name":"contest_edit","tdoc":{"docId":"665f..."},"code":"invite-secret" }`, HTML `contest_edit.html`. `code` is the stored invitation code, returned at the top level because `_code` is stripped from serialized `tdoc`; it is absent when unset.
 
 ## `GET /contest/:tid/print`
 Description: render the printable contest page. Request: `type Query={tid:ObjectId}`; `GET /contest/665f.../print`. Response: `type Response={tdoc:Tdoc}`; `{ "tdoc":{"docId":"665f..."} }`, HTML `contest_print.html`.

@@ -212,7 +212,9 @@ class HomeworkEditHandler extends Handler {
         if (!tid) {
             tid = await contest.add(domainId, title, content, this.user._id,
                 'homework', beginAt.toDate(), endAt.toDate(), pids, rated,
-                { penaltySince: penaltySince.toDate(), penaltyRules, assign });
+                {
+                    penaltySince: penaltySince.toDate(), penaltyRules, assign, maintainer, langs,
+                });
         } else {
             await contest.edit(domainId, tid, {
                 title,
