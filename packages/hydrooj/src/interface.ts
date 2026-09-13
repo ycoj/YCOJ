@@ -863,6 +863,7 @@ export interface Model {
     rp: typeof import('./script/rating').RpTypes;
     paste: typeof import('./model/paste').default;
     htmlToMarkdownJob: import('./model/htmlToMarkdownJob').HtmlToMarkdownJobModel;
+    markdownOcrJob: import('./model/markdownOcrJob').MarkdownOcrJobModel;
     backgroundTask: import('./model/backgroundTask').BackgroundTaskModel;
     oier: typeof import('./model/oier');
 }

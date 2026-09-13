@@ -26,6 +26,7 @@ interface Config {
   providers: Provider[];
   dataGeneration?: { providerId: string, modelId: string };
   htmlToMarkdown?: { providerId: string, modelId: string };
+  markdownOcr?: { providerId: string, modelId: string };
 }
 
 const thinkingLevels: ThinkingLevel[] = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
@@ -129,7 +130,7 @@ export default new NamedPage('manage_ai_provider', () => {
   const state = { render: () => {} };
 
   function selectModel(
-    key: 'dataGeneration' | 'htmlToMarkdown',
+    key: 'dataGeneration' | 'htmlToMarkdown' | 'markdownOcr',
     label: string,
     fallback?: Config['dataGeneration'],
   ) {
@@ -153,8 +154,9 @@ export default new NamedPage('manage_ai_provider', () => {
   }
 
   function isSelected(provider: Provider, model?: Model) {
-    return [config.dataGeneration, config.htmlToMarkdown].some((selection) => selection?.providerId === provider.id
-      && (!model || selection.modelId === model.id));
+    return [config.dataGeneration, config.htmlToMarkdown, config.markdownOcr]
+      .some((selection) => selection?.providerId === provider.id
+        && (!model || selection.modelId === model.id));
   }
 
   function renderModel(provider: Provider, model: Model): HTMLElement {
@@ -245,6 +247,7 @@ export default new NamedPage('manage_ai_provider', () => {
       editor.append(
         selectModel('dataGeneration', i18n('AI data generation model')),
         selectModel('htmlToMarkdown', i18n('HTML to Markdown conversion model'), config.dataGeneration),
+        selectModel('markdownOcr', i18n('Markdown OCR model'), config.htmlToMarkdown || config.dataGeneration),
       );
     }
     config.providers.forEach((provider) => editor.append(renderProvider(provider)));
@@ -255,6 +258,7 @@ export default new NamedPage('manage_ai_provider', () => {
     config.providers.push(provider);
     config.dataGeneration ||= { providerId: provider.id, modelId: provider.models[0].id };
     config.htmlToMarkdown ||= { providerId: provider.id, modelId: provider.models[0].id };
+    config.markdownOcr ||= { providerId: provider.id, modelId: provider.models[0].id };
     state.render();
   });
   form.addEventListener('submit', () => { value.value = JSON.stringify(config); });

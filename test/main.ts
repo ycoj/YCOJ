@@ -370,6 +370,79 @@ describe('App', () => {
         }
     });
 
+    it('Markdown OCR: submits an upload as an async job, persists it, and polls it', async () => {
+        const AI_PROVIDER_CONFIG_KEY = 'ai.providerConfig';
+        const providerConfig = {
+            version: 1,
+            providers: [{
+                id: 'ocrtest', name: 'Test', apiType: 'openai-completions',
+                baseUrl: 'http://127.0.0.1:9/v1', apiKey: 'test-key',
+                models: [{
+                    id: 'testmodel', name: 'T', model: 'test-model', reasoning: false,
+                    thinkingLevel: 'high', contextTokens: 16_000, maxTokens: 2_000,
+                }],
+            }],
+            dataGeneration: { providerId: 'ocrtest', modelId: 'testmodel' },
+            htmlToMarkdown: { providerId: 'ocrtest', modelId: 'testmodel' },
+            markdownOcr: { providerId: 'ocrtest', modelId: 'testmodel' },
+        };
+        await global.Hydro.model.system.set('aiGeneration.enabled', true);
+        await global.Hydro.model.system.set(AI_PROVIDER_CONFIG_KEY, providerConfig);
+        const png = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4, 5, 6, 7, 8]);
+        try {
+            await agent.get('/tools/markdown-ocr').expect(200);
+
+            // Submit through the dedicated POST route: HTTP 202 with the pending schema only.
+            const submit = await agent.post('/tools/markdown-ocr').set('Accept', 'application/json')
+                .attach('file', png, 'scan.png')
+                .expect(202);
+            assert.deepEqual(Object.keys(submit.body).sort(), ['jobId', 'status']);
+            assert.equal(submit.body.status, 'pending');
+            const { jobId } = submit.body;
+
+            // The job lives in the shared DB store; the persisted payload keeps metadata only —
+            // no API key and no uploaded bytes.
+            const persisted = await global.Hydro.model.markdownOcrJob.coll.findOne({ jobId });
+            assert.ok(persisted, 'job must be persisted for cross-worker polling');
+            assert.equal(persisted.domainId, 'system');
+            assert.equal(persisted.uid, 2);
+            assert.equal(persisted.payload.file.kind, 'image');
+            assert.equal(persisted.payload.file.mediaType, 'image/png');
+            assert.equal(persisted.payload.file.data, undefined, 'uploaded bytes are not persisted');
+            assert.equal(persisted.payload.config.apiKey, undefined, 'API key is not persisted');
+
+            // Poll the actual GET route.
+            const poll = await agent.get(`/tools/markdown-ocr/${jobId}`).set('Accept', 'application/json').expect(200);
+            assert.equal(poll.body.jobId, jobId, 'poll echoes jobId');
+            assert.ok(['pending', 'running', 'failed', 'completed'].includes(poll.body.status), `unexpected poll status: ${poll.body.status}`);
+
+            // Unknown jobs 404.
+            const missing = await agent.get('/tools/markdown-ocr/00000000-0000-4000-8000-000000000000').set('Accept', 'application/json');
+            assert.equal(missing.status, 404, 'unknown job is 404');
+            assert.equal(missing.body.error.name, 'NotFoundError');
+
+            // Empty and unsupported uploads are rejected before a job is admitted.
+            const noFile = await agent.post('/tools/markdown-ocr').set('Accept', 'application/json').send({});
+            assert.equal(noFile.status, 403);
+            assert.equal(noFile.body.error.name, 'ValidationError');
+            const txt = await agent.post('/tools/markdown-ocr').set('Accept', 'application/json')
+                .attach('file', Buffer.from('plain text'), 'a.txt');
+            assert.equal(txt.status, 403);
+            assert.equal(txt.body.error.name, 'ValidationError');
+
+            // Anonymous users are refused by the route privilege gate.
+            const anon = supertest.agent(require('hydrooj').httpServer);
+            const anonSubmit = await anon.post('/tools/markdown-ocr').set('Accept', 'application/json')
+                .attach('file', png, 'scan.png');
+            assert.equal(anonSubmit.status, 403, 'anonymous submit is 403');
+            const anonPoll = await anon.get(`/tools/markdown-ocr/${jobId}`).set('Accept', 'application/json');
+            assert.equal(anonPoll.status, 403, 'anonymous poll is 403');
+        } finally {
+            await global.Hydro.model.system.set('aiGeneration.enabled', false);
+            await global.Hydro.model.system.del(AI_PROVIDER_CONFIG_KEY);
+        }
+    });
+
     it('Validates contest attendance for query and body problem mutations', async () => {
         const pid = await global.Hydro.model.problem.add(
             'system', 'CONTEST_CONTEXT_TEST', 'Contest context test', '', 2,

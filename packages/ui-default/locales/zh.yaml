@@ -79,6 +79,7 @@ After submission, a super administrator will review your real name and school.: 
 After submission, you may use the site for seven days while a super administrator reviews your application.: 提交后七天内，你可以在老师审核期间继续使用本站。
 "After you've performed a sudo-protected action, you'll only be asked to re-authenticate again after a few hours of inactivity.": 在您执行受保护的操作后，只有账户连续数小时不活动时，系统才会再次要求您重新验证身份。
 AI data generation model: AI 数据生成模型
+AI Markdown OCR is disabled.: AI Markdown OCR 未启用。
 All: 全部
 All {0} Contests: 所有 {0} 比赛
 All changes will be lost. Are you sure to clear all answers?: 所有更改将会丢失。您确定要清除所有答案吗？
@@ -247,6 +248,8 @@ Context window: 上下文窗口
 Continue: 继续
 Contributed Problems: 贡献的题目
 Contributions: 贡献
+Conversion finished.: 转换完成。
+Convert to Markdown: 转换为 Markdown
 Copy: 复制
 'Copy "{data}" failed :(': '复制“{data}”失败 :('
 Copy Email: 复制电子邮件
@@ -536,6 +539,7 @@ HTML to Markdown conversion model: HTML 转 Markdown 模型
 If enabled, source code will be emailed to you after the submission is accepted.: 如果启用，在您通过题目后，源代码会以 Email 的形式发送给您。
 If left blank, the built-in template of the corresponding language will be used.: 若留空，则将使用对应语言的内置代码模板。
 Ignore trailing space and enter.: 忽略行末空格与文件尾回车。
+Image or PDF file: 图片或 PDF 文件
 Images: 图片
 Images With Size: 指定大小的图片
 Import: 导入
@@ -640,6 +644,9 @@ Mark Green: 标绿
 Mark Red: 标红
 Mark user as joined using admin privilege: 使用管理员权限将用户标记为已加入
 Mark Yellow: 标黄
+Markdown OCR: Markdown OCR
+Markdown OCR failed.: Markdown OCR 失败。
+Markdown OCR model: Markdown OCR 模型
 'Matching contestants named {0} from {1}.': 正在匹配姓名为 {0}、学校为 {1} 的获奖人。
 Max Passes: 最大轮次
 Maximum output tokens: 最大输出令牌数
@@ -793,6 +800,7 @@ Please claim the assignment to see the problems.: 认领作业后才可以查看
 Please complete real-name verification before using this site.: 请先完成实名认证后再使用本站功能。
 Please enter your legal name and school. After you submit, you may use the site for seven days while a super administrator reviews your application. If review is still pending or not approved after seven days, access will be blocked.: 请填写你的真实姓名与学校。提交后七天内可暂时使用本站；若七天后仍未完成审核或审核未通过，将无法继续使用本站。
 Please follow the instructions on your device to complete the verification.: 请按照您设备上的指示完成验证。
+Please select a file first.: 请先选择文件。
 Please select at least one file to perform this operation.: 请选择至少一个文件来执行此操作。
 Please select at least one problem to perform this operation.: 请选择至少一道题目来执行此操作。
 Please select at least one role to perform this operation.: 请选择至少一个角色来进行操作。
@@ -866,6 +874,7 @@ problem.stats.sort.time: 运行时间
 Problems: 题目
 Problems created in polyhedron can be directly imported into any Hydro based online judge system.: Polyhedron 中的题目可以直接导入任何基于 Hydro 的在线测评系统。
 Problems Sets: 题库
+'Processing page {0} / {1}...': 正在处理第 {0} / {1} 页...
 Processing...: 处理中...
 Profile Background Image: 背景图片
 Program Completion: 程序完善题
@@ -951,6 +960,7 @@ Reset Password: 重置密码
 Reset Password or Find Username: 重置密码或找回用户名
 Restart: 重新启动
 Resubmit: 重新提交
+Result: 结果
 Reviewed At: 审核时间
 Reviewed by: 审核人
 Revision: 版本
@@ -1103,6 +1113,7 @@ SuperUser: 超级管理员
 SuperUser's Password: 超级管理员的密码
 Support: 支持
 Supported: 支持
+'Supported: {0}, PDF. Maximum file size: {1} MB; PDFs up to {2} pages.': 支持 {0}、PDF。最大文件大小：{1} MB；PDF 最多 {2} 页。
 Switch account: 切换账户
 Tags: 标签
 Task Settings: 任务设置
@@ -1210,6 +1221,7 @@ Update Permission: 更新权限
 Update Settings: 更新设置
 Update Verification: 更新认证
 Upload: 上传
+Upload a picture or a PDF of a problem statement and convert it into Markdown. PDFs are converted page by page.: 上传题目图片或 PDF，转换为 Markdown。PDF 会逐页转换。
 Upload Failed: 上传失败
 Upload File: 上传文件
 Upload Problem: 上传题目

@@ -8,6 +8,7 @@ Add Provider: Add Provider
 Adjust Account Expiration: Adjust Account Expiration
 Adjust Days: Adjust Days
 AI data generation model: AI data generation model
+AI Markdown OCR is disabled.: AI Markdown OCR is disabled.
 API key: API key
 API model ID: API model ID
 API type: API type
@@ -20,7 +21,12 @@ Contest Solutions: Contest Solutions
 contest_solution_create: Create Solution
 contest_solution_detail: Contest Solution
 contest_solution_edit: Edit Solution
+Content copied to clipboard!: Content copied to clipboard!
 Context window: Context window
+Conversion finished.: Conversion finished.
+Convert to Markdown: Convert to Markdown
+Copy: Copy
+'Copy failed :(': 'Copy failed :('
 Current Status: Status
 Days to Adjust: Days to Adjust
 Days to adjust must be a non-zero integer.: Days to adjust must be a non-zero integer.
@@ -38,9 +44,13 @@ Handled Requests: Req
 Hint::icon::difficulty: The difficulty of the problems in Hydro will be calculated by algorithm, depending on current submission, sometimes the difficulty may not so exact.
 Hint::icon::switch_account: As a superadmin, you can switch to anyone's account.
 HTML to Markdown conversion model: HTML to Markdown conversion model
+Image or PDF file: Image or PDF file
 manage: System Manage
 manage_ai_provider: AI Providers
 manage_user_expiration: Account Expiration
+Markdown OCR: Markdown OCR
+Markdown OCR failed.: Markdown OCR failed.
+Markdown OCR model: Markdown OCR model
 Maximum output tokens: Maximum output tokens
 Model: Model
 New model: New model
@@ -64,6 +74,7 @@ perm_problem: Problems
 perm_problem_solution: Problem Solutions
 perm_record: Records
 perm_training: Trainings
+Please select a file first.: Please select a file first.
 preferredPrefix_hint: This is used for re-organizing problem IDs. For example, if the ID of the problem in the problemset are P1001, P1002, P1003, and you set "T" in this option, those problem will be imported with ID T1001, T1002 and T1003.
 Preliminary Round Training: Preliminary Round Training
 preliminary_attempt: Preliminary-round Result
@@ -93,6 +104,8 @@ problem.import.input_format: '## Input Format'
 problem.import.limit_and_hint: '## Limits'
 problem.import.output_format: '## Output Format'
 problem.import.problem_description: '## Description'
+'Processing page {0} / {1}...': 'Processing page {0} / {1}...'
+Processing...: Processing...
 Protected: Protected
 Provider: Provider
 Provider name: Provider name
@@ -105,6 +118,7 @@ Rejected: Rejected
 Rejected and author blocked: Rejected and author blocked
 Remove model: Remove model
 Remove provider: Remove provider
+Result: Result
 Reviewed by: Reviewed by
 rpDetailText_contest: Contest
 rpDetailText_problem: Problem
@@ -128,6 +142,7 @@ Solutions for this author are being updated. Please try again.: Solutions for th
 sort::default: Default
 sort::recent: Recent
 Supported: Supported
+'Supported: {0}, PDF. Maximum file size: {1} MB; PDFs up to {2} pages.': 'Supported: {0}, PDF. Maximum file size: {1} MB; PDFs up to {2} pages.'
 tasks_list: Task list
 The solution changed. Reload the page and review it again.: The solution changed. Reload the page and review it again.
 timeago_locale: en_US
@@ -139,6 +154,8 @@ Unapproved solutions: Unapproved solutions
 Unblock solution author: Unblock solution author
 Unblocking returns this author’s blocked solutions to unreviewed.: Unblocking returns this author’s blocked solutions to unreviewed.
 Unreviewed: Unreviewed
+Upload a picture or a PDF of a problem statement and convert it into Markdown. PDFs are converted page by page.: Upload a picture or a PDF of a problem statement and convert it into Markdown. PDFs are converted page by page.
+Uploading...: Uploading...
 Use a positive number to extend or a negative number to shorten.: Use a positive number to extend or a negative number to shorten.
 User ID: User ID
 user_detail: User Detail

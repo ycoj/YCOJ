@@ -44,6 +44,7 @@ Add new data: 데이터 추가
 Add Provider: 제공자 추가
 Add User: 사용자 추가
 AI data generation model: AI 데이터 생성 모델
+AI Markdown OCR is disabled.: AI Markdown OCR이 비활성화되어 있습니다.
 All: 전체
 All {0} Contests: 전체 {0} 대회
 All Contests: 전체 대회
@@ -131,6 +132,7 @@ Contact: 연락
 Contact Us: 연락
 content: 매체
 Content: 매체
+Content copied to clipboard!: 내용이 클립보드에 복사되었습니다!
 Contest: 대회
 Contest Scoreboard: 대회 점수판
 Contest scoreboard is not visible.: 대회 점수판이 비공개입니다.
@@ -147,6 +149,8 @@ Context window: 컨텍스트 창
 Continue: 계속
 Contributed Problems: 기여한 문제
 Contributions: 기여
+Conversion finished.: 변환이 완료되었습니다.
+Convert to Markdown: Markdown으로 변환
 Copt Problem: 문제 복사
 Copy: 복사
 'Copy "{data}" failed :(': '복사“{data}”실패 :('
@@ -358,6 +362,7 @@ hour(s): 시간
 HTML to Markdown conversion model: HTML-Markdown 변환 모델
 If enabled, source code will be emailed to you after the submission is accepted.: 허용하면, 제출이 맞았을 경우 이메일로 보낼 것입니다.
 If left blank, the built-in template of the corresponding language will be used.: 공백으로 둔다면, 기본 언어로 적용합니다.
+Image or PDF file: 이미지 또는 PDF 파일
 Images: 사진
 Import: 가져오기
 Import from: '다음에서 가져오기: '
@@ -430,6 +435,9 @@ manage_user_import: 사용자 불러오기
 Manager: 관리
 Mark Green: 초록으로 표시
 Mark Yellow: 노랑으로 표시
+Markdown OCR: Markdown OCR
+Markdown OCR failed.: Markdown OCR에 실패했습니다.
+Markdown OCR model: Markdown OCR 모델
 Maximum output tokens: 최대 출력 토큰
 Memory: 메모리
 Memory Cost: 메모리
@@ -531,6 +539,7 @@ Pick a problem randomly based on the current filter.: 필터 기반 무작위 �
 Plan: 계획
 Please attend contest to see the problems.: 문제를 보려면 대회에 참가하십시오.
 Please claim the assignment to see the problems.: 문제를 보려면 과제를 할당받으십시오
+Please select a file first.: 먼저 파일을 선택하세요.
 Please select at least one role to perform this operation.: 작업을 하려면 적어도 하나의 역할을 고르십시오.
 Please select at least one user to perform this operation.: 작업을 하려면 적어도 하나의 역할을 고르십시오.
 Preference Settings: 개인 설정
@@ -567,6 +576,8 @@ problem.import.output_format: '## Output'
 problem.import.problem_description: '## Description'
 Problems: 문제
 Problems Sets: 문제 셋
+'Processing page {0} / {1}...': '{0} / {1} 페이지 처리 중...'
+Processing...: 처리 중...
 Profile Background Image: 프로필 배경
 Progress: 진행
 Properties: 특성
@@ -626,6 +637,7 @@ Reset: 재설정
 Reset Password: 비밀번호 재설정
 Reset Password or Find Username: 비밀번호 재설정 또는 ID 찾기
 Restart: 다시 시작
+Result: 결과
 Reviewed by: 검토자
 Role: 역할
 'Role {1} already exists in domain {0}.': '역할 {1}이(가) 이미 {0}에 존재합니다.'
@@ -724,6 +736,7 @@ Submit Your Code: 제출
 Submitted: 제출함
 Support: 지원
 Supported: 지원됨
+'Supported: {0}, PDF. Maximum file size: {1} MB; PDFs up to {2} pages.': '지원: {0}, PDF. 최대 파일 크기: {1}MB; PDF는 최대 {2}페이지.'
 Tags: 태그
 Technical Information: 기술 정보
 Temporary session: 임시 세션
@@ -793,6 +806,8 @@ Update: 갱신
 Update Permission: 권한 갱신
 Update Settings: 설정 갱신
 Upload: 업로드
+Upload a picture or a PDF of a problem statement and convert it into Markdown. PDFs are converted page by page.: 문제 이미지나 PDF를 업로드하여 Markdown으로 변환합니다. PDF는 페이지별로 변환됩니다.
+Uploading...: 업로드 중...
 Upload File: 파일 업로드
 Upload Problem: 문제 업로드
 Uploaded By: '아이디'
