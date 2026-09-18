@@ -53,9 +53,11 @@ export async function updateStatus(
 
 export async function apply(ctx: Context) {
     coll = ctx.db.collection('problem.feedback');
+    await ctx.db.clearIndexes(coll, ['status_created']);
     await ctx.db.ensureIndexes(
         coll,
-        { key: { status: 1, createdAt: -1 }, name: 'status_created' },
+        { key: { domainId: 1, status: 1, createdAt: -1 }, name: 'domain_status_created' },
+        { key: { domainId: 1, createdAt: -1 }, name: 'domain_created' },
         { key: { domainId: 1, pid: 1, createdAt: -1 }, name: 'problem_created' },
         { key: { owner: 1, createdAt: -1 }, name: 'owner_created' },
     );

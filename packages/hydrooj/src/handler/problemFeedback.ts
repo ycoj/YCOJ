@@ -39,6 +39,7 @@ class ProblemFeedbackManageHandler extends Handler {
             problem.getList(domainId, docs.map((doc) => doc.pid), true, false),
             user.getList(domainId, docs.flatMap((doc) => [doc.owner, doc.reviewedBy].filter(Boolean) as number[])),
         ]);
+        this.response.template = 'manage_problem_feedback.html';
         this.response.body = {
             docs,
             page,

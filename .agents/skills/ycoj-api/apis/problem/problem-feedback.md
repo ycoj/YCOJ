@@ -14,6 +14,8 @@ interface ProblemFeedbackDoc {
   status: ProblemFeedbackStatus;
   createdAt: string;
   updatedAt: string;
+  reviewedBy?: number;
+  reviewedAt?: string;
 }
 ```
 
@@ -150,7 +152,9 @@ Cookie: sid=ADMIN_SESSION
     "content": "The statement does not define the range of n.",
     "status": "processing",
     "createdAt": "2026-09-18T18:00:00.000Z",
-    "updatedAt": "2026-09-18T18:05:00.000Z"
+    "updatedAt": "2026-09-18T18:05:00.000Z",
+    "reviewedBy": 1,
+    "reviewedAt": "2026-09-18T18:05:00.000Z"
   },
   "url": "/manage/problem-feedback?status=processing"
 }
