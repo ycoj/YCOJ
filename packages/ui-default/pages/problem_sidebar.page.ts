@@ -41,6 +41,31 @@ const page = new NamedPage([
       Notification.error(error.message);
     }
   });
+  $(document).on('click', '[name="problem-sidebar__feedback"]', async () => {
+    const res = await prompt(i18n('Report Problem Issue'), {
+      content: {
+        type: 'textarea',
+        label: i18n('Briefly describe the problem'),
+        required: true,
+        autofocus: true,
+      },
+    });
+    const content = res?.content?.trim();
+    if (!content) return;
+    if (content.length > 1000) {
+      Notification.error(i18n('Feedback must be 1000 characters or fewer.'));
+      return;
+    }
+    try {
+      await request.post(`./${UiContext.problemNumId}/feedback`, {
+        content,
+        tid: UiContext.tdoc?._id,
+      });
+      Notification.success(i18n('Problem feedback submitted.'));
+    } catch (error) {
+      Notification.error(error.message);
+    }
+  });
 });
 
 export default page;

@@ -15,6 +15,8 @@ Approved: Approved
 Banned: Banned
 Base URL: Base URL
 Blocked solution authors: Blocked solution authors
+
+Briefly describe the problem: Briefly describe the problem
 Can be Extended For: Extension
 Contest Solutions: Contest Solutions
 contest_solution_create: Create Solution
@@ -32,6 +34,8 @@ Expiration date is required.: Expiration date is required.
 Expired and automatically banned: Expired and automatically banned
 Expired; ban pending next access: Expired; ban pending next access
 Featured Solution: Featured Solution
+
+Feedback must be 1000 characters or fewer.: Feedback must be 1000 characters or fewer.
 'File IO: {0}': 'File IO: {0}'
 Filter: Filter
 Handled Requests: Req
@@ -71,6 +75,8 @@ preliminary_create: New Preliminary-round Paper
 preliminary_detail: Preliminary-round Paper
 preliminary_edit: Edit Preliminary-round Paper
 preliminary_main: Preliminary Round Training
+
+Problem feedback submitted.: Problem feedback submitted.
 Problem ID: Problem ID
 problem_create: Problem Create
 problem_edit: Problem Edit
@@ -105,6 +111,8 @@ Rejected: Rejected
 Rejected and author blocked: Rejected and author blocked
 Remove model: Remove model
 Remove provider: Remove provider
+
+Report Problem Issue: Report Problem Issue
 Reviewed by: Reviewed by
 rpDetailText_contest: Contest
 rpDetailText_problem: Problem

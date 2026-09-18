@@ -1,0 +1,93 @@
+{% import "components/nothing.html" as nothing with context %}
+{% import "components/paginator.html" as paginator with context %}
+{% import "components/problem.html" as problem with context %}
+{% import "components/user.html" as user with context %}
+{% extends "manage_base.html" %}
+{% block manage_content %}
+{% set statusLabels = {
+  pending: 'Pending',
+  processing: 'Processing',
+  resolved: 'Resolved',
+  invalid: 'Invalid'
+} %}
+<div class="section">
+  <div class="section__header">
+    <h1 class="section__title">{{ _('Problem Feedback') }}</h1>
+    <div class="section__tools">
+      <form method="get">
+        <select class="inline compact select" name="status" onchange="this.form.submit()">
+          <option value="pending" {% if status == 'pending' %}selected{% endif %}>{{ _('Pending') }}</option>
+          <option value="processing" {% if status == 'processing' %}selected{% endif %}>{{ _('Processing') }}</option>
+          <option value="resolved" {% if status == 'resolved' %}selected{% endif %}>{{ _('Resolved') }}</option>
+          <option value="invalid" {% if status == 'invalid' %}selected{% endif %}>{{ _('Invalid') }}</option>
+          <option value="all" {% if status == 'all' %}selected{% endif %}>{{ _('All') }}</option>
+        </select>
+        <button type="submit" class="inline compact primary button">
+          <span class="icon icon-search"></span> {{ _('Filter') }}
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="section__body no-padding">
+    {% if not docs.length %}
+      {{ nothing.render('No problem feedback matches this filter.') }}
+    {% else %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>{{ _('Problem') }}</th>
+          <th>{{ _('Reporter') }}</th>
+          <th>{{ _('Feedback') }}</th>
+          <th>{{ _('Status') }}</th>
+          <th>{{ _('Submitted') }}</th>
+          <th>{{ _('Actions') }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {%- for doc in docs -%}
+        <tr>
+          <td>
+            {% if pdict[doc.pid] %}
+              {{ problem.render_problem_title(pdict[doc.pid], show_tags=false, show_invisible_flag=false) }}
+            {% else %}
+              #{{ doc.pid }}
+            {% endif %}
+          </td>
+          <td>{{ user.render_inline(udict[doc.owner]) }}</td>
+          <td class="typo">{{ doc.content }}</td>
+          <td>
+            <strong>{{ _(statusLabels[doc.status]) }}</strong>
+            {% if doc.reviewedBy %}
+              <div class="supplementary">
+                {{ user.render_inline(udict[doc.reviewedBy], avatar=false, badge=false) }}
+                {% if doc.reviewedAt %}{{ datetimeSpan(doc.reviewedAt)|safe }}{% endif %}
+              </div>
+            {% endif %}
+          </td>
+          <td>{{ datetimeSpan(doc.createdAt)|safe }}</td>
+          <td>
+            <form method="post">
+              <input type="hidden" name="operation" value="update_status">
+              <input type="hidden" name="id" value="{{ doc._id }}">
+              <select class="compact select" name="status">
+                <option value="pending" {% if doc.status == 'pending' %}selected{% endif %}>{{ _('Pending') }}</option>
+                <option value="processing" {% if doc.status == 'processing' %}selected{% endif %}>{{ _('Processing') }}</option>
+                <option value="resolved" {% if doc.status == 'resolved' %}selected{% endif %}>{{ _('Resolved') }}</option>
+                <option value="invalid" {% if doc.status == 'invalid' %}selected{% endif %}>{{ _('Invalid') }}</option>
+              </select>
+              <button type="submit" class="compact primary button">{{ _('Update') }}</button>
+            </form>
+          </td>
+        </tr>
+        {%- endfor -%}
+      </tbody>
+    </table>
+    {% endif %}
+  </div>
+  {% if pcount > 1 %}
+  <div class="section__body">
+    {{ paginator.render(page, pcount, add_qs=utils.buildQueryString(status=status)) }}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -149,6 +149,7 @@ Blocked by: 屏蔽人
 Blocked solution authors: 已屏蔽题解的作者
 Bold: 加粗
 Boom!: 炸了！
+Briefly describe the problem: 请简要描述题目存在的问题
 Browser: 浏览器
 Built-in: 内置
 Bulletin: 公告
@@ -452,6 +453,7 @@ Failed to parse testcase.: 无法解析测试点信息。
 False: 错误
 Featured Solution: 精选题解
 Feedback: 反馈
+Feedback must be 1000 characters or fewer.: 反馈内容不能超过 1000 个字符。
 Field {0} or {1} validation failed.: 字段 {0} 或 {1} 验证失败。
 Field {0} validation failed.: 字段 {0} 验证失败。
 File: 文件
@@ -826,6 +828,7 @@ Problem {1} not found.: 题目 {1} 不存在。
 Problem / User Info: 题目 / 用户信息
 Problem Category: 标签
 Problem Data: 题目数据
+Problem feedback submitted.: 题目反馈已提交。
 Problem ID: 题目编号
 Problem ID cannot be a pure number. Leave blank if you want to use numberic id.: 题目ID不能为纯数字。 若要自动分配数字ID请将此处留空。
 Problem ID List: 题目 ID 列表
@@ -944,6 +947,7 @@ Reply: 回复
 Reply discussions: 回复讨论
 Reply problem solutions: 回复题解
 Report: 举报
+Report Problem Issue: 反馈题目问题
 Require Invitation Code: 需要邀请码
 required: 必填
 Reset: 重置
