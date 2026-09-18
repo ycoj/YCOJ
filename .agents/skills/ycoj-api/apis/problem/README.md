@@ -6,6 +6,7 @@ All paths are domain-relative: on a non-system domain prefix them with `/d/{doma
 - [Legacy category compatibility redirect](problem-category-compat.md)
 - [Problem detail, actions, submission, hacking, and statistics](problem-detail-submit.md): includes asynchronous HTML-to-Markdown submission via POST `/p/:pid/html-to-markdown` (HTTP 202) backed by a persistent, cluster-shared job store with atomic per-owner (10) and global (100) capacity, and GET `/p/:pid/html-to-markdown/:jobId` polling that any worker can serve; the submit and poll contest context validates a decorated `tid` (query or body) into a real ObjectId and loads the contest inside the route
 - HTML-to-Markdown submit and poll ownership includes maintainers with self-edit permission; job payloads exclude API keys, and completed Markdown may be empty. See the conversion contracts and polling workflow in the detail document above.
+- [Problem feedback](problem-feedback.md): logged-in users who can view a problem may submit a trimmed 1–1000-character report with POST `/p/:pid/feedback`; system administrators list and update report statuses at GET/POST `/manage/problem-feedback`
 - [Problem creation and editing](problem-create-edit.md)
 - [Problem files and downloads](problem-files.md)
 - [Problem solutions](problem-solutions.md)

@@ -220,6 +220,22 @@ export interface RealnameApplication {
     rejectReason?: string;
 }
 
+export const PROBLEM_FEEDBACK_STATUSES = ['pending', 'processing', 'resolved', 'invalid'] as const;
+export type ProblemFeedbackStatus = typeof PROBLEM_FEEDBACK_STATUSES[number];
+
+export interface ProblemFeedbackDoc {
+    _id: ObjectId;
+    domainId: string;
+    pid: number;
+    owner: number;
+    content: string;
+    status: ProblemFeedbackStatus;
+    createdAt: Date;
+    updatedAt: Date;
+    reviewedAt?: Date;
+    reviewedBy?: number;
+}
+
 declare module './model/problem' {
     interface ProblemDoc {
         docType: document['TYPE_PROBLEM'];
@@ -828,6 +844,7 @@ declare module './service/db' {
         paste: import('./model/paste').PasteDoc;
         background_task: import('./model/backgroundTask').BackgroundTaskDoc;
         oier: import('./model/oier').OierDoc;
+        'problem.feedback': ProblemFeedbackDoc;
         'oier.record': import('./model/oier').OierRecordDoc;
         'oier.school': import('./model/oier').OierSchoolDoc;
         'oier.contest': import('./model/oier').OierContestDoc;
@@ -839,6 +856,7 @@ export interface Model {
     builtin: typeof import('./model/builtin');
     checkin: typeof import('./model/checkin');
     realname: typeof import('./model/realname');
+    problemFeedback: typeof import('./model/problemFeedback');
     contest: typeof import('./model/contest');
     discussion: typeof import('./model/discussion');
     document: Omit<typeof import('./model/document'), 'apply'>;

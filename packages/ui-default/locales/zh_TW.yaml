@@ -149,6 +149,7 @@ Blocked by: 封鎖人
 Blocked solution authors: 已封鎖題解的作者
 Bold: 加粗
 Boom!: 炸了！
+Briefly describe the problem: 請簡要描述題目存在的問題
 Browser: 瀏覽器
 Built-in: 內建
 Bulletin: 公告
@@ -449,6 +450,7 @@ Failed to parse testcase.: 無法解析測試點資訊。
 False: 錯誤
 Featured Solution: 精選題解
 Feedback: 反饋
+Feedback must be 1000 characters or fewer.: 反饋內容不能超過 1000 個字元。
 Field {0} or {1} validation failed.: 欄位 {0} 或 {1} 驗證失敗。
 Field {0} validation failed.: 欄位 {0} 驗證失敗。
 File: 檔案
@@ -823,6 +825,7 @@ Problem {1} not found.: 題目 {1} 不存在。
 Problem / User Info: 題目 / 使用者資訊
 Problem Category: 標籤
 Problem Data: 題目資料
+Problem feedback submitted.: 題目反饋已提交。
 Problem ID: 題目編號
 Problem ID cannot be a pure number. Leave blank if you want to use numberic id.: 題目ID不能為純數字。 若要自動分配數字ID請將此處留空。
 Problem ID List: 題目 ID 列表
@@ -941,6 +944,7 @@ Reply: 回覆
 Reply discussions: 回覆討論
 Reply problem solutions: 回覆題解
 Report: 舉報
+Report Problem Issue: 反饋題目問題
 Require Invitation Code: 需要邀請碼
 required: 必填
 Reset: 重置
