@@ -49,14 +49,14 @@ export function normalizePreliminaryDefinition(
         const sectionId = id(section.id, `${field}.id`);
         if (ids.has(sectionId)) invalid(`${field}.id`, 'Duplicate identifier');
         ids.add(sectionId);
-        if (!['single_choice', 'program_reading', 'program_completion'].includes(section.type as string)) {
+        if (!['single_choice', 'program_reading', 'program_completion', 'programming'].includes(section.type as string)) {
             invalid(`${field}.type`, 'Unsupported section type');
         }
-        const type = section.type as 'single_choice' | 'program_reading' | 'program_completion';
+        const type = section.type as 'single_choice' | 'program_reading' | 'program_completion' | 'programming';
         const titleValue = text(section.title ?? '', `${field}.title`, 255, requireComplete);
         const sectionContent = text(
             section.content ?? '', `${field}.content`, 65535,
-            requireComplete && type !== 'single_choice',
+            requireComplete && !['single_choice', 'programming'].includes(type),
         );
         if (!Array.isArray(section.questions)) invalid(`${field}.questions`, 'Expected an array');
         if (requireComplete && !section.questions.length) invalid(`${field}.questions`, 'A section needs at least one question');
@@ -71,6 +71,9 @@ export function normalizePreliminaryDefinition(
             if (ids.has(questionId)) invalid(`${qfield}.id`, 'Duplicate identifier');
             ids.add(questionId);
             if (!['choice', 'true_false', 'programming'].includes(question.type as string)) invalid(`${qfield}.type`, 'Unsupported question type');
+            if (type === 'programming' && question.type !== 'programming') {
+                invalid(`${qfield}.type`, 'Programming sections only support programming questions');
+            }
             if (type !== 'program_reading' && question.type === 'true_false') {
                 invalid(`${qfield}.type`, 'Only program-reading sections support true/false questions');
             }

@@ -248,6 +248,35 @@ describe('preliminary paper validation', () => {
         duplicate.sections[1].questions[0].id = duplicate.sections[0].questions[0].id;
         assert.throws(() => normalizePreliminaryDefinition(duplicate, true));
     });
+
+    it('supports programming sections with multiple programming questions only', () => {
+        const programmingSection = {
+            id: 'section-programming',
+            type: 'programming' as const,
+            title: 'Programming',
+            content: '',
+            questions: [
+                {
+                    id: 'program-1', type: 'programming' as const, prompt: 'Solve 1', score: 5,
+                    explanation: '', pid: 1, problemTitle: 'A', multiplier: 1, languages: [],
+                },
+                {
+                    id: 'program-2', type: 'programming' as const, prompt: 'Solve 2', score: 5,
+                    explanation: '', pid: 2, problemTitle: 'B', multiplier: 1, languages: [],
+                },
+            ],
+        };
+        const normalized = normalizePreliminaryDefinition({ ...definition, sections: [programmingSection] }, true);
+        assert.equal(normalized.sections[0].questions.length, 2);
+        const invalid = {
+            ...programmingSection,
+            questions: [{ ...programmingSection.questions[0], type: 'choice' as const, options: [], answer: '' }],
+        };
+        assert.throws(
+            () => normalizePreliminaryDefinition({ ...definition, sections: [invalid] }, false),
+            ValidationError,
+        );
+    });
 });
 
 describe('preliminary scoring and disclosure', () => {

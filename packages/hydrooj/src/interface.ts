@@ -306,7 +306,7 @@ export type RecordDoc = {
     _id: ObjectId;
     notify?: boolean;
     aiGeneration?: AiGenerationMeta;
-    preliminary?: { attemptId: ObjectId; questionId: string };
+    preliminary?: { attemptId: ObjectId, questionId: string };
 };
 
 export interface RecordHistoryDoc extends RecordJudgeInfo {
@@ -429,7 +429,7 @@ export type PreliminaryQuestion = PreliminaryChoiceQuestion | PreliminaryTrueFal
 
 export interface PreliminarySection {
     id: string;
-    type: 'single_choice' | 'program_reading' | 'program_completion';
+    type: 'single_choice' | 'program_reading' | 'program_completion' | 'programming';
     title: string;
     content: string;
     questions: PreliminaryQuestion[];
