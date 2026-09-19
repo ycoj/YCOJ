@@ -108,7 +108,7 @@ Description: render the structured editor. Create requires `PERM_CREATE_PROBLEM`
 
 ## `POST /preliminary/create` and `POST /preliminary/:paperId/edit` operation `save`
 
-Description: save a draft, publish, update a published paper immediately, or unpublish. Request `type Request={operation:"save";definition:PaperDefinitionInput;published:boolean}`. Normalization accepts the draft-input shape and stores the required normalized `Question` shape, filling omitted explanations with an empty string.
+Description: save a draft, publish, update a published paper immediately, or unpublish. Request `type Request={operation:"save";definition:PaperDefinitionInput;published:boolean}`. Normalization accepts the draft-input shape and stores the required normalized `Question` shape, filling omitted explanations with an empty string. Programming questions are linked by `pid`; their `prompt` and `problemTitle` may be omitted because the linked problem supplies the statement.
 
 ```json
 {
