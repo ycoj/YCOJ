@@ -14,12 +14,24 @@ import problem from './problem';
 import user from './user';
 import RecordModel from './record';
 import task from './task';
+import db from '../service/db';
 
 const PAPER = document.TYPE_PRELIMINARY_PAPER;
 const REVISION = document.TYPE_PRELIMINARY_REVISION;
 const ATTEMPT = document.TYPE_PRELIMINARY_ATTEMPT;
 const MAX_PROGRAMMING_SUBMISSIONS = 30;
-const resultUpdates = new Map<string, Promise<void>>();
+const RESERVATION_STALE_MS = 15 * 60 * 1000;
+
+async function releaseReservation(domainId: string, paperId: ObjectId, reservation: string) {
+    const parts = reservation.split('|');
+    const counterPath = parts[0];
+    const tokenPath = parts[1];
+    if (!counterPath || !tokenPath) return;
+    await document.coll.updateOne(
+        { domainId, docType: PAPER, docId: paperId, [tokenPath]: true },
+        { $inc: { [counterPath]: -1 }, $unset: { [tokenPath]: '' } },
+    );
+}
 
 export async function get(domainId: string, paperId: ObjectId) {
     const paper = await document.get(domainId, PAPER, paperId);
@@ -127,37 +139,52 @@ export async function submit(
         if (!programmingQuestions.has(questionId)) throw new ValidationError('programmingAnswers', null, 'Contains an invalid programming question');
     }
     const programmingAnswers: Record<string, PreliminaryProgrammingAnswer> = {};
+    const reservedCounterPaths: string[] = [];
     const submittingUser = await user.getById(domainId, owner);
-    for (const section of revision.sections) for (const question of section.questions) {
-        if (question.type !== 'programming') continue;
-        const answer = rawProgrammingAnswers[question.id];
-        if (!answer || typeof answer.code !== 'string' || typeof answer.lang !== 'string' || !answer.code.trim()) continue;
-        const pdoc = await problem.get(domainId, question.pid);
-        if (!pdoc || typeof pdoc.config !== 'object' || ['objective', 'submit_answer'].includes(pdoc.config.type)) {
-            throw new ValidationError('programmingAnswers', null, 'Referenced problem is not programmable');
-        }
-        if (!submittingUser || !problem.canViewBy(pdoc, submittingUser)) {
-            throw new ValidationError('programmingAnswers', null, 'Referenced problem is not available');
-        }
-        const allowedLanguages = question.languages.length ? question.languages
-            : (Array.isArray((pdoc.config as any).langs) ? (pdoc.config as any).langs : []);
-        if (allowedLanguages.length && !allowedLanguages.includes(answer.lang)) {
-            throw new ValidationError('programmingAnswers', null, 'Language is not allowed for this question');
-        }
-        const count = await document.coll.countDocuments({
-            domainId,
-            docType: ATTEMPT,
-            owner,
-            paperId,
-            revisionId: revision.docId,
-            [`programmingAnswers.${question.id}`]: { $exists: true },
-        });
-        if (count >= MAX_PROGRAMMING_SUBMISSIONS) {
-            throw new ValidationError('programmingAnswers', null, 'This programming question has reached its submission limit');
-        }
-        programmingAnswers[question.id] = answer;
+    const staleBefore = new Date(Date.now() - RESERVATION_STALE_MS);
+    const staleReservations = await document.coll.find({
+        domainId, docType: ATTEMPT, parentType: PAPER, parentId: paperId,
+        status: 'reserving', submittedAt: { $lt: staleBefore },
+    }).toArray();
+    for (const stale of staleReservations) {
+        const claimed = await document.coll.findOneAndUpdate(
+            { domainId, docType: ATTEMPT, docId: stale.docId, status: 'reserving', submittedAt: { $lt: staleBefore } },
+            { $set: { status: 'cleanup' } }, { returnDocument: 'after' },
+        );
+        if (!claimed) continue;
+        const paths = Array.isArray((stale as any).reservationPaths) ? (stale as any).reservationPaths as string[] : [];
+        for (const path of paths) await releaseReservation(domainId, paperId, path);
+        await document.coll.deleteOne({ domainId, docType: ATTEMPT, docId: stale.docId, status: 'cleanup' });
     }
     const submittedAt = new Date();
+    const provisionalAttemptId = new ObjectId();
+    const session = db.client.startSession();
+    try {
+        await session.withTransaction(async () => {
+            await document.coll.insertOne({ _id: provisionalAttemptId, content: '', owner, domainId, docType: ATTEMPT, docId: provisionalAttemptId, parentType: PAPER, parentId: paperId, paperId, revisionId: revision.docId, revision: revision.revision, answers, programmingAnswers: {}, ...graded, status: 'reserving', submittedAt, reservationPaths: [] } as any, { session });
+            for (const section of revision.sections) for (const question of section.questions) {
+                if (question.type !== 'programming') continue;
+                const answer = rawProgrammingAnswers[question.id];
+                if (!answer || typeof answer.code !== 'string' || typeof answer.lang !== 'string' || !answer.code.trim()) continue;
+                const pdoc = await problem.get(domainId, question.pid);
+                if (!pdoc || typeof pdoc.config !== 'object' || ['objective', 'submit_answer'].includes(pdoc.config.type)) throw new ValidationError('programmingAnswers', null, 'Referenced problem is not programmable');
+                if (!submittingUser || !problem.canViewBy(pdoc, submittingUser)) throw new ValidationError('programmingAnswers', null, 'Referenced problem is not available');
+                const allowedLanguages = question.languages.length ? question.languages : (Array.isArray((pdoc.config as any).langs) ? (pdoc.config as any).langs : []);
+                if (allowedLanguages.length && !allowedLanguages.includes(answer.lang)) throw new ValidationError('programmingAnswers', null, 'Language is not allowed for this question');
+                const counterKey = Buffer.from(`${owner}:${revision.docId.toHexString()}:${question.id}`).toString('base64url');
+                const counterPath = `programmingSubmissionCounts.${counterKey}`;
+                const tokenPath = `programmingReservationTokens.${counterKey}.${provisionalAttemptId.toHexString()}`;
+                const reserved = await document.coll.findOneAndUpdate({ domainId, docType: PAPER, docId: paperId, published: true, $expr: { $lt: [{ $ifNull: [`$${counterPath}`, 0] }, MAX_PROGRAMMING_SUBMISSIONS] } }, { $inc: { [counterPath]: 1 }, $set: { [tokenPath]: true } }, { returnDocument: 'after', session });
+                if (!reserved) throw new ValidationError('programmingAnswers', null, 'This programming question has reached its submission limit');
+                const reservation = `${counterPath}|${tokenPath}`;
+                reservedCounterPaths.push(reservation);
+                await document.coll.updateOne({ domainId, docType: ATTEMPT, docId: provisionalAttemptId, status: 'reserving' }, { $push: { reservationPaths: reservation }, $set: { [`programmingAnswers.${question.id}`]: answer } } as any, { session });
+                programmingAnswers[question.id] = answer;
+            }
+        });
+    } finally {
+        await session.endSession();
+    }
 
     let attemptId: ObjectId;
     let attempt: PreliminaryAttemptDoc;
@@ -168,18 +195,11 @@ export async function submit(
         );
         if (!currentPaper) throw new PreliminaryPaperNotPublishedError(paperId);
 
-        attemptId = await document.add(
-                domainId, '', owner, ATTEMPT, null, PAPER, paperId,
-                {
-                    paperId,
-                    revisionId: revision.docId,
-                    revision: revision.revision,
-                    answers, programmingAnswers,
-                    ...graded,
-                    status: Object.keys(programmingAnswers).length ? 'pending' : 'completed',
-                    submittedAt,
-                },
-            );
+        attemptId = provisionalAttemptId;
+        await document.coll.updateOne(
+            { domainId, docType: ATTEMPT, docId: attemptId, status: 'reserving' },
+            { $set: { programmingAnswers }, $unset: { reservationPaths: '' } },
+        );
 
         const claimedPaper = await document.coll.findOneAndUpdate(
                 { domainId, docType: PAPER, docId: paperId, published: true },
@@ -197,39 +217,48 @@ export async function submit(
                 domainId, question.pid, owner, answer.lang, answer.code, true,
                 { type: 'judge', preliminary: { attemptId, questionId: question.id } },
             );
+            // Bind only while the result is still pending and unclaimed. A judge
+            // callback may complete it before this write; then this is a no-op.
             await document.coll.updateOne(
-                { domainId, docType: ATTEMPT, docId: attemptId, 'results.questionId': question.id },
+                {
+                    domainId, docType: ATTEMPT, docId: attemptId,
+                    results: { $elemMatch: { questionId: question.id, status: 'pending', rid: { $exists: false } } },
+                },
                 { $set: { 'results.$.rid': rid, 'results.$.lang': answer.lang, 'results.$.status': 'pending' } },
             );
         }
 
+        await document.coll.updateOne(
+            { domainId, docType: ATTEMPT, docId: attemptId, status: 'reserving' },
+            { $set: { status: Object.keys(programmingAnswers).length ? 'pending' : 'completed' } },
+        );
+
         attempt = await document.get(domainId, ATTEMPT, attemptId);
         return attempt;
     } catch (error) {
-        if (attemptId) {
-            const records = await RecordModel.coll.find({ domainId, 'preliminary.attemptId': attemptId }).project({ _id: 1 }).toArray();
+        if (attemptId || provisionalAttemptId) {
+            const cleanupAttemptId = attemptId || provisionalAttemptId;
+            const claimedCleanup = await document.coll.findOneAndUpdate(
+                { domainId, docType: ATTEMPT, docId: cleanupAttemptId, status: { $in: ['reserving', 'pending', 'completed'] } },
+                { $set: { status: 'cleanup' } }, { returnDocument: 'after' },
+            );
+            if (!claimedCleanup) throw error;
+            const records = await RecordModel.coll.find({ domainId, 'preliminary.attemptId': cleanupAttemptId }).project({ _id: 1 }).toArray();
             if (records.length) await task.deleteMany({ rid: { $in: records.map((record) => record._id) } });
-            await RecordModel.coll.deleteMany({ domainId, 'preliminary.attemptId': attemptId });
-            await document.deleteOne(domainId, ATTEMPT, attemptId);
+            await RecordModel.coll.deleteMany({ domainId, 'preliminary.attemptId': cleanupAttemptId });
+            await document.coll.deleteOne({ domainId, docType: ATTEMPT, docId: cleanupAttemptId, status: 'cleanup' });
             if (claimed) await document.coll.updateOne(
                 { domainId, docType: PAPER, docId: paperId },
                 { $inc: { nAttempt: -1 } },
             );
         }
+        for (const path of reservedCounterPaths) await releaseReservation(domainId, paperId, path);
         throw error;
     }
 }
 
 export async function updateProgrammingResult(domainId: string, rdoc: RecordDoc) {
     if (!rdoc.preliminary) return;
-    const key = domainId + ':' + rdoc.preliminary.attemptId.toHexString();
-    const previous = resultUpdates.get(key) || Promise.resolve();
-    let resolveCurrent: () => void;
-    const current = new Promise<void>((resolve) => { resolveCurrent = resolve; });
-    const chain = previous.then(() => current);
-    resultUpdates.set(key, chain);
-    await previous;
-    try {
     const attempt = await document.get(domainId, ATTEMPT, rdoc.preliminary.attemptId);
     if (!attempt) return;
     const revision = await getRevisionById(domainId, attempt.revisionId);
@@ -238,21 +267,17 @@ export async function updateProgrammingResult(domainId: string, rdoc: RecordDoc)
         .find((item) => item.id === rdoc.preliminary.questionId);
     if (!question || question.type !== 'programming') return;
     const awarded = question.score * question.multiplier * (rdoc.score || 0) / 100;
-    const result = attempt.results.find((item) => item.questionId === question.id);
-    if (!result || result.rid && !result.rid.equals(rdoc._id)) return;
-    const results = attempt.results.map((item) => item.questionId === question.id
-        ? { ...item, score: awarded, maxScore: question.score * question.multiplier, correct: rdoc.score >= 100, status: 'completed' as const, judgeScore: rdoc.score, rid: rdoc._id }
-        : item);
-    const pending = results.some((item) => item.status === 'pending');
-    const score = results.reduce((sum, item) => sum + item.score, 0);
     await document.coll.updateOne(
         { domainId, docType: ATTEMPT, docId: attempt.docId, results: { $elemMatch: { questionId: question.id, $or: [{ rid: { $exists: false } }, { rid: rdoc._id }] } } },
-        { $set: { results, score, totalScore: preliminaryTotalScore(revision), status: pending ? 'pending' : 'completed' } },
+        [
+            { $set: { results: { $map: { input: '$results', as: 'r', in: { $cond: [
+                { $eq: ['$$r.questionId', question.id] },
+                { $mergeObjects: ['$$r', { score: awarded, maxScore: question.score * question.multiplier, correct: rdoc.score >= 100, status: 'completed', judgeScore: rdoc.score, rid: rdoc._id }] },
+                '$$r',
+            ] } } } } },
+            { $set: { score: { $sum: '$results.score' }, totalScore: preliminaryTotalScore(revision), status: { $cond: [{ $anyElementTrue: { $map: { input: '$results', as: 'r', in: { $eq: ['$$r.status', 'pending'] } } } }, 'pending', 'completed'] } } },
+        ],
     );
-    } finally {
-        resolveCurrent!();
-        if (resultUpdates.get(key) === chain) resultUpdates.delete(key);
-    }
 }
 
 export async function getAttempt(domainId: string, paperId: ObjectId, attemptId: ObjectId) {

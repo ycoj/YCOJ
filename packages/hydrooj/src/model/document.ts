@@ -1,6 +1,6 @@
 import assert from 'assert';
 import {
-    Filter, FindCursor, ObjectId, OnlyFieldsOfType, PushOperator, UpdateFilter,
+    ClientSession, Filter, FindCursor, ObjectId, OnlyFieldsOfType, PushOperator, UpdateFilter,
 } from 'mongodb';
 import { Context } from '../context';
 import {
@@ -66,19 +66,19 @@ export async function add<T extends keyof DocType, K extends DocType[T]['docId']
     domainId: string, content: Content, owner: number,
     docType: T, docId: K,
     parentType?: DocType[T]['parentType'], parentId?: DocType[T]['parentId'],
-    args?: Partial<DocType[T]>,
+    args?: Partial<DocType[T]>, session?: ClientSession,
 ): Promise<K>;
 export async function add<T extends keyof DocType>(
     domainId: string, content: Content, owner: number,
     docType: T, docId: null,
     parentType?: DocType[T]['parentType'], parentId?: DocType[T]['parentId'],
-    args?: Partial<DocType[T]>,
+    args?: Partial<DocType[T]>, session?: ClientSession,
 ): Promise<ObjectId>;
 export async function add(
     domainId: string, content: Content, owner: number,
     docType: number, docId: DocID = null,
     parentType: number | null = null, parentId: DocID = null,
-    args: any = {},
+    args: any = {}, session?: ClientSession,
 ) {
     const _id = new ObjectId();
     const doc: any = {
@@ -96,7 +96,7 @@ export async function add(
         doc.parentId = parentId;
     }
     await bus.parallel('document/add', doc);
-    const res = await coll.insertOne(doc);
+    const res = await coll.insertOne(doc, session ? { session } : undefined);
     return docId || res.insertedId;
 }
 
