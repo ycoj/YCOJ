@@ -209,7 +209,7 @@ export function scorePreliminaryAnswers(
                     correct: false,
                     score: 0,
                     maxScore: question.score * question.multiplier,
-                    status: 'pending',
+                    status: 'completed',
                 });
                 continue;
             }
