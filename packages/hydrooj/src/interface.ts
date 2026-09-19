@@ -420,7 +420,7 @@ export interface PreliminaryTrueFalseQuestion extends PreliminaryQuestionBase {
 export interface PreliminaryProgrammingQuestion extends PreliminaryQuestionBase {
     type: 'programming';
     pid: number;
-    problemTitle: string;
+    problemTitle?: string;
     multiplier: number;
     languages: string[];
 }

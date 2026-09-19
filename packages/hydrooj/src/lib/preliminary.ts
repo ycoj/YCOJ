@@ -77,7 +77,10 @@ export function normalizePreliminaryDefinition(
             if (type !== 'program_reading' && question.type === 'true_false') {
                 invalid(`${qfield}.type`, 'Only program-reading sections support true/false questions');
             }
-            const prompt = text(question.prompt ?? '', `${qfield}.prompt`, 16384, requireComplete);
+            const prompt = text(
+                question.prompt ?? '', `${qfield}.prompt`, 16384,
+                requireComplete && question.type !== 'programming',
+            );
             const explanation = text(question.explanation ?? '', `${qfield}.explanation`, 32768);
             const score = Number(question.score);
             if (!Number.isSafeInteger(score * 2) || score < 0.5 || score > 1000) {
@@ -100,7 +103,7 @@ export function normalizePreliminaryDefinition(
                     score,
                     explanation,
                     pid,
-                    problemTitle: text(question.problemTitle ?? '', `${qfield}.problemTitle`, 255, requireComplete),
+                    problemTitle: text(question.problemTitle ?? '', `${qfield}.problemTitle`, 255),
                     multiplier,
                     languages: Array.from(new Set(question.languages as string[])),
                 };

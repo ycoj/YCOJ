@@ -257,12 +257,12 @@ describe('preliminary paper validation', () => {
             content: '',
             questions: [
                 {
-                    id: 'program-1', type: 'programming' as const, prompt: 'Solve 1', score: 5,
-                    explanation: '', pid: 1, problemTitle: 'A', multiplier: 1, languages: [],
+                    id: 'program-1', type: 'programming' as const, prompt: '', score: 5,
+                    explanation: '', pid: 1, multiplier: 1, languages: [],
                 },
                 {
-                    id: 'program-2', type: 'programming' as const, prompt: 'Solve 2', score: 5,
-                    explanation: '', pid: 2, problemTitle: 'B', multiplier: 1, languages: [],
+                    id: 'program-2', type: 'programming' as const, prompt: '', score: 5,
+                    explanation: '', pid: 2, multiplier: 1, languages: [],
                 },
             ],
         };
