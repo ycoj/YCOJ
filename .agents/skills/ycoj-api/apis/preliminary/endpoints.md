@@ -88,7 +88,7 @@ Example: `GET /preliminary/68b6...` -> `{"paper":{"docId":"68b6...","title":"CSP
 
 ## `POST /preliminary/:paperId` operation `submit`
 
-Description: grade and store one immutable attempt. Requires profile privilege and `PERM_SUBMIT_PROBLEM`; rate limit is 20 requests per 60 seconds per user. Each programming question may be submitted at most 30 times per user and paper revision. The paper must currently be published. `revision` may identify an older immutable revision the user loaded before an immediate paper update.
+Description: grade and store one immutable attempt. Requires profile privilege and `PERM_SUBMIT_PROBLEM`; rate limit is 20 requests per 60 seconds per user. Each programming question may be submitted at most 30 times per user and paper revision (a soft check; concurrent requests are not reserved atomically). The paper must currently be published. `revision` may identify an older immutable revision the user loaded before an immediate paper update.
 
 Request `type Request={operation:"submit";revision:PositiveInt;answers:Answers;programmingAnswers?:Record<string,ProgrammingAnswer>}`. Missing question keys are unanswered. Programming answers create normal problem records and keep the attempt `status:"pending"` until judging completes; an empty language restriction inherits the referenced problem languages, and the last record determines the score.
 

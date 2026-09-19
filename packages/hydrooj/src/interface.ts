@@ -491,9 +491,8 @@ export interface PreliminaryAttemptDoc extends Document {
     results: PreliminaryQuestionResult[];
     score: number;
     totalScore: number;
-    status?: 'pending' | 'completed' | 'reserving';
+    status?: 'pending' | 'completed';
     submittedAt: Date;
-    reservationPaths?: string[];
 }
 
 export interface DomainDoc extends Record<string, any> {
