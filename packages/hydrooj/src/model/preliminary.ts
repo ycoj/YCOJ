@@ -195,13 +195,17 @@ export async function submit(
             if (question.type !== 'programming') continue;
             const answer = programmingAnswers[question.id];
             if (!answer?.code?.trim()) continue;
-            const rid = await (await import('./record')).default.add(
-                domainId, question.pid, owner, answer.lang, answer.code, true,
+            const rid = await RecordModel.add(
+                domainId, question.pid, owner, answer.lang, answer.code, false,
                 { type: 'judge', preliminary: { attemptId, questionId: question.id } },
             );
             await document.coll.updateOne(
                 { domainId, docType: ATTEMPT, docId: attemptId, 'results.questionId': question.id },
                 { $set: { 'results.$.rid': rid, 'results.$.lang': answer.lang, 'results.$.status': 'pending' } },
+            );
+            const priority = await RecordModel.submissionPriority(owner);
+            await RecordModel.judge(
+                domainId, rid, priority, {}, { type: 'judge' },
             );
         }
 
