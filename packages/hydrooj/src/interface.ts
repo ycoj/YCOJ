@@ -306,6 +306,7 @@ export type RecordDoc = {
     _id: ObjectId;
     notify?: boolean;
     aiGeneration?: AiGenerationMeta;
+    preliminary?: { attemptId: ObjectId; questionId: string };
 };
 
 export interface RecordHistoryDoc extends RecordJudgeInfo {
@@ -416,7 +417,15 @@ export interface PreliminaryTrueFalseQuestion extends PreliminaryQuestionBase {
     answer: 'true' | 'false';
 }
 
-export type PreliminaryQuestion = PreliminaryChoiceQuestion | PreliminaryTrueFalseQuestion;
+export interface PreliminaryProgrammingQuestion extends PreliminaryQuestionBase {
+    type: 'programming';
+    pid: number;
+    problemTitle: string;
+    multiplier: number;
+    languages: string[];
+}
+
+export type PreliminaryQuestion = PreliminaryChoiceQuestion | PreliminaryTrueFalseQuestion | PreliminaryProgrammingQuestion;
 
 export interface PreliminarySection {
     id: string;
@@ -458,6 +467,15 @@ export interface PreliminaryQuestionResult {
     correct: boolean;
     score: number;
     maxScore: number;
+    status?: 'pending' | 'completed';
+    rid?: ObjectId;
+    lang?: string;
+    judgeScore?: number;
+}
+
+export interface PreliminaryProgrammingAnswer {
+    lang: string;
+    code: string;
 }
 
 export interface PreliminaryAttemptDoc extends Document {
@@ -469,9 +487,11 @@ export interface PreliminaryAttemptDoc extends Document {
     revisionId: ObjectId;
     revision: number;
     answers: Record<string, string>;
+    programmingAnswers?: Record<string, PreliminaryProgrammingAnswer>;
     results: PreliminaryQuestionResult[];
     score: number;
     totalScore: number;
+    status?: 'pending' | 'completed';
     submittedAt: Date;
 }
 

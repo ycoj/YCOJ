@@ -119,8 +119,40 @@ mockModule('../src/service/db', {
 });
 mockModule('../src/service/bus', { parallel: async () => { } });
 mockModule('../src/context', {});
+mockModule('../src/model/user', { getById: async () => ({}) });
+mockModule('../src/model/problem', {
+    get: async () => null,
+    canViewBy: () => false,
+});
+mockModule('../src/model/record', {
+    __esModule: true,
+    default: {
+        coll: {
+            find: () => ({ project: () => ({ toArray: async () => [] }) }),
+            deleteMany: async () => {},
+        },
+        add: async () => new ObjectId(),
+        judge: async () => {},
+        submissionPriority: async () => 0,
+    },
+});
+mockModule('../src/model/task', {
+    __esModule: true,
+    default: { deleteMany: async () => {} },
+});
 
-Object.assign(global, { Hydro: { model: {}, ui: {} } });
+Object.assign(global, {
+    Hydro: {
+        model: {},
+        ui: {},
+        module: new Proxy({}, {
+            get(target, key) {
+                target[key] ||= {};
+                return target[key];
+            },
+        }),
+    },
+});
 const preliminary = require('../src/model/preliminary') as typeof import('../src/model/preliminary');
 
 const byType = (docType: number) => documentStore.filter((doc) => doc.docType === docType);

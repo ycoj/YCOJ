@@ -4,7 +4,7 @@
 
 ```ts
 type SectionType = 'single_choice' | 'program_reading' | 'program_completion';
-type QuestionType = 'choice' | 'true_false';
+type QuestionType = 'choice' | 'true_false' | 'programming';
 
 interface ChoiceOption { id: string; text: string }
 interface Question {
@@ -15,6 +15,10 @@ interface Question {
   explanation: string;
   answer: string; // option id, or "true" / "false"
   options?: ChoiceOption[];
+  pid?: number;
+  problemTitle?: string;
+  multiplier?: number;
+  languages?: string[];
 }
 interface Section {
   id: string;
@@ -27,21 +31,32 @@ interface PaperDefinition { title: string; content: string; sections: Section[] 
 
 // Draft-input shape for save requests: normalization fills omitted fields,
 // and every normalized stored Question carries a (possibly empty) explanation.
-interface QuestionInput {
+interface BaseQuestionInput {
   id: string;
-  type: QuestionType;
   prompt: string;
   score: number; // multiple of 0.5, between 0.5 and 1000
   explanation?: string;
+}
+interface ObjectiveQuestionInput extends BaseQuestionInput {
+  type: 'choice' | 'true_false';
   answer: string; // option id, or "true" / "false"
   options?: ChoiceOption[];
 }
+interface ProgrammingQuestionInput extends BaseQuestionInput {
+  type: 'programming';
+  pid?: number;
+  problemTitle?: string;
+  multiplier?: number;
+  languages?: string[];
+}
+type QuestionInput = ObjectiveQuestionInput | ProgrammingQuestionInput;
 interface SectionInput { id: string; type: SectionType; title: string; content: string; questions: QuestionInput[] }
 interface PaperDefinitionInput { title: string; content: string; sections: SectionInput[] }
 type Answers = Record<string, string>;
+type ProgrammingAnswer = { lang: string; code: string };
 ```
 
-IDs use 1-64 ASCII letters, digits, `_`, or `-` and must be unique across sections and questions; option IDs must be unique within their question. A paper has at most 100 sections and 200 questions. Question scores are multiples of 0.5 from 0.5 to 1000, so totals remain exact. Choice questions have at most 26 options. Only program-reading sections accept true/false questions. Publishing additionally requires nonempty section titles, program passages, question prompts, at least two options per choice question, and valid answer references. Explanations are optional in submitted definitions.
+IDs use 1-64 ASCII letters, digits, `_`, or `-` and must be unique across sections and questions; option IDs must be unique within their question. A paper has at most 100 sections and 200 questions. Question scores are multiples of 0.5 from 0.5 to 1000, so totals remain exact. Programming questions reference an existing problem, use a positive multiplier, and optionally restrict languages; an empty restriction inherits all languages allowed by the referenced problem. Choice questions have at most 26 options. Only program-reading sections accept true/false questions. Publishing additionally requires nonempty section titles, program passages, question prompts, at least two options per choice question, and valid answer references. Explanations are optional in submitted definitions.
 
 ## `GET /preliminary`
 
@@ -73,9 +88,9 @@ Example: `GET /preliminary/68b6...` -> `{"paper":{"docId":"68b6...","title":"CSP
 
 ## `POST /preliminary/:paperId` operation `submit`
 
-Description: grade and store one immutable attempt. Requires profile privilege and `PERM_SUBMIT_PROBLEM`; rate limit is 20 requests per 60 seconds per user. The paper must currently be published. `revision` may identify an older immutable revision the user loaded before an immediate paper update.
+Description: grade and store one immutable attempt. Requires profile privilege and `PERM_SUBMIT_PROBLEM`; rate limit is 20 requests per 60 seconds per user. Each programming question may be submitted at most 30 times per user and paper revision (a soft check; concurrent requests are not reserved atomically). The paper must currently be published. `revision` may identify an older immutable revision the user loaded before an immediate paper update.
 
-Request `type Request={operation:"submit";revision:PositiveInt;answers:Answers}`. Missing question keys are unanswered; unknown question IDs, invalid option IDs, and invalid true/false values fail validation.
+Request `type Request={operation:"submit";revision:PositiveInt;answers:Answers;programmingAnswers?:Record<string,ProgrammingAnswer>}`. Missing question keys are unanswered. Programming answers create normal problem records and keep the attempt `status:"pending"` until judging completes; an empty language restriction inherits the referenced problem languages, and the last record determines the score.
 
 ```json
 {"operation":"submit","revision":2,"answers":{"q1":"option-b","q2":"true"}}
@@ -85,7 +100,7 @@ Response `type Response={attemptId:ObjectId;score:number;totalScore:number;url:s
 
 ## `GET /preliminary/:paperId/attempt/:attemptId`
 
-Description: return one result to its owner. Response `type Response={attempt:AttemptDoc;paper:ReviewPaper}`. Every review question contains `{result:{questionId,answer?,correct,score,maxScore}}`; only incorrect or unanswered questions additionally contain `correctAnswer`, and `explanation` when the question has one. Correct questions omit both fields. Other users receive `PreliminaryAttemptNotFoundError`.
+Description: return one result to its owner. Response `type Response={attempt:AttemptDoc;paper:ReviewPaper}`. Every review question contains `{result:{questionId,answer?,correct,score,maxScore,status?,rid?,lang?,judgeScore?}}`; programming results may remain pending until the linked record finishes. Only incorrect or unanswered objective questions additionally contain `correctAnswer`, and `explanation` when the question has one. Other users receive `PreliminaryAttemptNotFoundError`.
 
 ## `GET /preliminary/create` and `GET /preliminary/:paperId/edit`
 

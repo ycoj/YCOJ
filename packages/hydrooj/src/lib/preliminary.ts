@@ -70,8 +70,8 @@ export function normalizePreliminaryDefinition(
             const questionId = id(question.id, `${qfield}.id`);
             if (ids.has(questionId)) invalid(`${qfield}.id`, 'Duplicate identifier');
             ids.add(questionId);
-            if (!['choice', 'true_false'].includes(question.type as string)) invalid(`${qfield}.type`, 'Unsupported question type');
-            if (type !== 'program_reading' && question.type !== 'choice') {
+            if (!['choice', 'true_false', 'programming'].includes(question.type as string)) invalid(`${qfield}.type`, 'Unsupported question type');
+            if (type !== 'program_reading' && question.type === 'true_false') {
                 invalid(`${qfield}.type`, 'Only program-reading sections support true/false questions');
             }
             const prompt = text(question.prompt ?? '', `${qfield}.prompt`, 16384, requireComplete);
@@ -79,6 +79,28 @@ export function normalizePreliminaryDefinition(
             const score = Number(question.score);
             if (!Number.isSafeInteger(score * 2) || score < 0.5 || score > 1000) {
                 invalid(`${qfield}.score`, 'Expected a multiple of 0.5 from 0.5 to 1000');
+            }
+            if (question.type === 'programming') {
+                const pid = Number(question.pid);
+                if (!Number.isSafeInteger(pid) || pid <= 0) invalid(`${qfield}.pid`, 'Select a valid problem');
+                const multiplier = Number(question.multiplier);
+                if (!Number.isFinite(multiplier) || multiplier <= 0) {
+                    invalid(`${qfield}.multiplier`, 'Expected a positive multiplier');
+                }
+                if (!Array.isArray(question.languages) || question.languages.some((lang) => typeof lang !== 'string')) {
+                    invalid(`${qfield}.languages`, 'Expected a list of languages');
+                }
+                return {
+                    id: questionId,
+                    type: 'programming',
+                    prompt,
+                    score,
+                    explanation,
+                    pid,
+                    problemTitle: text(question.problemTitle ?? '', `${qfield}.problemTitle`, 255, requireComplete),
+                    multiplier,
+                    languages: Array.from(new Set(question.languages as string[])),
+                };
             }
             if (question.type === 'true_false') {
                 if (!['true', 'false'].includes(question.answer as string)) {
@@ -139,7 +161,10 @@ export function preliminaryQuestionCount(definition: PreliminaryPaperDefinition)
 
 export function preliminaryTotalScore(definition: PreliminaryPaperDefinition) {
     return definition.sections.reduce(
-        (sum, section) => sum + section.questions.reduce((sectionSum, question) => sectionSum + question.score, 0),
+        (sum, section) => sum + section.questions.reduce(
+            (sectionSum, question) => sectionSum + question.score * (question.type === 'programming' ? question.multiplier : 1),
+            0,
+        ),
         0,
     );
 }
@@ -151,12 +176,15 @@ export function normalizePreliminaryAnswers(
     if (!input || typeof input !== 'object' || Array.isArray(input)) invalid('answers', 'Expected an object');
     const questions = new Map<string, PreliminaryQuestion>();
     for (const section of definition.sections) {
-        for (const question of section.questions) questions.set(question.id, question);
+        for (const question of section.questions) {
+            if (question.type !== 'programming') questions.set(question.id, question);
+        }
     }
     const answers: Record<string, string> = {};
     for (const [questionId, answer] of Object.entries(input as Record<string, unknown>)) {
         const question = questions.get(questionId);
         if (!question || typeof answer !== 'string') invalid('answers', 'Contains an invalid question or answer');
+        if (question.type === 'programming') invalid('answers', 'Programming answers use a separate payload');
         if (question.type === 'true_false') {
             if (!['true', 'false'].includes(answer)) invalid('answers', 'Contains an invalid true/false answer');
         } else if (!question.options.some((option) => option.id === answer)) {
@@ -175,6 +203,16 @@ export function scorePreliminaryAnswers(
     let score = 0;
     for (const section of definition.sections) {
         for (const question of section.questions) {
+            if (question.type === 'programming') {
+                results.push({
+                    questionId: question.id,
+                    correct: false,
+                    score: 0,
+                    maxScore: question.score * question.multiplier,
+                    status: 'completed',
+                });
+                continue;
+            }
             const correct = answers[question.id] === question.answer;
             const awarded = correct ? question.score : 0;
             score += awarded;
@@ -197,7 +235,7 @@ export function toPublicPreliminaryDefinition(definition: PreliminaryPaperDefini
         sections: definition.sections.map((section) => ({
             ...section,
             questions: section.questions.map((question) => {
-                const { answer, explanation, ...publicQuestion } = question;
+                const { answer, explanation, ...publicQuestion } = question as PreliminaryQuestion & { answer?: string };
                 return publicQuestion;
             }),
         })),
@@ -216,6 +254,10 @@ export function toPreliminaryReview(
             ...section,
             questions: section.questions.map((question) => {
                 const result = resultMap.get(question.id);
+                if (question.type === 'programming') {
+                    const { explanation, ...publicQuestion } = question;
+                    return { ...publicQuestion, result };
+                }
                 const { answer: correctAnswer, explanation, ...publicQuestion } = question;
                 return {
                     ...publicQuestion,

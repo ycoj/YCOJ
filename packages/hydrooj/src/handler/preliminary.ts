@@ -142,11 +142,12 @@ class PreliminaryDetailHandler extends Handler {
     @param('paperId', Types.ObjectId)
     @post('revision', Types.PositiveInt)
     @post('answers', Types.Any)
-    async postSubmit(domainId: string, paperId: ObjectId, revision: number, answers: unknown) {
+    @post('programmingAnswers', Types.Any, true)
+    async postSubmit(domainId: string, paperId: ObjectId, revision: number, answers: unknown, programmingAnswers: unknown = {}) {
         this.checkPriv(PRIV.PRIV_USER_PROFILE);
         this.checkPerm(PERM.PERM_SUBMIT_PROBLEM);
         await this.limitRate('preliminary_submit', 60, 20, '{{user}}');
-        const attempt = await preliminary.submit(domainId, paperId, revision, this.user._id, answers);
+        const attempt = await preliminary.submit(domainId, paperId, revision, this.user._id, answers, programmingAnswers);
         this.response.body = {
             attemptId: attempt.docId,
             score: attempt.score,
@@ -233,6 +234,7 @@ class PreliminaryAttemptHandler extends Handler {
 }
 
 export function apply(ctx: Context) {
+    ctx.on('record/judge', async (rdoc) => preliminary.updateProgrammingResult(rdoc.domainId, rdoc));
     ctx.Route('preliminary_main', '/preliminary', PreliminaryMainHandler, PERM.PERM_VIEW_PROBLEM);
     ctx.Route('preliminary_create', '/preliminary/create', PreliminaryEditHandler);
     ctx.Route('preliminary_detail', '/preliminary/:paperId', PreliminaryDetailHandler, PERM.PERM_VIEW_PROBLEM);
