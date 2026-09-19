@@ -137,6 +137,7 @@ export default class RecordModel {
             type: 'judge' | 'rejudge' | 'pretest' | 'hack' | 'generate';
             notify?: boolean;
             aiGeneration?: RecordDoc['aiGeneration'];
+            preliminary?: RecordDoc['preliminary'];
         } = { type: 'judge' },
     ) {
         const data: RecordDoc = {
@@ -163,6 +164,7 @@ export default class RecordModel {
         if (args.hackTarget) data.hackTarget = args.hackTarget;
         if (args.notify) data.notify = true;
         if (args.aiGeneration) data.aiGeneration = args.aiGeneration;
+        if (args.preliminary) data.preliminary = args.preliminary;
         if (args.type === 'rejudge') {
             args.type = 'judge';
             data.rejudged = true;
