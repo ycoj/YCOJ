@@ -3,7 +3,7 @@
 ## Shared types
 
 ```ts
-type SectionType = 'single_choice' | 'program_reading' | 'program_completion';
+type SectionType = 'single_choice' | 'program_reading' | 'program_completion' | 'programming';
 type QuestionType = 'choice' | 'true_false' | 'programming';
 
 interface ChoiceOption { id: string; text: string }
@@ -56,7 +56,7 @@ type Answers = Record<string, string>;
 type ProgrammingAnswer = { lang: string; code: string };
 ```
 
-IDs use 1-64 ASCII letters, digits, `_`, or `-` and must be unique across sections and questions; option IDs must be unique within their question. A paper has at most 100 sections and 200 questions. Question scores are multiples of 0.5 from 0.5 to 1000, so totals remain exact. Programming questions reference an existing problem, use a positive multiplier, and optionally restrict languages; an empty restriction inherits all languages allowed by the referenced problem. Choice questions have at most 26 options. Only program-reading sections accept true/false questions. Publishing additionally requires nonempty section titles, program passages, question prompts, at least two options per choice question, and valid answer references. Explanations are optional in submitted definitions.
+IDs use 1-64 ASCII letters, digits, `_`, or `-` and must be unique across sections and questions; option IDs must be unique within their question. A paper has at most 100 sections and 200 questions. Question scores are multiples of 0.5 from 0.5 to 1000, so totals remain exact. Programming questions reference an existing problem, use a positive multiplier, and optionally restrict languages; an empty restriction inherits all languages allowed by the referenced problem. Choice questions have at most 26 options. Only program-reading sections accept true/false questions. Programming sections accept only programming questions; legacy sections containing programming questions remain valid. Publishing additionally requires nonempty section titles, program passages for reading/completion sections, question prompts, at least two options per choice question, and valid answer references. Explanations are optional in submitted definitions.
 
 ## `GET /preliminary`
 
