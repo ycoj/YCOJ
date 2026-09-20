@@ -10,7 +10,7 @@ The default base URL is `https://ycoj.cc/`. Every documented route is relative t
 | `/contest`, `/contest/*` | [Contest](contest/README.md) | Lists, details, creation/editing, problem list, management, bulk submit, files, users, print, balloons, scoreboard, onsite-toolkit routes |
 | `/homework`, `/homework/*` | [Homework](homework/README.md) | Creation/editing, attendance, files, code, scoreboard |
 | `/training`, `/training/*` | [Training](training/README.md) | Lists, plans, editing, files and downloads |
-| `/preliminary`, `/preliminary/*` | [Preliminary Round Training](preliminary/README.md) | Structured objective papers, draft/publish management, attempts, scores, and incorrect-answer explanations |
+| `/preliminary`, `/preliminary/*` | [Preliminary Round Training](preliminary/README.md) | Structured objective and programming papers, referenced problem dictionaries, draft/publish management, attempts, scores, and incorrect-answer explanations |
 | `/record`, `/record/*`, `/record-conn`, `/record-detail-conn` | [Record](record/README.md) | Submission search/detail, rejudge/cancel, live record streams |
 | `/status`, `/status/*` | [Status](status/README.md) | Judge/system status and updates |
 | `/checkin` | [Check-in](checkin/README.md) | Daily check-in mutation |

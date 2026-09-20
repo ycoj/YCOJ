@@ -8,6 +8,7 @@ import {
 } from '../lib/preliminary';
 import { PERM, PRIV } from '../model/builtin';
 import * as preliminary from '../model/preliminary';
+import problem from '../model/problem';
 import user from '../model/user';
 import {
     Handler, param, post, Types,
@@ -116,9 +117,25 @@ class PreliminaryDetailHandler extends Handler {
             ? await preliminary.getRevisionById(domainId, this.paper.activeRevisionId)
             : this.paper;
         if (!definition) throw new PreliminaryPaperNotPublishedError(paperId);
+        const programmingPids = new Set<number>();
+        for (const section of definition.sections) {
+            for (const question of section.questions) {
+                if (question.type === 'programming' && typeof question.pid === 'number') {
+                    programmingPids.add(question.pid);
+                }
+            }
+        }
         const attempts = this.user.hasPriv(PRIV.PRIV_USER_PROFILE)
             ? await preliminary.getAttempts(domainId, { parentId: paperId, owner: this.user._id }).limit(20).toArray()
             : [];
+        const pdict = await problem.getList(
+            domainId,
+            Array.from(programmingPids),
+            this.user.hasPerm(PERM.PERM_VIEW_PROBLEM_HIDDEN) || this.user._id,
+            false,
+            problem.PROJECTION_PUBLIC,
+            true,
+        );
         this.UiContext.preliminary = {
             paperId: paperId.toHexString(),
             revision: this.paper.revision,
@@ -129,6 +146,7 @@ class PreliminaryDetailHandler extends Handler {
                 ...paperSummary(this.paper),
                 ...withQuestionNumbers(toPublicPreliminaryDefinition(definition)),
             },
+            pdict,
             attempts: await Promise.all(attempts.map((attempt) => attemptSummary(domainId, attempt))),
             owner: await user.getById(domainId, this.paper.owner),
             canEdit: canEdit(this, this.paper),

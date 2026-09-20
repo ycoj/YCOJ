@@ -82,9 +82,9 @@ Attempt-history response uses `view:"attempts"` and `attempts:Array<{docId,paper
 
 ## `GET /preliminary/:paperId`
 
-Description: render a published paper or an authorized draft preview. Response `type Response={paper:PublicPaper;attempts:AttemptSummary[];owner:User;canEdit:boolean;canSubmit:boolean}`. `PublicPaper.sections[].questions[]` includes the prompt, type, score, and options but never includes `answer` or `explanation`. The attempt list contains at most the current user's latest 20 attempts.
+Description: render a published paper or an authorized draft preview. Response `type Response={paper:PublicPaper;pdict:Record<number,ProblemDoc>;attempts:AttemptSummary[];owner:User;canEdit:boolean;canSubmit:boolean}`. `pdict` contains each accessible programming problem referenced by the paper, keyed by numeric problem document ID, using the public problem projection (including its statement and judge configuration); inaccessible or missing problems are omitted, and it is empty when the paper has no programming questions. `PublicPaper.sections[].questions[]` includes the prompt, type, score, and options but never includes `answer` or `explanation`. The attempt list contains at most the current user's latest 20 attempts.
 
-Example: `GET /preliminary/68b6...` -> `{"paper":{"docId":"68b6...","title":"CSP-J 2025","revision":2,"sections":[]},"attempts":[],"canEdit":false,"canSubmit":true}`. An unauthorized draft returns `PreliminaryPaperNotPublishedError`.
+Example: `GET /preliminary/68b6...` -> `{"paper":{"docId":"68b6...","title":"CSP-J 2025","revision":2,"sections":[]},"pdict":{"1001":{"docId":1001,"title":"A + B","content":"...","config":{"type":"default"}}},"attempts":[],"canEdit":false,"canSubmit":true}`. An unauthorized draft returns `PreliminaryPaperNotPublishedError`.
 
 ## `POST /preliminary/:paperId` operation `submit`
 
